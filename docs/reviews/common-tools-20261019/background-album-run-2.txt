@@ -1,0 +1,32 @@
+$ node scripts/test-flows.mjs tools-flow.cjs
+PASS: seven-tool source/content rules, prototype portrait gates, paid-before-repair, payment-before-outfit, automatic paid-tool save and result recovery/continuation, duplicate-payment/save protection, order snapshots/recovery, background album save/readback/retry without downloads or orders, other free-tool downloads, formats/custom crop/size limits/background foreground preservation.
+
+Exit: 0
+
+$ node scripts/test-flows.mjs background-album-flow.cjs
+PASS: background result persists through the real album commit/load path; failure/retry, original preservation, no download/payment, completion and restart.
+
+Exit: 0
+
+$ node scripts/test-flows.mjs album-flow.cjs
+PASS: direct finished-library entry, camera return visibility, management/all-selection, real ZIP/single/raw downloads, delete cancel/failure/detail return, missing-file restrictions, current six tools, legacy URLs/print return, stale deletion isolation.
+
+Exit: 0
+
+$ node --test tests/bindings.test.mjs tests/runtime.test.mjs
+✔ all initial JSX data bindings resolve against the migrated domain state (44.554917ms)
+✔ React subscription sees nested changes and async updates while native blobs remain unwrapped (2.152083ms)
+✔ child state writes shared route on parent and lifecycle methods run only in their own controller (0.187125ms)
+✔ derived and cross-store watchers react once to a new value and stop on unmount (0.970375ms)
+✔ loop-local names shadow controller state without corrupting it (0.079584ms)
+✔ storage conversion preserves shared identity and cycles while removing reactive wrappers (0.093333ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 127.306375
+
+Exit: 0

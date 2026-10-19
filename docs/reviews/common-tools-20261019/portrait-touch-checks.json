@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-19",
+  "scope": "V2 portrait failure/retry touch targets; awaiting user acceptance",
+  "rounds": [
+    {
+      "round": 1,
+      "results": [
+        {
+          "command": "node scripts/test-flows.mjs tools-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node --test tests/bindings.test.mjs",
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "results": [
+        {
+          "command": "node scripts/test-flows.mjs tools-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node --test tests/bindings.test.mjs",
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "results": [
+        {
+          "command": "node scripts/test-flows.mjs tools-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node --test tests/bindings.test.mjs",
+          "exit": 0
+        }
+      ]
+    }
+  ],
+  "sha256": {
+    "src/styles/portrait-photo-check.css": "580c0c0c18d40ebdf8e833f38483fd5a69a32f4ca738767b6c8d1b9cacfa43ae",
+    "src/components/PortraitPhotoCheck.jsx": "203303497f55095ada25d9c8822f6340e78db20a92244b623c4ae683d7afeba0",
+    "src/domain/tools.js": "d8002cacf705de8fba5e6c47685b16eeb349d0d8663402538581192a6978feec"
+  }
+}

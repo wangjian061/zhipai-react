@@ -1,0 +1,11 @@
+tools-flow.cjs
+AUDIT E1: recreating a free-tool controller loses the in-progress photo/output/settings.
+PASS: seven-tool source/content rules, prototype portrait gates, paid-before-repair, payment-before-outfit, automatic paid-tool save and result recovery/continuation, duplicate-payment/save protection, order snapshots/recovery, real free downloads without album writes, formats/custom crop/size limits/background foreground preservation.
+
+Exit: 0
+
+print-flow.cjs
+AUDIT E2: print draft photo survives recreation, while crop coordinates reset.
+PASS: fixed 5:7 ratio gate, automatic advance, manual crop/retry/cancellation and immutable originals, direct selection and photo entry, fresh three-step journeys, sheet closure, completion without order navigation, single selection from library or phone, template matching, quote/address gating, double-submit protection, payment timeout/retry, physical fulfillment states, snapshots and failed-write recovery.
+
+Exit: 0

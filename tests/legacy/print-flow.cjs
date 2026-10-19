@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const {webcrypto} = require('node:crypto');
 const stores = {}, data = {};
 let saved, failWrite = false;
-const drawCalls=[];
+const drawCalls=[], cropRenders=[];let failCrop=false, cropResolve=null;
 const context = vm.createContext({
   crypto: webcrypto, Blob, URL, URLSearchParams, Intl, Date, Uint8Array, Event,
   history:{pushState(_state,_title,url){context.lastNavigation=String(url);}},
@@ -15,6 +15,7 @@ const context = vm.createContext({
   document:{activeElement:null,addEventListener(name,callback){if(name==='alpine:init')callback();},createElement(){return {getContext(){return {fillRect(){},drawImage(...args){drawCalls.push(args)},scale(){},save(){},restore(){},translate(){},rotate(){},fillText(){}};},toBlob(callback){callback(new Blob(['preview'],{type:'image/jpeg'}));}};}},
   Alpine:{store(name,value){if(value)stores[name]=value;return stores[name];},data(name,factory){data[name]=factory;}},
   decodePhotoBlob: async()=>({naturalWidth:295,naturalHeight:413}),
+  renderPhotoBlob:async(blob,settings)=>{cropRenders.push(settings);if(failCrop)throw Error('encode failed');if(cropResolve)await new Promise(resolve=>{cropResolve=resolve});return new Blob(['cropped'],{type:'image/jpeg'});},
   actualPhotoURL:()=> 'blob:actual-photo',
   setTimeout:callback=>{queueMicrotask(callback);return 1;},
   readSnapshot:async()=>saved,
@@ -23,6 +24,8 @@ const context = vm.createContext({
 stores.account={session:{phone:"13800008000"}};
 vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../dist/print.js'),'utf8'),context);
 vm.runInContext('readPrintState=readSnapshot;writePrintState=writeSnapshot;',context);
+const albumSource=fs.readFileSync(require('node:path').join(__dirname,'../dist/album.js'),'utf8');
+vm.runInContext(albumSource.slice(albumSource.indexOf('function photoCropBounds('),albumSource.indexOf('async function decodePhotoBlob(')),context);
 const photo={id:'finished-real',name:'证件照',width:295,height:413,spec:'一寸 · 25 × 35 mm',type:'image/jpeg',blob:new Blob(['actual-file'],{type:'image/jpeg'})};
 const library={ready:true,busy:false,finished:[photo],addedIds:[]};
 stores.photoLibrary=library;stores.photoChoice={printReturnContext:null};
@@ -35,13 +38,14 @@ studio.showModal=function(name){this.modal=name;stores.printUi.opened=true;};stu
   await store.load();
   assert.equal(store.ready,true);
   await studio.choosePhoto(photo,'phone');
-  assert.equal(store.draft.photo,null,'phone source must be rejected');
+  assert.equal(store.draft.photo.id,photo.id,'phone source is allowed');
+  await studio.startPrint();
   await studio.choosePhoto({...photo,id:'not-in-library'},'finished');
   assert.equal(store.draft.photo,null,'unknown finished record must be rejected');
   await studio.enter({entry:'home',returnTo:'/?page=home'});assert.equal(studio.view,'select','entry opens photo selection directly');
   await studio.startPrint();assert.equal(studio.view,'select');
   studio.selectCandidate(photo.id);studio.showModal('album');await studio.preparePhoto();
-  assert.equal(studio.modal,null,'selection drawer closes when used');assert.equal(studio.view,'select','selecting a photo stays on the first step');
+  assert.equal(studio.modal,null,'selection drawer closes when used');assert.equal(studio.view,'layouts','a matching photo immediately advances to layouts');
   const returnContext=studio.returnContext();library.addedIds=['stale-unrelated'];await studio.resumePrint(returnContext);
   assert.equal(store.draft.photo.id,photo.id,'cancel/back preserves selection despite stale transient added IDs');
   const returnPhoto={...photo,id:'returned-new',name:'刚制作的成片'};library.finished.unshift(returnPhoto);library.addedIds=[];
@@ -121,9 +125,9 @@ studio.showModal=function(name){this.modal=name;stores.printUi.opened=true;};stu
   await store.load();assert.equal(store.orders.find(o=>o.id===orderId).status,'completed');assert.equal(store.orders[0].photo.blob.size,photo.blob.size);
   context.decodePhotoBlob=async()=>({naturalWidth:600,naturalHeight:600});
   const invalid=await vm.runInContext('requestPrintLayouts',context)(photo);
-  assert.equal(invalid.options.length,2,'all source ratios receive the same two supported layouts');
+  assert.equal(invalid.options.length,2,'matching metadata receives both layouts');
   for(const call of drawCalls.slice(-20)) assert.equal(call[3],call[4],'square source remains square without stretching');
-  const arbitrary=await vm.runInContext('requestPrintLayouts',context)({...photo,spec:'自定义',width:600,height:600});assert.equal(arbitrary.options.length,2);
+  const arbitrary=await vm.runInContext('requestPrintLayouts',context)({...photo,spec:'自定义',width:600,height:600});assert.equal(arbitrary.options.length,0,'non-matching ratios cannot request layouts');
   const oldDraft=store.snapshot?store.snapshot():{draft:{...store.draft,quantity:8,addon:5},addresses:store.addresses,orders:store.orders};oldDraft.draft.quantity=8;oldDraft.draft.addon=5;
   const normalized=vm.runInContext('plainPrintState',context)(oldDraft);assert.equal(normalized.draft.quantity,1);assert.equal(normalized.draft.addon,0);
   // Header exit and footer previous are independent; backtracking keeps the draft intact.
@@ -136,5 +140,37 @@ studio.showModal=function(name){this.modal=name;stores.printUi.opened=true;};stu
   await studio.enter({photo,kind:'finished',entry:'album',returnTo:'/?page=album'});assert.equal(studio.view,'layouts','album entry skips repeated photo selection');assert.equal(store.draft.photo.id,photo.id);
   await studio.enter({entry:'home'});assert.equal(studio.view,'select');assert.equal(store.draft.photo,null,'fresh entry starts with an empty selector');
   context.location.search='?page=print&print=preview';studio.$el={querySelectorAll:()=>[]};studio.syncLocation();assert.equal(studio.view,'select','legacy service homepage opens selection');
-  console.log('PASS: direct selection and photo entry, fresh three-step journeys, sheet closure, completion without order navigation, finished-only single selection, template matching, quote/address gating, double-submit protection, payment timeout/retry, physical fulfillment states, snapshots and failed-write recovery.');
+  // Layout and crop steps return to selection before replacing a photo.
+  await studio.enter({photo,kind:'finished'});await studio.loadLayouts(true);const selectedDraft=JSON.stringify(store.draft);
+  studio.openAlbum();assert.equal(studio.modal,null,'layout step has no direct replacement entry');
+  studio.previousStep();assert.equal(studio.view,'select');studio.openAlbum();assert.equal(studio.modal,'album');studio.closeModal();
+  assert.equal(JSON.stringify(store.draft),selectedDraft,'cancel replacement retains photo, layout and draft');studio.nextLayouts();assert.equal(studio.view,'layouts');
+  // Printing deliberately accepts non-portrait phone photos through the entire order flow.
+  const cat={...photo,id:'phone-cat',name:'小猫咪.jpg',width:900,height:600,spec:''};
+  await studio.enter({photo:cat,kind:'phone',returnTo:'/?page=home'});assert.equal(studio.view,'crop');assert.equal(store.draft.kind,'phone');assert.equal(store.draft.photo.id,cat.id);
+  assert.equal(studio.canSubmit,false);studio.confirm();assert.equal(studio.view,'crop');
+  studio.view='layouts';await studio.loadLayouts(true);assert.equal(studio.view,'crop','cannot bypass crop with direct navigation');
+  studio.setCrop({scale:1.5,offsetX:30,offsetY:-20});studio.previousStep();assert.equal(studio.view,'select');await studio.choosePhoto(cat,'phone');assert.equal(studio.view,'crop');assert.equal(studio.crop.scale,1.5,'reconfirming the same photo retains manual crop');failCrop=true;await studio.applyCrop();assert.equal(studio.view,'crop');assert.match(studio.error,/裁剪未完成/);assert.equal(store.draft.photo.id,cat.id);assert.equal(studio.crop.scale,1.5);
+  failCrop=false;const originalBlob=cat.blob;await Promise.all([studio.applyCrop(),studio.applyCrop()]);assert.equal(studio.view,'layouts');assert.equal(cat.blob,originalBlob);assert.equal(store.draft.photo.width*7,store.draft.photo.height*5);assert.notEqual(store.draft.photo.id,cat.id);const croppedCatId=store.draft.photo.id;
+  assert.equal(cropRenders.at(-1).scale,1.5);assert.equal(cropRenders.at(-1).offsetX,30);assert.equal(cropRenders.at(-1).offsetY,-20);assert.equal(cropRenders.length,2,'double confirm only renders once');
+  context.decodePhotoBlob=async()=>({naturalWidth:store.draft.photo.width,naturalHeight:store.draft.photo.height});await studio.loadLayouts(true);assert.equal(studio.layouts.length,2);studio.confirm();await studio.loadQuote(true);assert.equal(studio.canSubmit,true,'phone/non-portrait photos can check out');
+  const beforeCatOrder=store.orders.length;await studio.submitOrder();assert.equal(store.orders.length,beforeCatOrder+1);assert.equal(studio.order.photo.id,croppedCatId);assert.equal(studio.order.kind,'phone');assert.equal(studio.order.total,2980);assert.equal(studio.modal,'payment');
+  studio.demoOutcome='success';await studio.pay();assert.equal(studio.flowCompleted,true);assert.equal(studio.order.status,'producing');const catOrderId=studio.order.id;
+  await store.load();assert.equal(store.orders.find(o=>o.id===catOrderId).kind,'phone','phone source survives storage reload');
+  // Pixel rounding is accepted, but square, landscape and small-two-inch ratios require a crop.
+  const ratio=vm.runInContext('isPrintRatio',context);
+  for(const [width,height]of [[25,35],[35,49],[295,413],[413,579]])assert.equal(ratio({width,height}),true);
+  for(const [width,height]of [[600,600],[900,600],[350,450],[0,700],[NaN,700]])assert.equal(ratio({width,height}),false);
+  await studio.enter({photo,kind:'finished'});assert.equal(studio.view,'layouts');assert.equal(store.draft.photo.id,photo.id,'matching photos are never re-encoded');
+  const square={...photo,id:'square-original',width:600,height:600};library.finished.push(square);await studio.choosePhoto(square,'finished');assert.equal(studio.view,'crop');
+  const preserved=library.finished.find(p=>p.id===square.id);const renderCount=cropRenders.length;
+  studio.openAlbum();studio.closeModal();assert.equal(studio.view,'crop');assert.equal(cropRenders.length,renderCount,'closing picker never confirms crop');
+  context.location.search='?page=print&print=confirm';studio.syncLocation();assert.equal(studio.view,'crop','refreshing checkout cannot bypass crop');
+  studio.view='crop';studio.setCrop({scale:1,offsetX:0,offsetY:0});await studio.applyCrop();assert.equal(studio.view,'layouts');assert.equal(library.finished.find(p=>p.id===square.id),preserved);assert.equal(preserved.width,600);assert.equal(preserved.blob,square.blob);
+  // Leaving during crop must not overwrite the draft when encoding completes later.
+  await studio.choosePhoto(square,'finished');const pendingPhoto=store.draft.photo.id;
+  cropResolve=true;const pendingCrop=studio.applyCrop();assert.equal(typeof cropResolve,'function');
+  context.location.search='?page=home';studio.syncLocation();const resolveCrop=cropResolve;cropResolve=null;resolveCrop();await pendingCrop;
+  assert.equal(store.draft.photo.id,pendingPhoto);assert.equal(studio.processing,false,'navigation cancels the pending crop');
+  console.log('PASS: fixed 5:7 ratio gate, automatic advance, manual crop/retry/cancellation and immutable originals, direct selection and photo entry, fresh three-step journeys, sheet closure, completion without order navigation, single selection from library or phone, template matching, quote/address gating, double-submit protection, payment timeout/retry, physical fulfillment states, snapshots and failed-write recovery.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

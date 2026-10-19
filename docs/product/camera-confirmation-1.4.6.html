@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>知拍 · 确认照片与尺寸选择</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      body {
+        margin: 0;
+        background: #eef2f7;
+        color: #203858;
+        font:
+          14px/1.7 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 1000px;
+        margin: 32px auto;
+        padding: 0 20px;
+      }
+      h1 {
+        font-size: 24px;
+      }
+      h2 {
+        font-size: 18px;
+      }
+      a {
+        color: #0032ff;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+        border: 0;
+        background: none;
+        color: inherit;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 2px solid #0032ff;
+        outline-offset: 2px;
+      }
+      .doc-layout {
+        display: grid;
+        grid-template-columns: 350px 1fr;
+        gap: 36px;
+        align-items: start;
+      }
+      .doc-controls {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+      }
+      .doc-controls select {
+        padding: 6px;
+        background: #fff;
+        border: 1px solid #dce4ef;
+        border-radius: 8px;
+      }
+      .doc-note {
+        padding: 20px;
+        background: #fff;
+        border-radius: 16px;
+      }
+      .doc-note li {
+        margin: 12px 0;
+      }
+      .wireframe-wrap {
+        height: 740px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+        border-radius: 28px;
+        background: #edf2ff;
+      }
+      .wf-nav {
+        display: grid;
+        grid-template-columns: 44px 1fr 44px;
+        align-items: center;
+        min-height: 68px;
+        padding: 12px 16px;
+      }
+      .wf-nav strong {
+        text-align: center;
+        font-size: 17px;
+      }
+      .wf-nav button {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #fff;
+        font-size: 24px;
+      }
+      .wf-body {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        padding: 12px 20px 20px;
+        text-align: center;
+      }
+      .wf-photo {
+        display: block;
+        width: 100%;
+        height: 260px;
+        object-fit: contain;
+      }
+      .wf-link {
+        display: block;
+        min-height: 44px;
+        margin: auto;
+        color: #0032ff;
+        font-size: 13px;
+      }
+      .wf-hint {
+        font-size: 13px;
+        color: #53637b;
+        margin: 6px 0;
+      }
+      .wf-heading {
+        font-size: 18px;
+        margin: 8px 0;
+      }
+      .wf-settings {
+        margin-top: 20px;
+        text-align: left;
+        display: grid;
+        gap: 18px;
+      }
+      .wf-setting-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .wf-setting-title span:last-child {
+        font-size: 12px;
+        font-weight: 400;
+        color: #53637b;
+      }
+      .wf-tags {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .wf-tags button {
+        position: relative;
+        min-height: 44px;
+        font-size: 13px;
+        isolation: isolate;
+        padding: 6px 0;
+        white-space: nowrap;
+      }
+      .wf-tags button:before {
+        content: "";
+        position: absolute;
+        inset: 6px 0;
+        border: 1px solid #dce4ef;
+        border-radius: 8px;
+        background: #ffffff99;
+        z-index: -1;
+      }
+      .wf-tags button[aria-pressed="true"] {
+        color: #0032ff;
+      }
+      .wf-tags button[aria-pressed="true"]:before {
+        border-color: #0032ff;
+        background: #e5ecff;
+      }
+      .wf-colors {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 12px;
+        overflow-x: auto;
+        padding: 4px;
+      }
+      .wf-colors button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        min-width: 44px;
+        min-height: 62px;
+        font-size: 12px;
+      }
+      .wf-swatch {
+        display: block;
+        width: 30px;
+        height: 30px;
+        border: 1px solid #cbd5e3;
+        border-radius: 50%;
+      }
+      .wf-colors button[aria-pressed="true"] .wf-swatch {
+        outline: 2px solid #0032ff;
+        outline-offset: 3px;
+      }
+      .wf-footer {
+        display: flex;
+        flex: none;
+        padding: 16px 20px 24px;
+        background: #fff;
+      }
+      .wf-primary {
+        width: 100%;
+        min-height: 48px;
+        border-radius: 14px;
+        background: #0032ff;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .wf-layer {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: end;
+        background: #17273d55;
+      }
+      .wf-sheet {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-height: 88%;
+        background: #fff;
+        border-radius: 24px 24px 0 0;
+        overflow: hidden;
+      }
+      .wf-sheet-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        flex: none;
+      }
+      .wf-sheet-header h2 {
+        margin: 0;
+      }
+      .wf-sheet-header button {
+        width: 44px;
+        height: 44px;
+        font-size: 22px;
+      }
+      .wf-sheet-body {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        padding: 0 20px 20px;
+        text-align: left;
+      }
+      .wf-sheet-body h3 {
+        font-size: 13px;
+        margin: 0 0 8px;
+      }
+      .wf-size-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .wf-size-list button,
+      .wf-custom-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        min-height: 62px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        text-align: left;
+      }
+      .wf-size-list button > span:first-child {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .wf-size-list small {
+        font-size: 12px;
+        color: #53637b;
+      }
+      .wf-size-list button[aria-pressed="true"],
+      .wf-custom-toggle[aria-pressed="true"] {
+        color: #0032ff;
+        background: #edf2ff;
+      }
+      .wf-custom-toggle {
+        margin-top: 20px;
+      }
+      .wf-inputs {
+        display: flex;
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .wf-inputs label {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+        gap: 8px;
+        font-size: 12px;
+      }
+      .wf-inputs input {
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        padding: 10px 12px;
+        font-size: 16px;
+        border: 1px solid #dce4ef;
+        border-radius: 10px;
+        background: #f7f9fc;
+      }
+      .wf-error {
+        font-size: 13px;
+        color: #b63e3e;
+      }
+      .wf-failed {
+        color: #ef4444;
+      }
+      #feedback {
+        min-height: 48px;
+        color: #53637b;
+      }
+      @media (max-width: 720px) {
+        .doc-layout {
+          grid-template-columns: 1fr;
+        }
+        .wireframe-wrap {
+          max-width: 350px;
+          width: 100%;
+          margin: auto;
+        }
+        main {
+          margin-top: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>确认照片 · 紧凑尺寸选择</h1>
+      <p>
+        交互式结构说明，不是实际APP截图或视觉定稿。示意不调用相机、相册或真实制作服务。<a
+          href="camera-confirmation-1.4.6.md"
+          >产品规则</a
+        >
+      </p>
+      <div class="doc-layout">
+        <section>
+          <div class="doc-controls">
+            <label
+              >来源
+              <select id="source">
+                <option value="camera">拍照</option>
+                <option value="phone">手机相册</option>
+                <option value="finished">知拍相册</option>
+              </select></label
+            ><label
+              >状态
+              <select id="state">
+                <option value="queued">确认</option>
+                <option value="processing">制作中</option>
+                <option value="failed">失败</option>
+              </select></label
+            >
+          </div>
+          <div class="wireframe-wrap">
+            <header class="wf-nav">
+              <button id="back" aria-label="返回">‹</button
+              ><strong id="title">确认照片</strong><span></span>
+            </header>
+            <div class="wf-body">
+              <img class="wf-photo" id="photo" alt="待制作的照片" /><button
+                class="wf-link"
+                id="replace"
+              >
+                重新拍摄
+              </button>
+              <h2 class="wf-heading" id="heading" hidden></h2>
+              <p class="wf-hint" id="hint">请确认人像清晰、正面无遮挡</p>
+              <button class="wf-link" id="reason" hidden>查看失败原因</button>
+              <section class="wf-settings">
+                <div>
+                  <div class="wf-setting-title">
+                    <span>照片尺寸</span><span id="size-label">35 × 49 mm</span>
+                  </div>
+                  <div class="wf-tags" id="tags"></div>
+                </div>
+                <div>
+                  <div class="wf-setting-title">背景颜色</div>
+                  <div class="wf-colors" id="colors"></div>
+                </div>
+              </section>
+            </div>
+            <footer class="wf-footer">
+              <button class="wf-primary" id="primary">开始制作</button>
+            </footer>
+            <div class="wf-layer" id="size-layer" hidden>
+              <section
+                class="wf-sheet"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="size-title"
+              >
+                <header class="wf-sheet-header">
+                  <h2 id="size-title">选择尺寸</h2>
+                  <button id="size-close" aria-label="关闭选择尺寸">×</button>
+                </header>
+                <div class="wf-sheet-body">
+                  <h3>预设尺寸</h3>
+                  <div class="wf-size-list" id="size-list"></div>
+                  <button class="wf-custom-toggle" id="custom-toggle">
+                    自定义尺寸<span id="custom-check"></span>
+                  </button>
+                  <div class="wf-inputs" id="custom-inputs" hidden>
+                    <label
+                      >宽度（px）<input
+                        id="width"
+                        type="number"
+                        inputmode="numeric"
+                        min="1"
+                        max="6000"
+                        step="1" /></label
+                    ><label
+                      >高度（px）<input
+                        id="height"
+                        type="number"
+                        inputmode="numeric"
+                        min="1"
+                        max="6000"
+                        step="1"
+                    /></label>
+                  </div>
+                  <p class="wf-error" id="size-error" role="alert"></p>
+                </div>
+                <footer class="wf-footer">
+                  <button class="wf-primary" id="size-apply">使用此尺寸</button>
+                </footer>
+              </section>
+            </div>
+            <div class="wf-layer" id="reason-layer" hidden>
+              <section
+                class="wf-sheet"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="reason-title"
+              >
+                <header class="wf-sheet-header">
+                  <h2 id="reason-title">失败原因</h2>
+                </header>
+                <div class="wf-sheet-body">
+                  <p>
+                    照片制作服务暂时不可用，请重新制作；若仍未成功，可更换照片后再试。
+                  </p>
+                </div>
+                <footer class="wf-footer">
+                  <button class="wf-primary" id="reason-close">我知道了</button>
+                </footer>
+              </section>
+            </div>
+          </div>
+          <p id="feedback" role="status"></p>
+        </section>
+        <article class="doc-note">
+          <h2>确认环节的边界</h2>
+          <ul>
+            <li>
+              照片尺寸入口保持一行，小标签只显示名称，当前规格统一显示在标题右侧。
+            </li>
+            <li>更多尺寸提供四种预设与像素自定义，不提供方形照预设。</li>
+            <li>抽屉只定义输出尺寸，不展示照片或提供裁剪、拖动、缩放。</li>
+            <li>
+              关闭抽屉不提交，确认后回显选择；输入无效时在字段所在位置显示原因。
+            </li>
+            <li>制作后保留原结果编辑能力，本轮不重排整个结果页。</li>
+          </ul>
+        </article>
+      </div>
+    </main>
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const sizes = [
+        { id: "one", name: "一寸", mm: "25 × 35 mm", width: 295, height: 413 },
+        { id: "two", name: "二寸", mm: "35 × 49 mm", width: 413, height: 579 },
+        {
+          id: "small-two",
+          name: "小二寸",
+          mm: "35 × 45 mm",
+          width: 413,
+          height: 531,
+        },
+        {
+          id: "large-one",
+          name: "大一寸",
+          mm: "33 × 48 mm",
+          width: 390,
+          height: 567,
+        },
+      ];
+      const colors = [
+        ["蓝色", "#438bc6"],
+        ["白色", "#ffffff"],
+        ["红色", "#d6383d"],
+        ["灰色", "#d5d9e0"],
+        ["透明", "transparent"],
+      ];
+      let selected = { ...sizes[1] },
+        pending = null,
+        background = colors[0][1];
+      $("photo").src =
+        (location.protocol === "file:" ? "../../public/assets/" : "/assets/") +
+        "print-portrait.png";
+      function render() {
+        const busy = $("state").value === "processing",
+          failed = $("state").value === "failed";
+        $("title").textContent = busy
+          ? "正在制作证件照"
+          : failed
+            ? "照片制作"
+            : "确认照片";
+        $("heading").textContent = busy
+          ? "正在制作标准证件照"
+          : failed
+            ? "证件照制作失败"
+            : "";
+        $("heading").hidden = !busy && !failed;
+        $("heading").classList.toggle("wf-failed", failed);
+        $("hint").textContent = busy
+          ? "请稍候，正在处理您的照片"
+          : failed
+            ? "原照片已保留，请查看原因后重新制作"
+            : "请确认人像清晰、正面无遮挡";
+        $("replace").textContent =
+          $("source").value === "camera" ? "重新拍摄" : "重新选择";
+        $("reason").hidden = !failed;
+        $("primary").textContent = busy
+          ? "制作中…"
+          : failed
+            ? "重新制作"
+            : "开始制作";
+        for (const id of ["back", "replace", "primary"]) $(id).disabled = busy;
+        $("size-label").textContent =
+          selected.id === "custom"
+            ? `自定义 · ${selected.width} × ${selected.height} px`
+            : selected.id === "large-one"
+              ? selected.name + " · " + selected.mm
+              : selected.mm;
+        $("tags").innerHTML =
+          sizes
+            .slice(0, 3)
+            .map(
+              (s) =>
+                `<button data-quick="${s.id}" aria-pressed="${selected.id === s.id}" ${busy ? "disabled" : ""}>${s.name}</button>`,
+            )
+            .join("") +
+          `<button id="more-size" aria-haspopup="dialog" aria-pressed="${!sizes.slice(0, 3).some((s) => s.id === selected.id)}" ${busy ? "disabled" : ""}>更多尺寸</button>`;
+        $("colors").innerHTML = colors
+          .map(
+            ([name, value]) =>
+              `<button data-color="${value}" aria-pressed="${background === value}" ${busy ? "disabled" : ""}><span class="wf-swatch" style="background:${value === "transparent" ? "repeating-conic-gradient(#e3e8f0 0% 25%,white 0% 50%) 0/12px 12px" : value}"></span>${name}</button>`,
+          )
+          .join("");
+      }
+      function sizeError() {
+        const w = Number($("width").value),
+          h = Number($("height").value);
+        if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1)
+          return "宽度和高度需为大于0的整数像素。";
+        if (w > 6000 || h > 6000 || w * h > 24000000)
+          return "单边尺寸不能超过6000 px，总像素不能超过2400万。";
+        return "";
+      }
+      function validate() {
+        const error = pending?.id === "custom" ? sizeError() : "";
+        $("size-error").textContent = error;
+        $("size-apply").disabled = !!error;
+        return !error;
+      }
+      function renderSheet() {
+        $("size-list").innerHTML = sizes
+          .map(
+            (s) =>
+              `<button data-size="${s.id}" aria-pressed="${pending.id === s.id}"><span><strong>${s.name}</strong><small>${s.mm} · ${s.width} × ${s.height} px</small></span><span>${pending.id === s.id ? "✓" : ""}</span></button>`,
+          )
+          .join("");
+        $("custom-inputs").hidden = pending.id !== "custom";
+        $("custom-toggle").setAttribute(
+          "aria-pressed",
+          String(pending.id === "custom"),
+        );
+        $("custom-check").textContent = pending.id === "custom" ? "✓" : "";
+        validate();
+      }
+      function openSize() {
+        pending = { ...selected };
+        $("width").value = selected.width;
+        $("height").value = selected.height;
+        renderSheet();
+        $("size-layer").hidden = false;
+        $("size-close").focus();
+      }
+      function closeSize() {
+        $("size-layer").hidden = true;
+        pending = null;
+        document.getElementById("more-size")?.focus();
+      }
+      $("tags").onclick = (e) => {
+        const button = e.target.closest("button");
+        if (!button || button.disabled) return;
+        if (button.id === "more-size") {
+          openSize();
+          return;
+        }
+        selected = { ...sizes.find((s) => s.id === button.dataset.quick) };
+        render();
+      };
+      $("colors").onclick = (e) => {
+        const button = e.target.closest("button");
+        if (button && !button.disabled) {
+          background = button.dataset.color;
+          render();
+        }
+      };
+      $("size-list").onclick = (e) => {
+        const button = e.target.closest("button");
+        if (button) {
+          pending = { ...sizes.find((s) => s.id === button.dataset.size) };
+          renderSheet();
+        }
+      };
+      $("custom-toggle").onclick = () => {
+        pending = {
+          id: "custom",
+          width: Number($("width").value),
+          height: Number($("height").value),
+        };
+        renderSheet();
+      };
+      $("width").oninput = $("height").oninput = validate;
+      $("size-close").onclick = closeSize;
+      $("size-apply").onclick = () => {
+        if (!validate()) return;
+        selected =
+          pending.id === "custom"
+            ? {
+                id: "custom",
+                width: Number($("width").value),
+                height: Number($("height").value),
+              }
+            : { ...pending };
+        render();
+        closeSize();
+      };
+      $("source").onchange = $("state").onchange = () => {
+        closeSize();
+        $("reason-layer").hidden = true;
+        render();
+      };
+      $("back").onclick = () => {
+        $("feedback").textContent = "返回来源页面，不打开选图。";
+      };
+      $("replace").onclick = () => {
+        $("feedback").textContent = "重新获取照片；取消时原照片与参数保留。";
+      };
+      $("primary").onclick = () => {
+        $("state").value = "processing";
+        render();
+        $("feedback").textContent = "制作中结构示意，目标参数已保留。";
+      };
+      $("reason").onclick = () => {
+        $("reason-layer").hidden = false;
+        $("reason-close").focus();
+      };
+      $("reason-close").onclick = () => {
+        $("reason-layer").hidden = true;
+        $("reason").focus();
+      };
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          if (!$("size-layer").hidden) closeSize();
+          if (!$("reason-layer").hidden) $("reason-close").onclick();
+        }
+      });
+      render();
+    </script>
+  </body>
+</html>

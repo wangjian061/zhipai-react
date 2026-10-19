@@ -37,7 +37,7 @@ html,body{background:#292b30}
 /* Standard task pages keep controls below the OS area; their canvas reaches y=0. */
 .device-fit .page{padding-top:var(--device-status-height)}
 .device-fit :is(.home-page,.album-page[data-view="library"],.collection-page:is([data-view="home"],[data-view="records"],[data-view="services"],[data-view="project"],[data-view="projects"],[data-view="notifications"]),.account-page[data-view="welcome"],.tool-page[data-view="home"],.print-page[data-view="preview"],.camera-page[data-step="capture"]){padding-top:0}
-.device-fit :is(.print-nav,.tool-app-nav,.account-nav,.collection-nav,.album-header,.page-header,.search-header,.camera-stage-header){background:transparent}
+.device-fit :is(.tool-navigation,.account-nav,.collection-nav,.album-header,.page-header,.search-header,.camera-stage-header){background:transparent}
 
 /* The poster starts at the screen edge; OS chrome overlays its existing artwork. */
 .device-fit .home-page .hero{height:calc(var(--device-screen-width) * 977 / 1610);aspect-ratio:auto}

@@ -1,0 +1,13 @@
+$ node scripts/test-flows.mjs camera-scan-flow.cjs
+PASS: camera/scan separation, confirmation before processing, watermark unlock gate, cancel/unknown/same-order query, no duplicate payment/save, refresh recovery, raw-file retention, caller preservation, stale processing isolation, QR fallback and unverified-code boundary.
+
+$ node --test tests/bindings.test.mjs
+✔ all initial JSX data bindings resolve against the migrated domain state (43.872875ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 125.433875

@@ -1,4 +1,9 @@
 import React from "react";
+import CameraSizeOptions from "../components/CameraSizeOptions.jsx";
+import CameraConfirmationSettings from "../components/CameraConfirmationSettings.jsx";
+import PhotoProcessingEffect, {
+  PhotoProcessingStatus,
+} from "../components/PhotoProcessingEffect.jsx";
 import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
 export default function CameraPage({ scope, args = [] }) {
   return (
@@ -12,7 +17,7 @@ export default function CameraPage({ scope, args = [] }) {
           id="camera-page"
           show={s.page === "camera"}
           data-step={s.step}
-          aria-label="拍摄证件照"
+          aria-label="制作证件照"
         >
           <View
             as="input"
@@ -263,12 +268,13 @@ export default function CameraPage({ scope, args = [] }) {
               as="div"
               scope={s}
               className="camera-confirm"
+              data-configurable={!s.collectionCapture}
               show={s.step === "confirm"}
               aria-busy={s.processing || s.previewing}
             >
               <header className="camera-stage-header">
                 <button
-                  aria-label="返回拍摄"
+                  aria-label={s.confirmationBackLabel}
                   disabled={s.busy}
                   onClick={() => s.back()}
                 >
@@ -281,26 +287,29 @@ export default function CameraPage({ scope, args = [] }) {
                     ? "正在制作证件照"
                     : s.draft?.status === "failed"
                       ? "照片制作"
-                      : "确认拍摄效果"}
+                      : "确认照片"}
                 </h1>
                 <span />
               </header>
               <div className="camera-stage-scroll camera-confirm-scroll">
                 <div className="capture-confirm-photo">
-                  <img src={s.sourceURL || undefined} alt="本次拍摄的照片" />
-                  {(s.processing || s.previewing) && (
-                    <div
-                      className="camera-confirm-processing"
-                      aria-hidden="true"
-                    >
-                      <span className="camera-confirm-scan" />
-                      <span className="camera-confirm-progress">
-                        <i className="camera-spinner" />
-                        照片制作中
-                      </span>
-                    </div>
-                  )}
+                  <img src={s.sourceURL || undefined} alt="待制作的照片" />
+                  <PhotoProcessingEffect
+                    active={s.processing || s.previewing}
+                    imageSrc={s.sourceURL}
+                  />
                 </div>
+                <button
+                  type="button"
+                  className="photo-selection-change camera-confirm-replace"
+                  disabled={s.busy}
+                  onClick={() => s.replaceConfirmationPhoto()}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M20 7v5h-5M4 17v-5h5M6.2 7a7 7 0 0 1 11.6-1L20 9M4 15l2.2 3a7 7 0 0 0 11.6-1" />
+                  </svg>
+                  {s.confirmationReplaceLabel}
+                </button>
                 <div
                   className={
                     "camera-confirm-message" +
@@ -309,34 +318,38 @@ export default function CameraPage({ scope, args = [] }) {
                   role="status"
                   aria-live="polite"
                 >
-                  <div className="camera-confirm-status-heading">
-                    {s.draft?.status === "failed" && (
-                      <svg
-                        className="camera-failure-icon"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        aria-hidden="true"
-                      >
-                        <circle cx="12" cy="12" r="9" />
-                        <path d="m9 9 6 6m0-6-6 6" />
-                      </svg>
-                    )}
-                    <h2>
-                      {s.processing || s.previewing
-                        ? "正在制作标准证件照"
-                        : s.draft?.status === "failed"
-                          ? "证件照制作失败"
-                          : "满意这次拍摄效果吗？"}
-                    </h2>
-                  </div>
+                  {(s.processing ||
+                    s.previewing ||
+                    s.draft?.status === "failed") && (
+                    <div className="camera-confirm-status-heading">
+                      {s.draft?.status === "failed" && (
+                        <svg
+                          className="camera-failure-icon"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          aria-hidden="true"
+                        >
+                          <circle cx="12" cy="12" r="9" />
+                          <path d="m9 9 6 6m0-6-6 6" />
+                        </svg>
+                      )}
+                      <h2>
+                        {s.processing || s.previewing
+                          ? "正在制作标准证件照"
+                          : s.draft?.status === "failed"
+                            ? "证件照制作失败"
+                            : ""}
+                      </h2>
+                    </div>
+                  )}
                   <p className="camera-stage-hint">
                     {s.processing || s.previewing
                       ? "请稍候，正在处理您的照片"
                       : s.draft?.status === "failed"
                         ? "原照片已保留，请查看原因后重新制作"
-                        : "使用照片，开始制作证件照"}
+                        : "请确认人像清晰、正面无遮挡"}
                   </p>
                 </div>
                 {s.draft?.status === "failed" ? (
@@ -356,15 +369,20 @@ export default function CameraPage({ scope, args = [] }) {
                     </p>
                   )
                 )}
+                <CameraConfirmationSettings
+                  specs={s.quickSpecs}
+                  colors={s.colors}
+                  selectedSpec={s.draft?.specId}
+                  sizeLabel={s.confirmationSizeLabel}
+                  background={s.draft?.background}
+                  disabled={!s.canConfigureConfirmation}
+                  locked={s.collectionCapture}
+                  onSpec={(id) => s.setConfirmationSpec(id)}
+                  onMoreSpec={() => s.openPanel("spec")}
+                  onBackground={(value) => s.setConfirmationBackground(value)}
+                />
               </div>
               <footer className="camera-stage-actions">
-                <button
-                  className="camera-secondary"
-                  disabled={s.busy}
-                  onClick={() => s.retake()}
-                >
-                  重新拍摄
-                </button>
                 <button
                   className="primary-button"
                   disabled={s.busy || !s.sourcePhoto}
@@ -374,7 +392,7 @@ export default function CameraPage({ scope, args = [] }) {
                     ? "制作中…"
                     : s.draft?.status === "failed"
                       ? "重新制作"
-                      : "使用照片"}
+                      : "开始制作"}
                 </button>
               </footer>
             </View>
@@ -421,6 +439,10 @@ export default function CameraPage({ scope, args = [] }) {
                     alt="制作后的证件照预览"
                     draggable="false"
                   />
+                  <PhotoProcessingEffect
+                    active={s.processing || s.previewing}
+                    imageSrc={s.previewURL || s.sourceURL}
+                  />
                   <View
                     as="div"
                     scope={s}
@@ -439,6 +461,9 @@ export default function CameraPage({ scope, args = [] }) {
                     </View>
                   </View>
                 </View>
+                <PhotoProcessingStatus
+                  label={s.processing || s.previewing ? "正在处理照片" : ""}
+                />
                 <View as="div" scope={s} className="camera-result-meta">
                   <View
                     as="strong"
@@ -797,6 +822,8 @@ export default function CameraPage({ scope, args = [] }) {
                 className="camera-dialog ui-sheet"
                 dynamicClass={{
                   "camera-size-drawer": s.panel === "spec",
+                  "camera-size-picker":
+                    s.panel === "spec" && s.step === "confirm",
                   "camera-result-dialog": s.panel === "makingResult",
                 }}
                 refName="cameraDialog"
@@ -820,7 +847,7 @@ export default function CameraPage({ scope, args = [] }) {
                         makingResult: "模拟制作结果",
                         failureReason: "失败原因",
                         payment: "解锁电子照片",
-                        spec: "尺寸与裁剪",
+                        spec: s.step === "confirm" ? "选择尺寸" : "尺寸与裁剪",
                         background: "选择背景色",
                         discard: "丢弃本次照片？",
                       }[s.panel]
@@ -894,278 +921,167 @@ export default function CameraPage({ scope, args = [] }) {
                   className="ui-sheet-panel"
                 >
                   <View as="div" scope={s} className="ui-sheet-body">
-                    <View as="div" scope={s} className="camera-size-options">
-                      <Repeat
-                        scope={s}
-                        items={s.specs}
-                        names={["item"]}
-                        keyFor={function (scope, $event, $el) {
-                          return scope.item.id;
-                        }}
-                      >
-                        {(s) => (
-                          <>
-                            <>
-                              <View
-                                as="button"
-                                scope={s}
-                                dynamicClass={{
-                                  selected: s.fields.specId === s.item.id,
-                                }}
-                                aria-pressed={s.fields.specId === s.item.id}
-                                events={[
-                                  {
-                                    type: "click",
-                                    prevent: false,
-                                    stop: false,
-                                    self: false,
-                                    passive: false,
-                                    run: function (scope, $event, $el) {
-                                      scope.setPanelSpec(scope.item.id);
-                                    },
-                                  },
-                                ]}
-                              >
-                                <View
-                                  as="strong"
-                                  scope={s}
-                                  text={s.item.name}
-                                ></View>
-                                <View
-                                  as="span"
-                                  scope={s}
-                                  text={s.item.mm}
-                                ></View>
-                              </View>
-                            </>
-                          </>
-                        )}
-                      </Repeat>
-                      <View
-                        as="button"
-                        scope={s}
-                        dynamicClass={{
-                          selected: s.fields.specId === "custom",
-                        }}
-                        aria-pressed={s.fields.specId === "custom"}
-                        events={[
-                          {
-                            type: "click",
-                            prevent: false,
-                            stop: false,
-                            self: false,
-                            passive: false,
-                            run: function (scope, $event, $el) {
-                              scope.setPanelSpec("custom");
-                            },
-                          },
-                        ]}
-                      >
-                        <View as="strong" scope={s}>
-                          {"自定义比例"}
-                        </View>
-                        <View as="span" scope={s}>
-                          {"按比例裁剪"}
-                        </View>
-                      </View>
-                    </View>
-                    <View
-                      as="div"
-                      scope={s}
-                      className="camera-custom-ratio"
-                      show={s.fields.specId === "custom"}
-                    >
-                      <View as="label" scope={s}>
-                        {"宽"}
-                        <View
-                          as="input"
-                          scope={s}
-                          type="number"
-                          min="0.1"
-                          max="100"
-                          step="0.1"
-                          inputMode="decimal"
-                          model={{
-                            read: function (scope, $event, $el) {
-                              return scope.fields.ratioWidth;
-                            },
-                            write: function (scope, $event, $el) {
-                              scope.fields.ratioWidth = $event;
-                            },
-                            number: true,
-                            lazy: false,
-                          }}
-                        ></View>
-                      </View>
-                      <View as="span" scope={s}>
-                        {":"}
-                      </View>
-                      <View as="label" scope={s}>
-                        {"高"}
-                        <View
-                          as="input"
-                          scope={s}
-                          type="number"
-                          min="0.1"
-                          max="100"
-                          step="0.1"
-                          inputMode="decimal"
-                          model={{
-                            read: function (scope, $event, $el) {
-                              return scope.fields.ratioHeight;
-                            },
-                            write: function (scope, $event, $el) {
-                              scope.fields.ratioHeight = $event;
-                            },
-                            number: true,
-                            lazy: false,
-                          }}
-                        ></View>
-                      </View>
-                    </View>
-                    <View
-                      as="div"
-                      scope={s}
-                      className="camera-size-preview camera-edit-frame"
-                      dynamicClass={{
-                        "transparent-frame":
-                          s.fields.background === "transparent",
+                    <CameraSizeOptions
+                      specs={s.specs}
+                      fields={s.fields}
+                      disabled={s.busy}
+                      error={s.sizePanelError || s.error}
+                      onSelect={(id) => s.setPanelSpec(id)}
+                      onWidth={(value) => {
+                        s.fields.customWidth = value;
+                        s.error = "";
                       }}
-                      dynamicStyle={
-                        "--frame-ratio:" +
-                        s.panelSpec.width +
-                        "/" +
-                        s.panelSpec.height +
-                        ";aspect-ratio:" +
-                        s.panelSpec.width +
-                        "/" +
-                        s.panelSpec.height +
-                        ";background-color:" +
-                        (s.fields.background === "transparent"
-                          ? "transparent"
-                          : s.fields.background || "#438bc6")
-                      }
-                      events={[
-                        {
-                          type: "pointerdown",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.startCropGesture($event);
-                          },
-                        },
-                        {
-                          type: "pointermove",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.moveCropGesture($event);
-                          },
-                        },
-                        {
-                          type: "pointerup",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.endCropGesture($event);
-                          },
-                        },
-                        {
-                          type: "pointercancel",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.endCropGesture($event);
-                          },
-                        },
-                      ]}
-                    >
-                      <View
-                        as="img"
-                        scope={s}
-                        src={s.standardURL || undefined}
-                        dynamicStyle={s.panelPhotoStyle}
-                        alt="按所选比例裁剪照片"
-                        draggable="false"
-                      ></View>
-                      <View
-                        as="span"
-                        scope={s}
-                        className="camera-crop-grid"
-                        aria-hidden="true"
-                      ></View>
-                    </View>
-                    <View as="p" scope={s} className="camera-crop-hint">
-                      {"拖动位置 · 双指缩放"}
-                    </View>
-                    <View as="label" scope={s} className="camera-zoom-control">
-                      {"缩放"}
-                      <View
-                        as="input"
-                        scope={s}
-                        type="range"
-                        min="0.5"
-                        max="4"
-                        step="0.01"
-                        model={{
-                          read: function (scope, $event, $el) {
-                            return scope.fields.scale;
-                          },
-                          write: function (scope, $event, $el) {
-                            scope.fields.scale = $event;
-                          },
-                          number: true,
-                          lazy: false,
-                        }}
-                      ></View>
-                      <View
-                        as="span"
-                        scope={s}
-                        text={Number(s.fields.scale || 1).toFixed(2) + "×"}
-                      ></View>
-                    </View>
-                    <View
-                      as="button"
-                      scope={s}
-                      className="camera-text-action"
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.resetCrop();
-                          },
-                        },
-                      ]}
-                    >
-                      {"重置位置"}
-                    </View>
-                    <View
-                      as="p"
-                      scope={s}
-                      className="camera-error"
-                      show={s.error}
-                      text={s.error}
-                      role="alert"
-                    ></View>
+                      onHeight={(value) => {
+                        s.fields.customHeight = value;
+                        s.error = "";
+                      }}
+                    />
+                    {s.step !== "confirm" && (
+                      <>
+                        <View
+                          as="div"
+                          scope={s}
+                          className="camera-size-preview camera-edit-frame"
+                          dynamicClass={{
+                            "transparent-frame":
+                              s.step !== "confirm" &&
+                              s.fields.background === "transparent",
+                          }}
+                          dynamicStyle={
+                            "--frame-ratio:" +
+                            s.panelSpec.width +
+                            "/" +
+                            s.panelSpec.height +
+                            ";aspect-ratio:" +
+                            s.panelSpec.width +
+                            "/" +
+                            s.panelSpec.height +
+                            ";background-color:" +
+                            (s.step === "confirm"
+                              ? "#f1f2f4"
+                              : s.fields.background === "transparent"
+                                ? "transparent"
+                                : s.fields.background || "#438bc6")
+                          }
+                          events={[
+                            {
+                              type: "pointerdown",
+                              prevent: false,
+                              stop: false,
+                              self: false,
+                              passive: false,
+                              run: function (scope, $event, $el) {
+                                scope.startCropGesture($event);
+                              },
+                            },
+                            {
+                              type: "pointermove",
+                              prevent: false,
+                              stop: false,
+                              self: false,
+                              passive: false,
+                              run: function (scope, $event, $el) {
+                                scope.moveCropGesture($event);
+                              },
+                            },
+                            {
+                              type: "pointerup",
+                              prevent: false,
+                              stop: false,
+                              self: false,
+                              passive: false,
+                              run: function (scope, $event, $el) {
+                                scope.endCropGesture($event);
+                              },
+                            },
+                            {
+                              type: "pointercancel",
+                              prevent: false,
+                              stop: false,
+                              self: false,
+                              passive: false,
+                              run: function (scope, $event, $el) {
+                                scope.endCropGesture($event);
+                              },
+                            },
+                          ]}
+                        >
+                          <View
+                            as="img"
+                            scope={s}
+                            src={s.panelPreviewURL || undefined}
+                            dynamicStyle={s.panelPhotoStyle}
+                            alt="按所选比例裁剪照片"
+                            draggable="false"
+                          ></View>
+                          <View
+                            as="span"
+                            scope={s}
+                            className="camera-crop-grid"
+                            aria-hidden="true"
+                          ></View>
+                        </View>
+                        <View as="p" scope={s} className="camera-crop-hint">
+                          {"拖动位置 · 双指缩放"}
+                        </View>
+                        <View
+                          as="label"
+                          scope={s}
+                          className="camera-zoom-control"
+                        >
+                          {"缩放"}
+                          <View
+                            as="input"
+                            scope={s}
+                            type="range"
+                            min="0.5"
+                            max="4"
+                            step="0.01"
+                            model={{
+                              read: function (scope, $event, $el) {
+                                return scope.fields.scale;
+                              },
+                              write: function (scope, $event, $el) {
+                                scope.fields.scale = $event;
+                              },
+                              number: true,
+                              lazy: false,
+                            }}
+                          ></View>
+                          <View
+                            as="span"
+                            scope={s}
+                            text={Number(s.fields.scale || 1).toFixed(2) + "×"}
+                          ></View>
+                        </View>
+                        <View
+                          as="button"
+                          scope={s}
+                          className="camera-text-action"
+                          events={[
+                            {
+                              type: "click",
+                              prevent: false,
+                              stop: false,
+                              self: false,
+                              passive: false,
+                              run: function (scope, $event, $el) {
+                                scope.resetCrop();
+                              },
+                            },
+                          ]}
+                        >
+                          {"重置位置"}
+                        </View>
+                      </>
+                    )}
                   </View>
                   <View as="footer" scope={s} className="ui-sheet-footer">
                     <View
                       as="button"
                       scope={s}
                       className="primary-button camera-pay-button"
-                      disabled={s.busy}
+                      disabled={s.busy || !!s.sizePanelError}
                       events={[
                         {
                           type: "click",
@@ -1179,7 +1095,7 @@ export default function CameraPage({ scope, args = [] }) {
                         },
                       ]}
                     >
-                      {"确认尺寸与裁剪"}
+                      {s.step === "confirm" ? "使用此尺寸" : "确认尺寸与裁剪"}
                     </View>
                   </View>
                 </View>
@@ -1279,6 +1195,7 @@ export default function CameraPage({ scope, args = [] }) {
                       className="camera-background-mini camera-edit-frame"
                       dynamicClass={{
                         "transparent-frame":
+                          s.step !== "confirm" &&
                           s.fields.background === "transparent",
                       }}
                       dynamicStyle={
@@ -1291,15 +1208,17 @@ export default function CameraPage({ scope, args = [] }) {
                         "/" +
                         s.spec.height +
                         ";background-color:" +
-                        (s.fields.background === "transparent"
-                          ? "transparent"
-                          : s.fields.background || "#438bc6")
+                        (s.step === "confirm"
+                          ? "#f1f2f4"
+                          : s.fields.background === "transparent"
+                            ? "transparent"
+                            : s.fields.background || "#438bc6")
                       }
                     >
                       <View
                         as="img"
                         scope={s}
-                        src={s.standardURL || undefined}
+                        src={s.panelPreviewURL || undefined}
                         dynamicStyle={s.panelPhotoStyle}
                         alt="所选背景色预览"
                       ></View>
@@ -1460,7 +1379,7 @@ export default function CameraPage({ scope, args = [] }) {
                       scope={s}
                       className="camera-discard-description"
                     >
-                      {"丢弃后，本次拍摄与制作结果将被清除。"}
+                      {"丢弃后，当前照片与制作结果将被清除。"}
                     </View>
                     <View
                       as="p"

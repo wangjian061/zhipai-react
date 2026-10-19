@@ -1,0 +1,81 @@
+import React from "react";
+import "../styles/photo-selection.css";
+import "../styles/camera-confirmation.css";
+
+export default function CameraConfirmationSettings({
+  specs,
+  colors,
+  selectedSpec,
+  sizeLabel,
+  background,
+  disabled,
+  locked,
+  onSpec,
+  onMoreSpec,
+  onBackground,
+}) {
+  if (locked)
+    return <p className="camera-confirm-locked">采集规格由项目统一设置</p>;
+  return (
+    <section className="camera-confirm-settings" aria-label="制作规格设置">
+      <fieldset disabled={disabled}>
+        <legend className="sr-only">照片尺寸</legend>
+        <div className="camera-confirm-setting-heading">
+          <span aria-hidden="true">照片尺寸</span>
+          <span className="camera-confirm-current-size">{sizeLabel}</span>
+        </div>
+        <div className="camera-confirm-specs">
+          {specs.map((spec) => (
+            <button
+              key={spec.id}
+              type="button"
+              aria-pressed={selectedSpec === spec.id}
+              onClick={() => onSpec(spec.id)}
+            >
+              <span>{spec.name}</span>
+            </button>
+          ))}
+          <button
+            type="button"
+            disabled={disabled}
+            aria-haspopup="dialog"
+            aria-pressed={
+              !!selectedSpec && !specs.some((spec) => spec.id === selectedSpec)
+            }
+            onClick={onMoreSpec}
+          >
+            <span>更多尺寸</span>
+          </button>
+        </div>
+      </fieldset>
+      <fieldset disabled={disabled}>
+        <legend>背景颜色</legend>
+        <div className="camera-confirm-colors">
+          {colors.map((color) => (
+            <button
+              key={color.value}
+              type="button"
+              aria-pressed={background === color.value}
+              onClick={() => onBackground(color.value)}
+            >
+              <span
+                className={
+                  "camera-confirm-swatch" +
+                  (color.value === "transparent" ? " transparent-frame" : "")
+                }
+                style={{ backgroundColor: color.value }}
+              >
+                {background === color.value && (
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="m4 8 2.5 2.5L12 5" />
+                  </svg>
+                )}
+              </span>
+              <span>{color.name}</span>
+            </button>
+          ))}
+        </div>
+      </fieldset>
+    </section>
+  );
+}

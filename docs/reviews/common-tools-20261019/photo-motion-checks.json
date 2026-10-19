@@ -1,0 +1,109 @@
+{
+  "date": "2026-10-19",
+  "scope": "Photo-bound scan effect and external comparison labels; awaiting visual acceptance",
+  "rounds": [
+    {
+      "round": 1,
+      "results": [
+        {
+          "command": "node scripts/test-flows.mjs tools-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs print-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs camera-scan-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs account-collection-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs background-album-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node --test tests/photo-processing.test.mjs tests/photo-processing-lifecycle.test.mjs tests/bindings.test.mjs",
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "results": [
+        {
+          "command": "node scripts/test-flows.mjs tools-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs print-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs camera-scan-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs account-collection-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs background-album-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node --test tests/photo-processing.test.mjs tests/photo-processing-lifecycle.test.mjs tests/bindings.test.mjs",
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "results": [
+        {
+          "command": "node scripts/test-flows.mjs tools-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs print-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs camera-scan-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs account-collection-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs background-album-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node --test tests/photo-processing.test.mjs tests/photo-processing-lifecycle.test.mjs tests/bindings.test.mjs",
+          "exit": 0
+        }
+      ]
+    }
+  ],
+  "sha256": {
+    "src/components/PhotoProcessingEffect.jsx": "862b1f2f8860e7d4b82b88d9b1ac3a520b831dbadfbd511b00ba21d57fee225d",
+    "src/components/photo-processing.js": "cd5e15ac446774c2597ec34109722bfd2f3b0600a8f16b10d33e687d28c3e346",
+    "src/styles/photo-processing.css": "fa508aba24440393083bcc09acb0c7a7934cc1dbc922f9bd38e97cb489fee2cc",
+    "src/components/PhotoSelectionPreview.jsx": "7215741341c539413dda790684ba4a14a9ccf6be2b8a6c1c111b124654b5296d",
+    "src/components/FixedPhotoCrop.jsx": "c32f9f970aa4d3efe190e690bc9cadf3d357209bc3620cde7da9b47499a9627a",
+    "src/components/CollectionTaskDetail.jsx": "0452fb536fef3bf61af42c9ec7748f159cd9fcb1e76d5db7bebe76a52e879f89",
+    "src/pages/ToolsPage.jsx": "1161e0351f15af6c0d6246105c04c83fde320f1d119014fc54e0b1d416970808",
+    "src/pages/CameraPage.jsx": "29c3d1c800841e0b5655c046f081b27f60a3209c598da522b65b7d787a0b46fc",
+    "src/pages/PrintPage.jsx": "e231f8522a7beb676fb95f295b4a1e82bbe1fa50cabe2a70ccf72c4d19d9d439",
+    "src/styles/tools.css": "9f5e17ca61544d583ef03dea95f19474a234fb852523c8a962878408eb41d60c",
+    "src/styles/camera.css": "5608cc6166e21cc0aea786d7735e96d2e51acb9b79e74f333a1c68fc6cb57e4f",
+    "src/styles/collection-task.css": "cfa972fc1a926d3f5f4c1fba2dc91c35256faa243a0b5060a4ea35d7d30581e4",
+    "tests/photo-processing.test.mjs": "3e09141f2465a511032423c7456dd72c16c63517fc20b66bb63614b00c7d3940",
+    "tests/photo-processing-lifecycle.test.mjs": "0201c9b04b5bd159723bd64aea30693b53d1fc11e4fe33aad23c6f427a08be7a"
+  }
+}

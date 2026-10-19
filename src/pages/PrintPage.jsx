@@ -1,5 +1,10 @@
 import React from "react";
+import ToolNavigation from "../components/ToolNavigation.jsx";
+import ToolStepper from "../components/ToolStepper.jsx";
+import ToolPhotoSelection from "../components/ToolPhotoSelection.jsx";
 import PhotoSelectionEmpty from "../components/PhotoSelectionEmpty.jsx";
+import PhotoSelectionPreview from "../components/PhotoSelectionPreview.jsx";
+import FixedPhotoCrop from "../components/FixedPhotoCrop.jsx";
 import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
 export default function PrintPage({ scope, args = [] }) {
   return (
@@ -16,128 +21,30 @@ export default function PrintPage({ scope, args = [] }) {
           show={s.page === "print"}
           aria-label="照片冲印"
         >
-          <View
-            as="header"
-            scope={s}
-            className="print-nav"
-          >
-            <View
-              as="button"
-              scope={s}
-              className="print-back"
-              disabled={s.processing || s.store.busy}
-              aria-label="返回"
-              events={[
-                {
-                  type: "click",
-                  prevent: false,
-                  stop: false,
-                  self: false,
-                  passive: false,
-                  run: function (scope, $event, $el) {
-                    scope.back();
-                  },
-                },
-              ]}
-            >
-              <View as="svg" scope={s} aria-hidden="true">
-                <View as="use" scope={s} href="#i-chevron"></View>
-              </View>
-            </View>
-            <View as="h1" scope={s} text={s.title}></View>
-            <View
-              as="button"
-              scope={s}
-              className="print-nav-action"
-              show={!["orders", "order", "result"].includes(s.view)}
-              disabled={s.processing}
-              events={[
-                {
-                  type: "click",
-                  prevent: false,
-                  stop: false,
-                  self: false,
-                  passive: false,
-                  run: function (scope, $event, $el) {
-                    scope.filter = "all";
-                    scope.openOrderList();
-                  },
-                },
-              ]}
-            >
-              {"订单"}
-            </View>
-            <View
-              as="button"
-              scope={s}
-              className="print-nav-action"
-              show={["orders", "order", "result"].includes(s.view)}
-              disabled={s.processing}
-              events={[
-                {
-                  type: "click",
-                  prevent: false,
-                  stop: false,
-                  self: false,
-                  passive: false,
-                  run: function (scope, $event, $el) {
-                    scope.go("support");
-                  },
-                },
-              ]}
-            >
-              {"客服"}
-            </View>
-          </View>
-          <View
-            as="nav"
-            scope={s}
-            className="print-steps"
-            show={["select", "layouts", "confirm"].includes(s.view)}
-            aria-label="冲印步骤"
-          >
-            <View
-              as="span"
-              scope={s}
-              dynamicClass={{
-                current: s.view === "select",
-                done: s.view !== "select",
-              }}
-              aria-current={s.view === "select" ? "step" : null}
-            >
-              <View as="b" scope={s}>
-                {"1"}
-              </View>
-              {"选照片"}
-            </View>
-            <View
-              as="span"
-              scope={s}
-              dynamicClass={{
-                current: s.view === "layouts",
-                done: s.view === "confirm",
-              }}
-              aria-current={s.view === "layouts" ? "step" : null}
-            >
-              <View as="b" scope={s}>
-                {"2"}
-              </View>
-              {"选排版"}
-            </View>
-            <View
-              as="span"
-              scope={s}
-              dynamicClass={{
-                current: s.view === "confirm",
-              }}
-              aria-current={s.view === "confirm" ? "step" : null}
-            >
-              <View as="b" scope={s}>
-                {"3"}
-              </View>
-              {"确认订单"}
-            </View>
-          </View>
+          <ToolNavigation
+            title={s.title}
+            disabled={s.processing || s.store.busy}
+            onBack={() => s.back()}
+            right={
+              ["orders", "order", "result"].includes(s.view) ? (
+                <button
+                  type="button"
+                  className="print-nav-action"
+                  disabled={s.processing}
+                  onClick={() => s.go("support")}
+                >
+                  客服
+                </button>
+              ) : null
+            }
+          />
+          {["select", "crop", "layouts", "confirm"].includes(s.view) && (
+            <ToolStepper
+              steps={["选照片", "选排版", "确认订单"]}
+              current={s.view === "confirm" ? 2 : s.view === "layouts" ? 1 : 0}
+              label="冲印步骤"
+            />
+          )}
           <View
             as="div"
             scope={s}
@@ -183,7 +90,46 @@ export default function PrintPage({ scope, args = [] }) {
             text={s.error}
             role="alert"
           ></View>
-          
+
+          {s.view === "crop" && s.draft.photo && (
+            <div className="print-screen print-crop-screen">
+              <div className="print-body print-crop-body">
+                <div className="print-crop-heading">
+                  <h2>调整照片，适配冲印</h2>
+                  <p>两种排版均使用一寸比例，请确认保留的画面。</p>
+                  <span>一寸比例 · 5∶7</span>
+                </div>
+                <FixedPhotoCrop
+                  key={s.draft.photo.id}
+                  photo={s.draft.photo}
+                  src={s.photoURL}
+                  value={s.crop}
+                  processing={s.processing}
+                  disabled={s.disabled}
+                  onChange={(value) => s.setCrop(value)}
+                />
+              </div>
+              <footer className="print-footer print-step-footer">
+                <button
+                  className="print-previous"
+                  disabled={s.disabled}
+                  onClick={() => s.previousStep()}
+                >
+                  <svg aria-hidden="true">
+                    <use href="#i-chevron-left" />
+                  </svg>
+                  上一步
+                </button>
+                <button
+                  className="print-primary"
+                  disabled={s.disabled}
+                  onClick={() => s.applyCrop()}
+                >
+                  {s.processing ? "正在裁剪…" : "确认裁剪并继续"}
+                </button>
+              </footer>
+            </div>
+          )}
           <View
             as="div"
             scope={s}
@@ -195,54 +141,28 @@ export default function PrintPage({ scope, args = [] }) {
               scope={s}
               className="print-body print-selection-body"
             >
-              {!s.draft.photo && <PhotoSelectionEmpty mascot="assets/bear-print.webp" description="从知拍相册选择" disabled={s.disabled || s.library.busy} onSelect={() => s.openAlbum()} />}
-              <View
-                as="button"
-                scope={s}
-                className="print-selected-photo"
-                show={!!s.draft.photo}
-                disabled={s.disabled || s.library.busy}
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.openAlbum();
-                    },
-                  },
-                ]}
-              >
-                <View
-                  as="img"
-                  scope={s}
-                  show={s.draft.photo}
-                  src={s.photoURL || undefined}
-                  alt="所选冲印照片"
-                ></View>
-                
-                <View
-                  as="span"
-                  scope={s}
-                  className="print-reselect"
-                  show={s.draft.photo}
-                >
-                  {"重新选取"}
-                </View>
-              </View>
-              <View
-                as="p"
-                scope={s}
-                className="print-selected-spec"
-                show={s.draft.photo}
-                text={s.draft.photo?.spec || ""}
-              ></View>
-              
+              {!s.draft.photo && (
+                <PhotoSelectionEmpty
+                  mascot="assets/bear-print.webp"
+                  description="知拍相册 / 手机相册"
+                  disabled={s.disabled || s.library.busy}
+                  onSelect={() => s.openAlbum()}
+                />
+              )}
+              {s.draft.photo && (
+                <PhotoSelectionPreview
+                  photo={s.draft.photo}
+                  src={s.photoURL}
+                  disabled={s.disabled || s.library.busy}
+                  onChange={() => s.openAlbum()}
+                />
+              )}
             </View>
-            <View as="footer" scope={s} className="print-footer print-step-footer">
-
+            <View
+              as="footer"
+              scope={s}
+              className="print-footer print-step-footer"
+            >
               <View
                 as="button"
                 scope={s}
@@ -256,7 +176,9 @@ export default function PrintPage({ scope, args = [] }) {
                     self: false,
                     passive: false,
                     run: function (scope, $event, $el) {
-                      scope.draft.photo?.blob ? scope.nextLayouts() : scope.openAlbum();
+                      scope.draft.photo?.blob
+                        ? scope.nextLayouts()
+                        : scope.openAlbum();
                     },
                   },
                 ]}
@@ -276,23 +198,19 @@ export default function PrintPage({ scope, args = [] }) {
           >
             <View as="div" scope={s} className="print-body print-layout-body">
               <View as="section" scope={s} className="print-layout-panel">
-                <View as="div" scope={s} className="print-source-strip">
+                <View as="div" scope={s} className="print-paper-stage">
                   <View
-                    as="svg"
+                    as="div"
                     scope={s}
                     className="print-paper-preview"
-                    viewBox="0 0 152 102"
-                    role="img"
                     aria-label="所选照片的横向排版预览"
                     show={s.selectedLayout && !s.layoutsLoading}
-                  >
-                    <image
-                      href={s.selectedLayout?.previewURL || undefined}
-                      width="102"
-                      height="152"
-                      transform="translate(152 0) rotate(90)"
-                    />
-                  </View>
+                    html={
+                      s.selectedLayout
+                        ? s.sheet(s.selectedLayout.id, true, true)
+                        : ""
+                    }
+                  ></View>
                   <View
                     as="div"
                     scope={s}
@@ -363,25 +281,6 @@ export default function PrintPage({ scope, args = [] }) {
                         ]}
                       >
                         {"重新获取"}
-                      </View>
-                      <View
-                        as="button"
-                        scope={s}
-                        disabled={s.processing || s.store.busy}
-                        events={[
-                          {
-                            type: "click",
-                            prevent: false,
-                            stop: false,
-                            self: false,
-                            passive: false,
-                            run: function (scope, $event, $el) {
-                              scope.editPhotos();
-                            },
-                          },
-                        ]}
-                      >
-                        {"去相册调整"}
                       </View>
                     </View>
                   </View>
@@ -461,19 +360,13 @@ export default function PrintPage({ scope, args = [] }) {
                               },
                             ]}
                           >
-                            <svg
+                            <View
+                              as="div"
+                              scope={s}
                               className="print-template-preview"
-                              viewBox="0 0 152 102"
-                              role="img"
                               aria-label={s.item.name + "横向排版"}
-                            >
-                              <image
-                                href={s.item.previewURL}
-                                width="102"
-                                height="152"
-                                transform="translate(152 0) rotate(90)"
-                              />
-                            </svg>
+                              html={s.sheet(s.item.id, true, true)}
+                            ></View>
                             <View
                               as="strong"
                               scope={s}
@@ -516,9 +409,21 @@ export default function PrintPage({ scope, args = [] }) {
                 </span>
               </View>
             </View>
-            <View as="footer" scope={s} className="print-footer print-step-footer">
-              <button type="button" className="print-previous" disabled={s.disabled} onClick={() => s.previousStep()}>
-                <svg aria-hidden="true"><use href="#i-chevron-left" /></svg>上一步
+            <View
+              as="footer"
+              scope={s}
+              className="print-footer print-step-footer"
+            >
+              <button
+                type="button"
+                className="print-previous"
+                disabled={s.disabled}
+                onClick={() => s.previousStep()}
+              >
+                <svg aria-hidden="true">
+                  <use href="#i-chevron-left" />
+                </svg>
+                上一步
               </button>
               <View
                 as="button"
@@ -791,7 +696,7 @@ export default function PrintPage({ scope, args = [] }) {
               <View as="p" scope={s}>
                 {"本次冲印流程已完成"}
                 <View as="br" scope={s}></View>
-                {"可在「冲印订单」查看记录"}
+                {"可在「我的订单」查看记录"}
               </View>
               <View
                 as="button"
@@ -819,42 +724,38 @@ export default function PrintPage({ scope, args = [] }) {
               className="print-footer print-pay-footer"
               show={!s.flowCompleted}
             >
-              <button type="button" className="print-previous" disabled={s.disabled} onClick={() => s.previousStep()}>
-                <svg aria-hidden="true"><use href="#i-chevron-left" /></svg>上一步
-              </button>
-              <View as="div" scope={s}>
-                <View as="span" scope={s}>
-                  {"合计"}
-                </View>
+              <View as="div" scope={s} className="print-pay-actions">
+                <button
+                  type="button"
+                  className="print-previous"
+                  disabled={s.disabled}
+                  onClick={() => s.previousStep()}
+                >
+                  <svg aria-hidden="true">
+                    <use href="#i-chevron-left" />
+                  </svg>
+                  上一步
+                </button>
                 <View
-                  as="strong"
+                  as="button"
                   scope={s}
-                  text={
-                    s.quote?.total != null && !s.quoteLoading
-                      ? s.money(s.quote.total)
-                      : "待计算"
-                  }
+                  className="print-primary"
+                  disabled={!s.canSubmit || !s.online}
+                  text={s.store.busy ? "正在提交…" : "确认并支付"}
+                  events={[
+                    {
+                      type: "click",
+                      prevent: false,
+                      stop: false,
+                      self: false,
+                      passive: false,
+                      run: function (scope, $event, $el) {
+                        scope.submitOrder();
+                      },
+                    },
+                  ]}
                 ></View>
               </View>
-              <View
-                as="button"
-                scope={s}
-                className="print-primary"
-                disabled={!s.canSubmit || !s.online}
-                text={s.store.busy ? "正在提交…" : "确认并支付"}
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.submitOrder();
-                    },
-                  },
-                ]}
-              ></View>
             </View>
           </View>
           <View
@@ -2005,6 +1906,7 @@ export default function PrintPage({ scope, args = [] }) {
                 show={s.$store.printUi.opened}
                 dynamicClass={{
                   "print-photo-drawer": s.modal === "album",
+                  "photo-selection-sheet": s.modal === "album",
                 }}
                 refName="printDialog"
                 role="dialog"
@@ -2016,328 +1918,53 @@ export default function PrintPage({ scope, args = [] }) {
                   end: "print-sheet-end",
                 }}
               >
-                <View as="header" scope={s} className="ui-sheet-header">
-                  <View
-                    as="h2"
-                    scope={s}
-                    id="print-dialog-title"
-                    text={s.modalTitle}
-                  ></View>
-                  <View
-                    as="button"
-                    scope={s}
-                    className="print-dialog-close"
-                    disabled={s.processing}
-                    aria-label="关闭"
-                    events={[
-                      {
-                        type: "click",
-                        prevent: false,
-                        stop: false,
-                        self: false,
-                        passive: false,
-                        run: function (scope, $event, $el) {
-                          scope.closeModal();
+                {s.modal !== "album" && (
+                  <View as="header" scope={s} className="ui-sheet-header">
+                    <View
+                      as="h2"
+                      scope={s}
+                      id="print-dialog-title"
+                      text={s.modalTitle}
+                    ></View>
+                    <View
+                      as="button"
+                      scope={s}
+                      className="print-dialog-close"
+                      disabled={s.processing}
+                      aria-label="关闭"
+                      events={[
+                        {
+                          type: "click",
+                          prevent: false,
+                          stop: false,
+                          self: false,
+                          passive: false,
+                          run: function (scope, $event, $el) {
+                            scope.closeModal();
+                          },
                         },
-                      },
-                    ]}
-                  >
-                    <View as="svg" scope={s} aria-hidden="true">
-                      <View as="use" scope={s} href="#i-close"></View>
+                      ]}
+                    >
+                      <View as="svg" scope={s} aria-hidden="true">
+                        <View as="use" scope={s} href="#i-close"></View>
+                      </View>
                     </View>
                   </View>
-                </View>
+                )}
                 {s.modal === "album" ? (
-                  <>
-                    <>
-                      <View
-                        as="div"
-                        scope={s}
-                        className="print-album-sheet ui-sheet-panel"
-                      >
-                        <View as="div" scope={s} className="ui-sheet-body">
-                          <View
-                            as="p"
-                            scope={s}
-                            className="print-sheet-description"
-                          >
-                            {"仅选一张知拍照片，用于本次冲印"}
-                          </View>
-                          <View
-                            as="div"
-                            scope={s}
-                            className="print-photo-grid print-photo-skeleton"
-                            show={!s.library.ready && !s.library.error}
-                            aria-label="正在读取照片库"
-                          >
-                            <Repeat
-                              scope={s}
-                              items={6}
-                              names={["slot"]}
-                              keyFor={function (scope, $event, $el) {
-                                return scope.slot;
-                              }}
-                            >
-                              {(s) => (
-                                <>
-                                  <>
-                                    <View as="span" scope={s}></View>
-                                  </>
-                                </>
-                              )}
-                            </Repeat>
-                          </View>
-                          <View
-                            as="div"
-                            scope={s}
-                            className="print-empty"
-                            show={s.library.error}
-                          >
-                            <View as="svg" scope={s} aria-hidden="true">
-                              <View as="use" scope={s} href="#i-album"></View>
-                            </View>
-                            <View as="h2" scope={s}>
-                              {"相册暂时无法读取"}
-                            </View>
-                            <View
-                              as="p"
-                              scope={s}
-                              text={s.library.error}
-                            ></View>
-                            <View
-                              as="button"
-                              scope={s}
-                              className="print-primary"
-                              disabled={s.library.busy}
-                              events={[
-                                {
-                                  type: "click",
-                                  prevent: false,
-                                  stop: false,
-                                  self: false,
-                                  passive: false,
-                                  run: function (scope, $event, $el) {
-                                    scope.library.load();
-                                  },
-                                },
-                              ]}
-                            >
-                              {"重新读取相册"}
-                            </View>
-                          </View>
-                          <View
-                            as="div"
-                            scope={s}
-                            className="print-empty print-album-empty"
-                            show={s.library.ready && !s.library.finished.length}
-                          >
-                            <View
-                              as="img"
-                              scope={s}
-                              className="print-empty-mascot"
-                              src="assets/zhipai-mascot.webp"
-                              width="1024"
-                              height="1024"
-                              alt=""
-                              aria-hidden="true"
-                              decoding="async"
-                            ></View>
-                            <View as="h2" scope={s}>
-                              {"还没有证件照"}
-                            </View>
-                            <View as="p" scope={s}>
-                              {"制作并保存一张，就能开始冲印"}
-                            </View>
-                          </View>
-                          <View
-                            as="div"
-                            scope={s}
-                            className="print-photo-grid"
-                            show={s.library.ready && s.library.finished.length}
-                          >
-                            <Repeat
-                              scope={s}
-                              items={s.library.finished}
-                              names={["photo"]}
-                              keyFor={function (scope, $event, $el) {
-                                return scope.photo.id;
-                              }}
-                            >
-                              {(s) => (
-                                <>
-                                  <>
-                                    <View
-                                      as="button"
-                                      scope={s}
-                                      className="print-photo-option"
-                                      dynamicClass={{
-                                        selected:
-                                          s.candidatePhotoId === s.photo.id,
-                                      }}
-                                      aria-pressed={
-                                        s.candidatePhotoId === s.photo.id
-                                      }
-                                      aria-label={"选择 " + s.photo.name}
-                                      disabled={
-                                        s.disabled ||
-                                        s.library.busy ||
-                                        !s.photo.blob
-                                      }
-                                      events={[
-                                        {
-                                          type: "click",
-                                          prevent: false,
-                                          stop: false,
-                                          self: false,
-                                          passive: false,
-                                          run: function (scope, $event, $el) {
-                                            scope.selectCandidate(
-                                              scope.photo.id,
-                                            );
-                                          },
-                                        },
-                                      ]}
-                                    >
-                                      <View
-                                        as="div"
-                                        scope={s}
-                                        className="print-photo-frame"
-                                      >
-                                        <View
-                                          as="img"
-                                          scope={s}
-                                          src={
-                                            s.library.url(s.photo.id) ||
-                                            undefined
-                                          }
-                                          alt={s.photo.name}
-                                          loading="lazy"
-                                        ></View>
-                                        <View
-                                          as="span"
-                                          scope={s}
-                                          className="print-selection-check"
-                                          show={
-                                            s.candidatePhotoId === s.photo.id
-                                          }
-                                        >
-                                          <View
-                                            as="svg"
-                                            scope={s}
-                                            aria-hidden="true"
-                                          >
-                                            <View
-                                              as="use"
-                                              scope={s}
-                                              href="#i-check"
-                                            ></View>
-                                          </View>
-                                        </View>
-                                      </View>
-                                      <View
-                                        as="span"
-                                        scope={s}
-                                        className="print-photo-spec"
-                                        text={
-                                          s.photo.spec ||
-                                          s.photo.width +
-                                            " × " +
-                                            s.photo.height +
-                                            " px"
-                                        }
-                                      ></View>
-                                    </View>
-                                  </>
-                                </>
-                              )}
-                            </Repeat>
-                          </View>
-                          <View
-                            as="div"
-                            scope={s}
-                            className="print-library-links"
-                          >
-                            <View
-                              as="button"
-                              scope={s}
-                              disabled={s.processing || !s.library.ready}
-                              events={[
-                                {
-                                  type: "click",
-                                  prevent: false,
-                                  stop: false,
-                                  self: false,
-                                  passive: false,
-                                  run: function (scope, $event, $el) {
-                                    scope.makePhoto();
-                                  },
-                                },
-                              ]}
-                            >
-                              <View as="svg" scope={s} aria-hidden="true">
-                                <View
-                                  as="use"
-                                  scope={s}
-                                  href="#i-camera"
-                                ></View>
-                              </View>
-                              {"制作一张"}
-                            </View>
-                            <View
-                              as="button"
-                              scope={s}
-                              disabled={s.processing || !s.library.ready}
-                              events={[
-                                {
-                                  type: "click",
-                                  prevent: false,
-                                  stop: false,
-                                  self: false,
-                                  passive: false,
-                                  run: function (scope, $event, $el) {
-                                    scope.editPhotos();
-                                  },
-                                },
-                              ]}
-                            >
-                              {"进入相册编辑"}
-                              <View as="svg" scope={s} aria-hidden="true">
-                                <View
-                                  as="use"
-                                  scope={s}
-                                  href="#i-chevron"
-                                ></View>
-                              </View>
-                            </View>
-                          </View>
-                        </View>
-                        <View as="footer" scope={s} className="ui-sheet-footer">
-                          <View
-                            as="button"
-                            scope={s}
-                            className="print-primary print-sheet-use"
-                            show={s.library.finished.length}
-                            disabled={
-                              !s.candidate || s.disabled || s.library.busy
-                            }
-                            text={s.processing ? "正在选取…" : "使用这张照片"}
-                            events={[
-                              {
-                                type: "click",
-                                prevent: false,
-                                stop: false,
-                                self: false,
-                                passive: false,
-                                run: function (scope, $event, $el) {
-                                  scope.preparePhoto();
-                                },
-                              },
-                            ]}
-                          ></View>
-                        </View>
-                      </View>
-                    </>
-                  </>
+                  <ToolPhotoSelection
+                    library={s.library}
+                    selectedId={s.candidatePhotoId}
+                    mascot="assets/bear-print.webp"
+                    busy={s.processing || s.store.busy}
+                    error={s.error}
+                    titleId="print-dialog-title"
+                    onClose={() => s.closeModal()}
+                    onPhone={() => s.pickPhone()}
+                    onCreate={() => s.makePhoto()}
+                    onSelect={(id) => s.selectCandidate(id)}
+                    onConfirm={() => s.preparePhoto()}
+                  />
                 ) : null}
                 <View
                   as="div"
@@ -2590,7 +2217,7 @@ export default function PrintPage({ scope, args = [] }) {
                   as="p"
                   scope={s}
                   className="print-form-error"
-                  show={s.error}
+                  show={s.modal !== "album" && s.error}
                   text={s.error}
                   role="alert"
                 ></View>

@@ -1,0 +1,1529 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>知拍 · 常用工具逐页结构说明</title>
+    <style>
+      :root {
+        font-family:
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          "PingFang SC",
+          "Microsoft YaHei",
+          sans-serif;
+        color: #203954;
+        background: #f3f6fa;
+        --blue: #003cff;
+        --muted: #71839b;
+        --line: #e5ebf2;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      button,
+      a,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      a {
+        color: #244ee0;
+      }
+      button:focus-visible,
+      a:focus-visible,
+      select:focus-visible {
+        outline: 3px solid #69a7ff;
+        outline-offset: 3px;
+      }
+      .doc-header {
+        padding: 24px 32px;
+        background: white;
+        border-bottom: 1px solid var(--line);
+      }
+      .doc-eyebrow {
+        font-size: 12px;
+        color: var(--muted);
+        letter-spacing: 1px;
+      }
+      .doc-header h1 {
+        font-size: 22px;
+        margin: 8px 0 12px;
+      }
+      .doc-header p {
+        font-size: 13px;
+        color: #62758e;
+        margin: 0;
+        line-height: 1.8;
+      }
+      .doc-layout {
+        max-width: 1500px;
+        margin: auto;
+        display: grid;
+        grid-template-columns: 220px minmax(340px, 440px) minmax(300px, 1fr);
+        gap: 28px;
+        padding: 24px;
+      }
+      .doc-nav {
+        max-height: calc(100vh - 190px);
+        overflow: auto;
+        position: sticky;
+        top: 20px;
+        align-self: start;
+      }
+      .doc-nav a {
+        display: block;
+        color: #586e87;
+        text-decoration: none;
+        font-size: 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        margin: 2px 0;
+      }
+      .doc-nav a[aria-current="page"] {
+        background: #e4edff;
+        color: var(--blue);
+        font-weight: 600;
+      }
+      .doc-nav strong {
+        font-size: 12px;
+        margin-right: 7px;
+        font-variant-numeric: tabular-nums;
+      }
+      .doc-stage {
+        min-width: 0;
+      }
+      .doc-pager {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .doc-pager button {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        min-height: 36px;
+        padding: 0 14px;
+        color: #415a77;
+      }
+      .doc-pager button:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+      .doc-panel {
+        background: white;
+        border-radius: 18px;
+        padding: 24px;
+        align-self: start;
+        line-height: 1.8;
+      }
+      .doc-panel h2 {
+        font-size: 18px;
+        margin: 0 0 16px;
+      }
+      .doc-panel ol {
+        padding-left: 21px;
+        margin: 0;
+      }
+      .doc-panel li {
+        font-size: 13px;
+        margin-bottom: 14px;
+      }
+      .doc-tag {
+        display: inline-block;
+        padding: 3px 8px;
+        background: #eef3fb;
+        font-size: 11px;
+        border-radius: 5px;
+        color: #58708e;
+        margin-bottom: 12px;
+      }
+      .doc-callout {
+        font-size: 12px;
+        padding: 14px 0 0;
+        color: var(--muted);
+        border-top: 1px solid var(--line);
+        margin-top: 16px;
+      }
+      .doc-status {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
+      .doc-status button {
+        border: 1px solid #dee7f3;
+        background: #fff;
+        padding: 6px 11px;
+        border-radius: 7px;
+        color: #436184;
+        font-size: 12px;
+        min-height: 34px;
+      }
+      .doc-status button.active {
+        color: var(--blue);
+        background: #edf3ff;
+        border-color: #bdd0ff;
+      }
+      .doc-mobile-select {
+        display: none;
+      }
+      .wireframe-wrap {
+        width: 100%;
+        max-width: 402px;
+        aspect-ratio: 402/874;
+        position: relative;
+        isolation: isolate;
+        background: #f1f5fc;
+        border: 1px solid #dbe3ef;
+        border-radius: 30px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 26px #293c6010;
+      }
+      .wf-statusbar {
+        height: 62px;
+        flex-shrink: 0;
+        display: flex;
+        justify-content: space-between;
+        padding: 20px 24px 0;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .wf-nav {
+        height: 52px;
+        display: grid;
+        grid-template-columns: 44px 1fr 44px;
+        gap: 8px;
+        align-items: center;
+        padding: 0 12px;
+        flex-shrink: 0;
+      }
+      .wf-nav strong {
+        text-align: center;
+        font-size: 17px;
+      }
+      .wf-nav button {
+        width: 44px;
+        height: 44px;
+        border: 0;
+        background: #fff;
+        color: #203858;
+        padding: 0;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+      }
+      .wf-nav button svg {
+        width: 20px;
+        height: 20px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+      }
+      .wf-stepper {
+        display: flex;
+        position: relative;
+        justify-content: space-around;
+        padding: 12px 20px 16px;
+        flex-shrink: 0;
+      }
+      .wf-step {
+        position: relative;
+        text-align: center;
+        flex: 1;
+        font-size: 11px;
+        color: #8998ac;
+        z-index: 1;
+      }
+      .wf-step::before {
+        content: "";
+        position: absolute;
+        width: calc(100% - 30px);
+        height: 1px;
+        background: #dbe3ee;
+        top: 12px;
+        left: calc(-50% + 15px);
+        z-index: -1;
+      }
+      .wf-step:first-child::before {
+        display: none;
+      }
+      .wf-step i {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 24px;
+        height: 24px;
+        margin: 0 auto 6px;
+        border: 1px solid #d6dfed;
+        border-radius: 50%;
+        background: #f1f5fc;
+        font-style: normal;
+        font-size: 11px;
+      }
+      .wf-step.current {
+        color: var(--blue);
+        font-weight: 600;
+      }
+      .wf-step.current i {
+        background: var(--blue);
+        color: white;
+        border-color: var(--blue);
+      }
+      .wf-step.done i {
+        border-color: var(--blue);
+        color: var(--blue);
+      }
+      .wf-body {
+        overflow: auto;
+        flex: 1;
+        padding: 16px 20px;
+        min-height: 0;
+      }
+      .wf-body h3 {
+        font-size: 16px;
+        margin: 8px 0;
+      }
+      .wf-body p {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.7;
+        margin: 8px 0;
+      }
+      .wf-center {
+        text-align: center;
+      }
+      .wf-empty {
+        padding: 38px 0 20px;
+        text-align: center;
+      }
+      .wf-bear {
+        width: 136px;
+        height: 136px;
+        object-fit: contain;
+      }
+      .wf-photo {
+        display: block;
+        height: 250px;
+        max-width: 100%;
+        width: auto;
+        object-fit: contain;
+        margin: 0 auto;
+      }
+      .wf-photo-box {
+        background: #f0f2f5;
+        aspect-ratio: 5/7;
+        width: 180px;
+        max-width: 85%;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .wf-photo-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .wf-spec {
+        font-size: 11px;
+        color: #788ba4;
+        text-align: center;
+        margin: 12px 0 0;
+      }
+      .wf-text-button {
+        background: none;
+        border: 0;
+        color: var(--blue);
+        min-height: 44px;
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+      .wf-change {
+        display: block;
+        margin: 0 auto;
+      }
+      .wf-footer {
+        padding: 12px 16px 24px;
+        background: white;
+        flex-shrink: 0;
+      }
+      .wf-actions {
+        display: flex;
+        gap: 12px;
+      }
+      .wf-button {
+        border: 0;
+        border-radius: 14px;
+        min-height: 48px;
+        background: var(--blue);
+        color: white;
+        font-size: 14px;
+        padding: 10px 14px;
+        flex: 1;
+      }
+      .wf-button.secondary {
+        background: #eef3ff;
+        color: #3f5c80;
+        flex: 0 0 96px;
+      }
+      .wf-button:disabled {
+        background: #dce4f0;
+        color: #91a2ba;
+        cursor: default;
+      }
+      .wf-homebar {
+        position: absolute;
+        bottom: 7px;
+        left: 34%;
+        width: 32%;
+        height: 4px;
+        background: #273449;
+        border-radius: 4px;
+        pointer-events: none;
+      }
+      .wf-block {
+        background: white;
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+      .wf-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 0;
+        font-size: 13px;
+      }
+      .wf-row small {
+        font-size: 11px;
+        color: #8493a7;
+      }
+      .wf-row strong {
+        font-size: 14px;
+      }
+      .wf-price {
+        font-size: 20px !important;
+        color: var(--blue);
+      }
+      .wf-choice {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 14px 0;
+      }
+      .wf-choice span {
+        padding: 9px 12px;
+        background: white;
+        border: 1px solid #e2e9f2;
+        border-radius: 9px;
+        font-size: 12px;
+      }
+      .wf-choice span.selected {
+        border-color: #acc2ff;
+        color: var(--blue);
+        background: #edf3ff;
+      }
+      .wf-swatches {
+        display: flex;
+        gap: 16px;
+        overflow: auto;
+        padding: 12px 0;
+      }
+      .wf-swatches span {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        border: 3px solid white;
+        box-shadow: 0 0 0 1px #dce4ee;
+      }
+      .wf-fields label {
+        font-size: 12px;
+        display: block;
+        color: #5c7390;
+        margin: 16px 0 6px;
+      }
+      .wf-input {
+        background: #f5f7fa;
+        padding: 12px;
+        border: 1px solid #e3e9f1;
+        border-radius: 10px;
+        font-size: 13px;
+        min-height: 44px;
+        color: #506782;
+      }
+      .wf-input-row {
+        display: flex;
+        gap: 8px;
+      }
+      .wf-input-row .wf-input {
+        flex: 1;
+      }
+      .wf-notice {
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: #fff1e9;
+        color: #9e5a2b;
+        font-size: 12px;
+        margin-top: 18px;
+        line-height: 1.7;
+      }
+      .wf-notice.error {
+        color: #ac3447;
+        background: #fff0f2;
+      }
+      .wf-layout-photo {
+        width: 38px;
+        height: 53px;
+        object-fit: cover;
+      }
+      .wf-layout {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2px;
+        background: white;
+        border-radius: 10px;
+        padding: 9px;
+        justify-items: center;
+        margin: 14px 0;
+      }
+      .wf-layout img {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 5/7;
+        object-fit: cover;
+      }
+      .wf-layout.wide {
+        grid-template-columns: repeat(4, 1fr);
+        transform: none;
+      }
+      .wf-dim {
+        position: absolute;
+        inset: 0;
+        background: #182c4d55;
+        z-index: 3;
+      }
+      .wf-sheet {
+        position: absolute;
+        z-index: 4;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border-radius: 24px 24px 0 0;
+        max-height: 82%;
+        height: 72%;
+        display: flex;
+        flex-direction: column;
+      }
+      .wf-sheet-head {
+        padding: 20px 20px 12px;
+        flex-shrink: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+      }
+      .wf-sheet-head h3 {
+        font-size: 17px;
+        margin: 0;
+      }
+      .wf-sheet-head p {
+        font-size: 11px;
+        color: var(--muted);
+        margin: 6px 0 0;
+      }
+      .wf-sheet-head button {
+        border: 0;
+        background: #f1f4f9;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        color: #6b7c92;
+      }
+      .wf-sheet-source {
+        padding: 0 20px 12px;
+        display: flex;
+        gap: 9px;
+        font-size: 12px;
+        color: #56718e;
+        flex-wrap: wrap;
+      }
+      .wf-sheet-source button {
+        background: #f0f5ff;
+        color: #315c9b;
+        border: 0;
+        border-radius: 8px;
+        min-height: 44px;
+        padding: 0 12px;
+      }
+      .wf-sheet-body {
+        padding: 4px 20px 16px;
+        overflow: auto;
+        min-height: 0;
+        flex: 1;
+      }
+      .wf-sheet-footer {
+        padding: 12px 20px 26px;
+        display: flex;
+        flex-shrink: 0;
+        background: white;
+      }
+      .wf-photo-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 9px;
+      }
+      .wf-photo-grid img {
+        width: 100%;
+        aspect-ratio: 5/7;
+        object-fit: cover;
+        border-radius: 6px;
+      }
+      .wf-photo-grid img:first-child {
+        outline: 2px solid var(--blue);
+        outline-offset: 2px;
+      }
+      .wf-check-row {
+        padding: 18px 0;
+        font-size: 13px;
+      }
+      .wf-crop {
+        width: 190px;
+        aspect-ratio: 5/7;
+        border: 2px solid white;
+        outline: 12px solid #30425820;
+        position: relative;
+        margin: 20px auto;
+      }
+      .wf-crop img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .wf-crop::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(
+            90deg,
+            transparent 33%,
+            #ffffff80 33%,
+            #ffffff80 33.6%,
+            transparent 33.6%,
+            transparent 66%,
+            #ffffff80 66%,
+            #ffffff80 66.6%,
+            transparent 66.6%
+          ),
+          linear-gradient(
+            transparent 33%,
+            #ffffff80 33%,
+            #ffffff80 33.6%,
+            transparent 33.6%,
+            transparent 66%,
+            #ffffff80 66%,
+            #ffffff80 66.6%,
+            transparent 66.6%
+          );
+      }
+      .wf-slider {
+        accent-color: var(--blue);
+        width: 100%;
+        margin: 16px 0;
+      }
+      .wf-comparison {
+        position: relative;
+        width: 180px;
+        margin: auto;
+      }
+      .wf-comparison .wf-photo {
+        height: 250px;
+        width: 180px;
+        object-fit: cover;
+      }
+      .wf-comparison::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: 2px;
+        background: white;
+      }
+      .wf-compare-labels {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 10px auto 0;
+        width: 180px;
+        max-width: 100%;
+      }
+      .wf-compare-labels span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .wf-section-title {
+        font-size: 13px;
+        font-weight: 600;
+        margin: 18px 0 10px;
+      }
+      .wf-order-card {
+        background: white;
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 12px;
+        font-size: 12px;
+      }
+      .wf-order-card strong {
+        font-size: 13px;
+      }
+      .wf-chip {
+        color: var(--blue);
+        background: #edf3ff;
+        border-radius: 5px;
+        padding: 4px 7px;
+        font-size: 10px;
+      }
+      .wf-success {
+        font-size: 36px;
+        color: #28a479;
+        margin: 30px 0 18px;
+      }
+      .wf-gallery-count {
+        font-size: 11px;
+        color: var(--muted);
+        padding-bottom: 10px;
+      }
+      .wf-meta {
+        font-size: 11px;
+        color: #8b99ad;
+        line-height: 1.8;
+        margin-top: 10px;
+      }
+      @media (max-width: 1150px) {
+        .doc-layout {
+          grid-template-columns: 180px minmax(330px, 402px) minmax(240px, 1fr);
+          gap: 16px;
+          padding: 18px;
+        }
+        .doc-panel {
+          padding: 18px;
+        }
+      }
+      @media (max-width: 940px) {
+        .doc-layout {
+          grid-template-columns: minmax(300px, 402px) minmax(240px, 1fr);
+          justify-content: center;
+        }
+        .doc-nav {
+          display: none;
+        }
+        .doc-mobile-select {
+          display: block;
+          margin: 12px 0 0;
+          width: 100%;
+          max-width: 500px;
+          min-height: 40px;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          background: white;
+        }
+      }
+      @media (max-width: 650px) {
+        .doc-header {
+          padding: 20px;
+        }
+        .doc-layout {
+          display: flex;
+          flex-direction: column;
+          padding: 16px;
+          gap: 20px;
+        }
+        .doc-stage {
+          max-width: 402px;
+          width: 100%;
+          margin: auto;
+        }
+        .doc-panel {
+          width: 100%;
+        }
+        .doc-header h1 {
+          font-size: 19px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="doc-header">
+      <div class="doc-eyebrow">知拍 1.4.6 / 产品文档 / 2026.10.19</div>
+      <h1>常用工具 · 逐页职责与操作路径</h1>
+      <p>
+        结构示意，不是运行中的
+        APP，也不代表视觉已验收。手机内按钮用于串联相关说明；“返回文档目录”代表退出当前工具。<br /><a
+          href="common-tools-1.4.6.md"
+          >完整产品需求</a
+        >
+        ·
+        <a href="../reviews/common-tools-20261019/review.md"
+          >问题清单与验证证据</a
+        >
+      </p>
+      <select
+        class="doc-mobile-select"
+        id="page-select"
+        aria-label="选择页面"
+      ></select>
+    </header>
+    <main class="doc-layout">
+      <nav class="doc-nav" id="nav" aria-label="页面说明目录"></nav>
+      <section class="doc-stage">
+        <div class="doc-pager">
+          <button id="prev">前一说明</button><span id="count"></span
+          ><button id="next">后一说明</button>
+        </div>
+        <div class="wireframe-wrap" id="phone" aria-label="页面结构示意"></div>
+        <div class="doc-status" id="states" aria-label="示意状态"></div>
+        <p id="doc-feedback" class="doc-callout" role="status"></p>
+      </section>
+      <article class="doc-panel" id="notes"></article>
+    </main>
+    <script>
+      const pages = [
+        {
+          id: "p01",
+          name: "工具选照片页",
+          notes: [
+            "顶部：52px导航高、左右12px留白，左侧44px白色圆底返回、20px深蓝箭头，工具名称17px居中；右侧不放订单与分享。冲印和六项工具各步骤、效果与保存完成页均使用同一导航组件。下方为圆圈序号、连接线和文字组成的三步进度，不支持点击跳步。",
+            "未选图：小白熊、“选取一张照片”、“知拍相册 / 手机相册”；直接放在页面背景，不包白卡。",
+            "已选图：照片居中，下方12px间距为12px灰色规格文字，再下方是16px图标＋13px蓝字“更换照片”，无底色，点击高度至少44px。照片完整适应5∶7预览区，余区浅灰，不拉伸、不自动裁切原图。",
+            "底部：未选图为“选取照片”；从后续步骤返回后为“下一步”。后续步骤不另放换图入口。",
+            "交互：打开选图抽屉；取消保留照片和设置；重新确认同一照片保留设置；确认新照片清除旧输出并重新执行该工具的检查。带照片从其他入口进入时可跳过重复选图，但不能绕过必要检查。",
+          ],
+        },
+        {
+          id: "p02",
+          name: "选择照片抽屉",
+          notes: [
+            "固定头部：“选择照片”、右上关闭；其下说明选择范围。",
+            "固定来源区：“手机相册”、“制作一张”、“知拍相册”、照片数量。只支持单选；不出现“进入相册编辑”。",
+            "独立滚动区：三列照片及选中标记。加载为“正在读取照片…”；空列表为“知拍相册暂无照片”；读取失败为“相册暂时无法读取，可重试或从手机相册选图。”，提供“重新读取”。",
+            "固定底部：“使用这张照片”；未选中有效照片时禁用。只有照片列表滚动，标题、来源和确认区不跟随滚动。",
+            "手机相册取消不换图；“制作一张”进入个人制作，完成后将新成片带回当前工具。",
+          ],
+        },
+        {
+          id: "p03",
+          name: "证件照检查阶段",
+          notes: [
+            "保留第一步、当前照片及统一换图位置。检查时在实际照片内使用轻蓝扫描光带，避开四周留白；“正在检查照片”置于照片下方，操作暂时禁用。不叠加整区遮罩、转圈或重复的检查状态卡。",
+            "原型使用“选择照片检查结果”抽屉，提供“符合要求 · 通过”、“不符合要求 · 不通过”、“模拟检查异常”，只用于演示。",
+            "通过：关闭结果选择，自动进入下一步，不显示“检测通过”卡片或通过确认按钮。",
+            "“查看原因”“重新检查”共用至少44×44px轻文字操作，居中且不换行。未通过：“照片不符合证件照要求”、“查看原因”；底部“下一步”禁用，换图仍可用。检查异常：“照片检查未完成”、“重新检查”。关闭检查结果选择也不能当作通过。",
+          ],
+        },
+        {
+          id: "p04",
+          name: "未通过原因抽屉",
+          notes: [
+            "固定标题“照片检查未通过”、关闭；正文标题“请重新选择人像证件照”。",
+            "原因包括：不是人像证件照、未识别到清晰人脸、照片包含多人、背景较复杂。详细原因只通过“查看原因”进入抽屉，不在页面堆叠长文。",
+            "底部“返回选照片”关闭原因抽屉，回到第一步；换图仍使用页面唯一的“更换照片”入口。",
+          ],
+        },
+        {
+          id: "p05",
+          name: "照片精修操作页",
+          notes: [
+            "顶部“照片精修”，当前步骤为“AI精修”；主体是当前照片和必要文件信息。",
+            "处理动效限制在实际照片内，处理文字置于照片下方；不覆盖整个预览容器。底部左“上一步”回到选图；右“付款并开始精修”打开付款抽屉。已有已付款订单且尚无结果时使用“开始精修”，不得重复收费。",
+            "付款后进入处理；失败保留照片及付款状态，“重试”重做处理。新照片必须重新检查。",
+          ],
+        },
+        {
+          id: "p06",
+          name: "精修与换装付款抽屉",
+          notes: [
+            "标题按场景为“开始AI精修”或“确认换装订单”，展示照片、服务、¥2.00及支付方式。",
+            "支持原型付款成功、取消、失败；取消文案“已取消付款，照片与设置已保留”，失败文案“付款未完成，可重试”。",
+            "确认后成功记录付款并开始对应处理；同一订单重试不重复创建交易。付款前不能生成付费结果。",
+            "订单只记录交易与服务快照，照片结果保留在工具及相册，不把交易字段塞入图片编辑区。",
+          ],
+        },
+        {
+          id: "p07",
+          name: "精修效果页",
+          notes: [
+            "顶部“精修效果”，步骤为“看效果”；主体保留滑杆对比，“精修前／精修后”改为照片下方左、右两侧的12px轻文字，不覆盖照片。",
+            "成功自动保存知拍相册；结果卡显示“已保存到知拍相册”、“原照片仍然保留”、“查看相册”。",
+            "底部只保留“继续精修”，从第一步重新选图；不提供“上一步”。历史照片和订单保留。",
+            "自动保存失败为“保存未完成，照片与设置已保留，请重试。”，主动作“重试保存”，不再收费、不生成重复相册项。",
+          ],
+        },
+        {
+          id: "p08",
+          name: "换装选服装页",
+          notes: [
+            "顶部“照片换装”，当前为“选服装”；主体保留当前照片。",
+            "分类“男装／女装／童装”，各有“西装／衬衫／休闲装”；选中项明显但不遮挡照片。",
+            "底部“上一步”回选图，“开始换装”在选择照片与服装后打开付款抽屉。付款成功才开始处理；动效只在实际照片内轻扫，“正在换装”显示在照片下方。",
+            "新订单保留原照片像素尺寸；标准化为原型准备步骤，不表示真实AI处理。",
+          ],
+        },
+        {
+          id: "p09",
+          name: "换装效果页",
+          notes: [
+            "顶部“换装效果”、当前“看效果”；主体为换装照片及已选服装名称。",
+            "自动保存知拍相册并显示保存结果卡、“查看相册”。不覆盖原图。",
+            "底部“继续换装”回到第一步；没有“上一步”。保存失败允许重试保存，不重复收费。",
+          ],
+        },
+        {
+          id: "p10",
+          name: "更换背景操作页",
+          notes: [
+            "顶部“更换背景”，第二步“换背景”；检查通过后自动准备照片。",
+            "主体照片与“背景颜色”，提供蓝色、白色、红色、浅灰；颜色单行横向滚动。",
+            "此阶段不展示检查通过结果，也不展示“标准化已完成”。",
+            "底部“上一步”回选图，“保存到知拍相册”写入独立照片，不覆盖原图、不触发设备下载。只有写入成功才进入第三步；重复点击及重试不重复添加同一结果。",
+            "保存成功后显示“已保存到知拍相册”、“原照片仍然保留”，提供“查看照片”和“再处理一张”；不回旧编辑状态，继续处理从选图开始。保存失败保留照片、底色与输出，“重试”再次保存，不新增付费订单或触发设备下载。",
+          ],
+        },
+        {
+          id: "p11",
+          name: "照片裁剪操作页及手动裁剪抽屉",
+          notes: [
+            "顶部“照片裁剪”、第二步“裁剪”；主体为照片与裁剪尺寸。",
+            "尺寸包含一寸25×35 mm、二寸35×49 mm、小二寸35×45 mm和自定义像素；自定义宽高须为1—4096的整数。",
+            "“手动裁剪”打开裁剪抽屉，支持拖动、缩放；“完成”应用裁剪。该独立工具的比例随所选尺寸改变，不受冲印固定5∶7规则限制。",
+            "底部“上一步”回选图，“保存到设备”取得当前结果；失败保留调整并提供重试。",
+          ],
+        },
+        {
+          id: "p12",
+          name: "格式转换操作页",
+          notes: [
+            "顶部“格式转换”、第二步“选格式”；主体照片、源格式、JPG／PNG选项。",
+            "选择格式后生成预览，像素尺寸保持原值；有有效结果才允许保存。",
+            "底部“上一步”、“保存到设备”；导出扩展名与文件真实类型一致。",
+          ],
+        },
+        {
+          id: "p13",
+          name: "修改体积操作页",
+          notes: [
+            "顶部“修改体积”、第二步“调体积”；主体显示原文件信息和“目标体积”输入，单位KB／MB。",
+            "“目标文件体积”以“不超过”输入值、KB／MB单位和“应用体积”确认；范围为5 KB—20 MB的文件体积上限；压缩保持像素尺寸，输出JPG。不是扩大文件到指定大小。",
+            "无法达到上限时说明“保持当前像素尺寸，最小约为 100 KB，请增大目标体积。”，数字读取当前结果，不虚构达标。",
+            "底部“上一步”、“保存到设备”；改值后重新计算，不能保存旧参数下的结果。",
+          ],
+        },
+        {
+          id: "p14",
+          name: "免费工具保存完成页",
+          notes: [
+            "顶部“保存完成”；主体是主题白熊、结果照片、文件信息及继续使用入口。",
+            "更换背景显示“已保存到知拍相册”、“原照片仍然保留”，主操作“查看照片”进入对应相册照片，次操作“再处理一张”。裁剪、格式、体积显示“已发起下载”，说明“请在手机相册中查看”；浏览器只能发起下载，无法确认用户是否保存成功。",
+            "不提供“上一步”；“再处理一张”回到全新选图状态；再次点击不能重复导出同一完成流程。",
+          ],
+        },
+        {
+          id: "p15",
+          name: "冲印固定比例裁剪页",
+          notes: [
+            "顶部“裁剪照片”，进度仍属于第一步“选照片”；右上无订单入口。",
+            "主体“调整照片，适配冲印”、“一寸比例 · 5∶7”；固定裁剪框，支持拖动、双指缩放及滑杆位置调整，不允许自定义比例。",
+            "底部“上一步”回选图，“确认裁剪并继续”生成独立结果并进入选排版。处理时光带仅在裁剪框内实际可见照片上扫描，下方显示“正在裁剪照片”。裁剪前的原图不被覆盖。",
+            "裁剪失败：“裁剪未完成，调整已保留，请重试。”；重试留在裁剪页。切页后不得把过期裁剪结果写进新流程。",
+          ],
+        },
+        {
+          id: "p16",
+          name: "冲印选排版页",
+          notes: [
+            "顶部“选择排版”，第二步“选排版”。",
+            "横向显示当前照片的排版预览；只提供“4大8小”和“8大”，两种缩略图及主预览都读取裁剪后的冲印草稿。",
+            "“4大8小”为二寸4张＋一寸8张，“8大”为二寸8张；两者均为背胶模切、免剪裁、自带胶，每单一版，不提供加印、份数或其他版式。",
+            "底部“上一步”回选图，“下一步”进入确认订单。获取失败为“暂时没有可用排版”及“重新获取”；重新换图通过“上一步”办理。",
+          ],
+        },
+        {
+          id: "p17",
+          name: "冲印确认订单页",
+          notes: [
+            "顶部“确认订单”，第三步；主体依次为收货地址、冲印照片和版式、费用信息。",
+            "缺地址时展示“添加收货地址”。费用为冲印¥19.80、运费¥10.00、合计¥29.80，不出现加印费用。",
+            "固定白底底栏只保留一行操作：左侧96px宽“上一步”，右侧弹性宽“确认并支付”，间距12px，两按钮均48px高、14px圆角、15px字。底栏不重复显示“合计／含运费”或金额汇总行，费用明细和订单总额保留在正文。",
+            "正文费用计算中显示“正在获取…”及总额“—”；没有有效报价、地址或网络时不能付款。提交中“正在提交…”，按钮行布局不改变。",
+            "“上一步”保留照片、版式和地址；“确认并支付”创建或复用待付款订单并打开付款抽屉。失败为“订单提交失败，请重试。未发起支付。”。",
+          ],
+        },
+        {
+          id: "p18",
+          name: "收货地址列表页",
+          notes: [
+            "顶部“收货地址”；主体地址条目及默认标记。",
+            "点击有效地址选择并回到确认订单；编辑进入编辑地址页。",
+            "地址属于本次配送任务，不展示照片审核状态；返回原确认订单，不开启新冲印。",
+          ],
+        },
+        {
+          id: "p19",
+          name: "编辑收货地址页",
+          notes: [
+            "顶部“编辑收货地址”；正文为姓名、手机号、地区、详细地址、可选邮编、默认地址设置。",
+            "必填项缺失或手机号错误时提示补全；邮编“邮政编码应为6位数字，也可以留空。”。",
+            "保存成功选中该地址并返回；失败“地址保存失败，填写内容已保留，请重试。”。表单与当前照片、版式独立保存。",
+          ],
+        },
+        {
+          id: "p20",
+          name: "冲印付款抽屉",
+          notes: [
+            "标题“请选择支付方式”，正文展示当前订单金额、支付方式及确认操作；本原型可演示成功、取消、失败、超时。",
+            "取消保留待付款订单：“已取消本次支付，订单保留为待支付。”；失败：“支付未完成，请重试。”。",
+            "超时为“支付响应超时，请先查询结果，避免重复付款。”，先查同一订单，不能直接再次付款或新建替代订单。",
+            "付款成功进入订单确认完成页；付款成功只表示进入待制作，不等于已发货或已签收。",
+          ],
+        },
+        {
+          id: "p21",
+          name: "冲印订单确认完成页",
+          notes: [
+            "顶部仍为第三步，主体为“订单已确认”、“可在「我的订单」查看记录”及订单结果。",
+            "不显示旧的付款底栏，不提供“上一步”；“重新选择照片”从第一步建立新的冲印流程。",
+            "订单已支付的完成标记持久化；刷新或返回不重复创建订单、发起付款。",
+          ],
+        },
+        {
+          id: "p22",
+          name: "我的订单入口",
+          notes: [
+            "工具顶部不放订单；从个人中心“我的订单”统一查看，按业务类型区分精修、换装、冲印等服务。",
+            "订单详情保留服务快照与金额；精修、换装可恢复对应处理或结果，冲印展示待付款、制作与配送进度。",
+            "当前订单中心的栏目与筛选沿用统一订单设计，不在工具内建立第二套统计；冲印具体状态在订单详情中展示。",
+            "当前账号只展示具有该账号归属的订单；删除相册照片不删除已有订单快照。付款成功不得等同于照片或实物制作完成。",
+          ],
+        },
+        {
+          id: "p23",
+          name: "冲印订单详情页",
+          notes: [
+            "顶部“订单详情”、返回及客服；主体依次展示状态、排版照片与服务快照、金额、收货地址和交易记录。",
+            "具体状态文案为“待付款／付款确认中／待制作／制作中／已发货／已签收／已取消”，不把统一订单中心的“处理中／已完成”误作同一层级的原始状态。",
+            "待付款可“取消订单／继续支付”；付款确认中先查询结果；已发货可查看运单。原型状态推进不表示真实物流回调。",
+            "从统一订单中心进入后，返回应保留来源筛选；历史照片、版式、金额与地址使用订单快照，不因相册或地址更新而覆盖。",
+          ],
+        },
+      ];
+      const assetRoot =
+        location.protocol === "file:" ? "../../public/assets/" : "/assets/";
+      const photo = assetRoot + "print-portrait.png",
+        bear = assetRoot + "bear-repair.webp";
+      const escape = (s) =>
+        String(s).replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      const btn = (
+        label,
+        to,
+        secondary = false,
+        disabled = false,
+        targetState = "",
+      ) =>
+        `<button class="wf-button ${secondary ? "secondary" : ""}" ${disabled ? "disabled" : ""} ${targetState ? `data-target-state="${targetState}"` : ""} ${to ? `data-go="${to}"` : ""}>${label}</button>`;
+      const text = (label, to) =>
+        `<button class="wf-text-button" data-go="${to}">${label}</button>`;
+      const portrait = () =>
+        `<img class="wf-photo" src="${photo}" alt="虚构示例证件照">`;
+      const spec = () =>
+        '<div class="wf-spec">一寸 · 25 × 35 mm　295 × 413 px</div>';
+      const steps = (labels, current) =>
+        `<div class="wf-stepper">${labels.map((s, i) => `<div class="wf-step ${i === current ? "current" : i < current ? "done" : ""}"><i>${i + 1}</i><span>${s}</span></div>`).join("")}</div>`;
+      const toolSteps = (stage = 1) =>
+        steps(["选照片", "当前处理", "保存"], stage);
+      const sheet = (title, sub, body, footer, source = "", close = "p01") =>
+        `<div class="wf-dim"></div><section class="wf-sheet"><header class="wf-sheet-head"><div><h3>${title}</h3><p>${sub}</p></div><button data-go="${close}" aria-label="关闭抽屉">×</button></header>${source ? `<div class="wf-sheet-source">${source}</div>` : ""}<div class="wf-sheet-body">${body}</div><footer class="wf-sheet-footer">${footer}</footer></section>`;
+      const field = (label, value) =>
+        `<label>${label}</label><div class="wf-input">${value}</div>`;
+      const layout = () =>
+        `<div class="wf-layout wide">${Array.from({ length: 8 }, () => `<img src="${photo}" alt="排版照片">`).join("")}</div>`;
+      const savedCard = () =>
+        `<div class="wf-block"><strong style="font-size:13px">已保存到知拍相册</strong><p>原照片仍然保留</p><button class="wf-text-button" data-note="实际页面将进入知拍相册；相册不属于本次逐页结构示意范围。">查看相册 →</button></div>`;
+      const view = {
+        p01: {
+          title: "照片精修",
+          step: steps(["选照片", "AI精修", "看效果"], 0),
+          body: () =>
+            `<div class="wf-empty"><img class="wf-bear" src="${bear}" alt="白熊主题示例"><h3>选取一张照片</h3><p>知拍相册 / 手机相册</p></div>`,
+          footer: () => btn("选取照片", "p02"),
+          states: ["未选图", "已选图"],
+        },
+        p02: {
+          title: "照片精修",
+          step: toolSteps(0),
+          body: () => portrait(),
+          overlay: () =>
+            sheet(
+              "选择照片",
+              "单选一张照片，继续当前工具",
+              `<div class="wf-gallery-count">知拍相册　12张</div><div class="wf-photo-grid">${Array.from({ length: 12 }, () => `<img src="${photo}" alt="虚构示例照片">`).join("")}</div>`,
+              btn("使用这张照片", "p03"),
+              '<button data-state="手机来源">手机相册</button><button data-note="实际页面进入个人照片制作，完成后将成片带回当前工具；该流程不在本示意范围。">制作一张</button>',
+            ),
+          states: ["照片列表", "空相册", "读取失败", "手机来源"],
+        },
+        p03: {
+          title: "照片精修",
+          step: steps(["选照片", "AI精修", "看效果"], 0),
+          body: () =>
+            `<div class="wf-photo-box"><img src="${photo}" alt="当前照片"></div>${spec()}<button class="wf-text-button wf-change" data-go="p02">↻ 更换照片</button><div class="wf-notice error">照片不符合证件照要求<br>${text("查看原因", "p04")}</div>`,
+          footer: () => btn("下一步", "", false, true),
+          states: ["未通过", "检查中", "检查异常", "原型结果选择"],
+        },
+        p04: {
+          title: "照片精修",
+          body: () => portrait(),
+          overlay: () =>
+            sheet(
+              "照片检查未通过",
+              "请重新选择人像证件照",
+              '<div class="wf-check-row">未识别到清晰的单人正面人脸</div><p>照片应为清晰的单人证件照，避免多人、遮挡及复杂背景。</p>',
+              btn("返回选照片", "p03"),
+              "",
+              "p03",
+            ),
+        },
+        p05: {
+          title: "照片精修",
+          step: steps(["选照片", "AI精修", "看效果"], 1),
+          body: () =>
+            `${portrait()}${spec()}<p class="wf-center">精修处理保留原照片</p>`,
+          footer: () =>
+            btn("上一步", "p01", true) + btn("付款并开始精修", "p06"),
+        },
+        p06: {
+          title: "照片精修",
+          step: toolSteps(),
+          body: () => portrait(),
+          overlay: () =>
+            sheet(
+              "开始AI精修",
+              "原型付款演示，不发起真实支付",
+              `<div class="wf-row"><strong>照片精修</strong><strong class="wf-price">¥2.00</strong></div><div class="wf-row">微信支付<span>已选</span></div><div class="wf-notice">取消、失败保留照片与设置；成功才开始处理。</div>`,
+              btn("模拟付款成功并处理", "p07"),
+              "",
+              "p05",
+            ),
+          states: ["精修付款", "换装付款", "取消或失败"],
+        },
+        p07: {
+          title: "精修效果",
+          step: steps(["选照片", "AI精修", "看效果"], 2),
+          body: () =>
+            `<div class="wf-comparison">${portrait()}</div><div class="wf-compare-labels"><span>精修前</span><span>精修后</span></div>${spec()}<div style="height:20px"></div>${savedCard()}`,
+          footer: () => btn("继续精修", "p01"),
+          states: ["保存成功", "保存失败"],
+        },
+        p08: {
+          title: "照片换装",
+          step: steps(["选照片", "选服装", "看效果"], 1),
+          body: () =>
+            `${portrait()}<div class="wf-choice"><span class="selected">男装</span><span>女装</span><span>童装</span></div><div class="wf-choice"><span class="selected">西装</span><span>衬衫</span><span>休闲装</span></div>`,
+          footer: () => btn("上一步", "p01", true) + btn("开始换装", "p06"),
+        },
+        p09: {
+          title: "换装效果",
+          step: steps(["选照片", "选服装", "看效果"], 2),
+          body: () =>
+            `${portrait()}<p class="wf-center">已选：经典西装</p>${savedCard()}`,
+          footer: () => btn("继续换装", "p01"),
+        },
+        p10: {
+          title: "更换背景",
+          step: steps(["选照片", "换背景", "保存"], 1),
+          body: () =>
+            `${portrait()}<h3>背景颜色</h3><div class="wf-swatches">${["#438ace", "#fff", "#cb4351", "#dde2e8", "#abd4e7", "#edeff5"].map((c) => `<span style="background:${c}"></span>`).join("")}</div><p>颜色横向滚动；此阶段不显示检查结果。</p>`,
+          footer: () =>
+            btn("上一步", "p01", true) + btn("保存到知拍相册", "p14"),
+        },
+        p11: {
+          title: "照片裁剪",
+          step: steps(["选照片", "裁剪", "保存"], 1),
+          body: () =>
+            `${portrait()}<div class="wf-choice"><span class="selected">一寸</span><span>二寸</span><span>小二寸</span><span>自定义</span></div><button class="wf-text-button" data-state="手动裁剪">手动裁剪</button><p>独立裁剪工具的比例跟随所选尺寸，此处抽屉仅演示构图。</p>`,
+          footer: () =>
+            btn("上一步", "p01", true) +
+            btn("保存到设备", "p14", false, false, "其他免费工具"),
+          states: ["操作页", "手动裁剪"],
+        },
+        p12: {
+          title: "格式转换",
+          step: steps(["选照片", "选格式", "保存"], 1),
+          body: () =>
+            `${portrait()}<p class="wf-center">当前格式：PNG</p><div class="wf-choice"><span class="selected">JPG</span><span>PNG</span></div><p>保持原像素尺寸，扩展名与真实文件类型一致。</p>`,
+          footer: () =>
+            btn("上一步", "p01", true) +
+            btn("保存到设备", "p14", false, false, "其他免费工具"),
+        },
+        p13: {
+          title: "修改体积",
+          step: steps(["选照片", "调体积", "保存"], 1),
+          body: () =>
+            `${portrait()}<div class="wf-fields">${field("目标文件体积", "不超过　100　KB")}</div>${text("应用体积", "p13")}<p>保持像素尺寸；无法达标时需增大目标体积。</p>`,
+          footer: () =>
+            btn("上一步", "p01", true) +
+            btn("保存到设备", "p14", false, false, "其他免费工具"),
+        },
+        p14: {
+          title: "保存完成",
+          step: toolSteps(2),
+          body: () =>
+            `<div class="wf-center"><img class="wf-bear" src="${bear}" alt="白熊主题示例"><h3>已发起下载</h3><p>请在手机相册中查看</p>${portrait()}${spec()}</div>`,
+          footer: () => btn("再处理一张", "p01"),
+          states: ["更换背景", "其他免费工具"],
+        },
+        p15: {
+          title: "裁剪照片",
+          step: steps(["选照片", "选排版", "确认订单"], 0),
+          body: () =>
+            `<h3>调整照片，适配冲印</h3><p>一寸比例 · 5∶7</p><div class="wf-crop"><img src="${photo}" alt="裁剪示例"></div><input class="wf-slider" aria-label="缩放示意" type="range" min="1" max="3" step="0.1"><p>拖动、缩放仅为结构示意，比例固定。</p>`,
+          footer: () =>
+            btn("上一步", "p01", true) + btn("确认裁剪并继续", "p16"),
+        },
+        p16: {
+          title: "选择排版",
+          step: steps(["选照片", "选排版", "确认订单"], 1),
+          body: () =>
+            `${layout()}<div class="wf-choice"><span class="selected">4大8小</span><span>8大</span></div><div class="wf-block"><strong style="font-size:13px">背胶模切排版照</strong><p>免剪裁 · 自带胶 · 每单一版</p><p>4大8小：二寸4张＋一寸8张<br>8大：二寸8张</p></div><p>示意图仅标记预览位置，实际版式见运行原型。</p>`,
+          footer: () => btn("上一步", "p01", true) + btn("下一步", "p17"),
+        },
+        p17: {
+          title: "确认订单",
+          step: steps(["选照片", "选排版", "确认订单"], 2),
+          body: () =>
+            `<div class="wf-block"><div class="wf-row"><strong>收货地址</strong>${text("选择地址 →", "p18")}</div><p>示例用户　138 **** 0000<br>示例市 · 示例地址（虚构）</p></div><div class="wf-block"><strong style="font-size:13px">背胶模切 · 4大8小</strong>${layout()}<div class="wf-row">冲印费用<strong class="wf-print-cost">¥19.80</strong></div><div class="wf-row">运费<strong class="wf-shipping-cost">¥10.00</strong></div><div class="wf-row">合计<strong class="wf-total-cost">¥29.80</strong></div></div>`,
+          footer: () =>
+            '<div class="wf-actions">' +
+            btn("上一步", "p16", true) +
+            btn("确认并支付", "p20") +
+            "</div>",
+          states: ["有效报价", "缺地址", "计算中", "提交中"],
+        },
+        p18: {
+          title: "收货地址",
+          body: () =>
+            `<div class="wf-block"><strong style="font-size:14px">示例用户　138 **** 0000</strong><p>示例市 · 示例地址（虚构）</p><div class="wf-row"><small>默认地址</small>${text("编辑", "p19")}</div>${text("选择此地址", "p17")}</div>`,
+          footer: () => btn("添加收货地址", "p19"),
+        },
+        p19: {
+          title: "编辑收货地址",
+          body: () =>
+            `<div class="wf-fields">${field("姓名", "请输入收货人姓名")}${field("手机号", "请输入手机号")}${field("地区", "请选择地区")}${field("详细地址", "街道、门牌号等")}${field("邮编（可选）", "6位数字，可留空")}<div class="wf-row">设为默认地址<input aria-label="默认地址示意" type="checkbox"></div></div>`,
+          footer: () => btn("保存地址", "p17"),
+        },
+        p20: {
+          title: "确认订单",
+          step: steps(["选照片", "选排版", "确认订单"], 2),
+          body: () => layout(),
+          overlay: () =>
+            sheet(
+              "请选择支付方式",
+              "原型付款演示",
+              `<div class="wf-row">订单金额<strong class="wf-price">¥29.80</strong></div><div class="wf-row">微信支付<span>已选</span></div><p>成功进入待制作；取消保留待付款订单。超时需先查询结果。</p>`,
+              btn("模拟付款成功", "p21"),
+              "",
+              "p17",
+            ),
+          states: ["付款", "取消", "失败", "超时"],
+        },
+        p21: {
+          title: "确认订单",
+          step: steps(["选照片", "选排版", "确认订单"], 2),
+          body: () =>
+            `<div class="wf-center"><div class="wf-success">✓</div><h3>订单已确认</h3><p>可在「我的订单」查看记录</p></div>${layout()}<div class="wf-notice">付款已确认，当前待制作。</div>${text("查看订单详情", "p23")}`,
+          footer: () => btn("重新选择照片", "p01"),
+        },
+        p22: {
+          title: "我的订单",
+          body: () =>
+            `<div class="wf-choice"><span class="selected">全部</span><span>照片服务</span><span>专项采集</span><span>冲印</span></div><div class="wf-order-card"><div class="wf-row"><strong>冲印 · 4大8小</strong><span class="wf-chip">待制作</span></div><p>背胶模切排版照 · 一版　¥29.80</p>${text("查看订单", "p23")}</div><div class="wf-order-card"><div class="wf-row"><strong>照片精修</strong><span class="wf-chip">处理中</span></div><p>¥2.00</p>${text("恢复处理", "p05")}</div><div class="wf-order-card"><div class="wf-row"><strong>照片换装</strong><span class="wf-chip">已完成</span></div><p>¥2.00</p>${text("查看结果", "p09")}</div><p>此处只示意统一订单归属，不复刻完整筛选布局。</p>`,
+        },
+        p23: {
+          title: "订单详情",
+          body: () =>
+            `<h3>待制作</h3><p>付款已确认，等待制作</p><div class="wf-block"><strong style="font-size:13px">背胶模切 · 4大8小</strong>${layout()}<div class="wf-row">实付金额<strong>¥29.80</strong></div></div><div class="wf-block"><strong style="font-size:13px">收货信息</strong><p>示例用户　138 **** 0000<br>示例市 · 示例地址（虚构）</p></div><div class="wf-block"><strong style="font-size:13px">交易记录</strong><p>使用订单创建时的照片、版式与地址快照。</p></div>`,
+          footer: () => btn("返回我的订单", "p22"),
+          states: ["待制作", "待付款", "付款确认中", "已发货"],
+        },
+      };
+      let current = 0,
+        state = "";
+      function bodyState(id, v) {
+        if (id === "p14" && state === "更换背景")
+          return `<div class="wf-center"><img class="wf-bear" src="${assetRoot}bear-background.webp" alt="换背景白熊"><h3>已保存到知拍相册</h3><p>原照片仍然保留</p>${portrait()}${spec()}</div>`;
+        if (id === "p01" && state === "已选图")
+          return `<div class="wf-photo-box"><img src="${photo}" alt="当前照片"></div>${spec()}<button class="wf-text-button wf-change" data-go="p02">↻ 更换照片</button>`;
+        if (id === "p03" && state === "检查中")
+          return `${portrait()}<div class="wf-notice">正在检查照片…</div>`;
+        if (id === "p03" && state === "检查异常")
+          return `${portrait()}<div class="wf-notice">照片检查未完成<br>${text("重新检查", "p03")}</div>`;
+        if (id === "p07" && state === "保存失败")
+          return `${portrait()}<div class="wf-notice error">保存未完成，照片与设置已保留，请重试。<br>${text("重试保存", "p07")}</div>`;
+        return v.body();
+      }
+      function overlayState(id, v) {
+        if (id === "p02" && state === "空相册")
+          return sheet(
+            "选择照片",
+            "单选一张照片",
+            '<div class="wf-empty"><h3>知拍相册暂无照片</h3><p>可从手机相册选图</p></div>',
+            btn("使用这张照片", "", false, true),
+            '<button data-state="手机来源">手机相册</button>',
+          );
+        if (id === "p02" && state === "读取失败")
+          return sheet(
+            "选择照片",
+            "单选一张照片",
+            '<div class="wf-notice error">相册暂时无法读取，可重试或从手机相册选图。</div>' +
+              text("重新读取", "p02"),
+            btn("使用这张照片", "", false, true),
+            '<button data-state="手机来源">手机相册</button>',
+          );
+        if (id === "p02" && state === "手机来源")
+          return sheet(
+            "选择照片",
+            "手机相册来源说明",
+            "<h3>调用系统照片选择</h3><p>这里不打开系统相册。运行原型选择文件后回到原工具；取消则保留原照片。</p>",
+            btn("返回列表示意", "p02"),
+          );
+        if (id === "p11" && state === "手动裁剪")
+          return sheet(
+            "手动裁剪",
+            "当前尺寸：一寸 · 25 × 35 mm",
+            `<div class="wf-crop"><img src="${photo}" alt="裁剪构图示意"></div><input class="wf-slider" aria-label="缩放示意" type="range" min="1" max="3" step="0.1"><p>比例跟随所选尺寸；在此用一寸举例。</p>`,
+            btn("完成", "p11"),
+            "",
+            "p11",
+          );
+        if (id === "p03" && state === "原型结果选择")
+          return sheet(
+            "选择照片检查结果",
+            "仅用于原型演示",
+            `<div class="wf-check-row">${text("符合要求 · 通过", "p05")}</div><div class="wf-check-row">${text("不符合要求 · 不通过", "p03")}</div><div class="wf-check-row"><button class="wf-text-button" data-state="检查异常">模拟检查异常</button></div>`,
+            btn("关闭，留在选图", "p03"),
+            "",
+            "p03",
+          );
+        if (id === "p06" && state === "换装付款")
+          return sheet(
+            "确认换装订单",
+            "原型付款演示",
+            '<div class="wf-row">AI智能换装<strong class="wf-price">¥2.00</strong></div><p>微信支付 · 经典西装</p>',
+            btn("模拟付款成功并处理", "p09"),
+            "",
+            "p08",
+          );
+        if (id === "p06" && state === "取消或失败")
+          return sheet(
+            "付款未完成",
+            "照片与设置已保留",
+            "<p>取消不开始处理；失败可重试，不重复创建已付款交易。</p>",
+            btn("返回处理", "p05"),
+            "",
+            "p05",
+          );
+        if (id === "p20" && ["取消", "失败", "超时"].includes(state))
+          return sheet(
+            "付款结果 · " + state,
+            "保持同一订单",
+            `<div class="wf-notice">${state === "超时" ? "支付响应超时，请先查询结果，避免重复付款。" : state === "取消" ? "已取消本次支付，订单保留为待支付。" : "支付未完成，请重试。"}</div>`,
+            btn(
+              state === "超时" ? "查询结果（示意）" : "返回订单",
+              state === "超时" ? "p23" : "p17",
+            ),
+            "",
+            "p17",
+          );
+        return v.overlay ? v.overlay() : "";
+      }
+      function render() {
+        const p = pages[current],
+          v = view[p.id];
+        document.getElementById("doc-feedback").textContent = "";
+        document.getElementById("phone").innerHTML =
+          '<div class="wf-statusbar"><span>9:41</span><span>信号 · Wi-Fi · 电量</span></div><header class="wf-nav"><button data-doc-exit aria-label="返回文档目录"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button><strong>' +
+          v.title +
+          "</strong><span></span></header>" +
+          (v.step || "") +
+          '<div class="wf-body">' +
+          bodyState(p.id, v) +
+          "</div>" +
+          (v.footer
+            ? '<footer class="wf-footer"><div class="wf-actions">' +
+              v.footer() +
+              "</div></footer>"
+            : "") +
+          '<div class="wf-homebar"></div>' +
+          overlayState(p.id, v);
+        if (p.id === "p14" && state === "更换背景")
+          document.querySelector(".wf-footer").innerHTML =
+            '<div class="wf-actions" style="flex-direction:column"><button class="wf-button" data-note="实际页面将进入刚保存的知拍相册照片。">查看照片</button>' +
+            btn("再处理一张", "p01", true) +
+            "</div>";
+        if (p.id === "p17") {
+          const footer = document.querySelector(".wf-footer");
+          footer.innerHTML = v.footer();
+          if (state === "缺地址") {
+            document.querySelector(".wf-body .wf-block").innerHTML =
+              "<h3>添加收货地址</h3>" + text("添加收货地址", "p19");
+            document.querySelectorAll(".wf-footer .wf-button")[1].disabled =
+              true;
+          }
+          if (state === "计算中") {
+            document.querySelector(".wf-print-cost").textContent = "正在获取…";
+            document.querySelector(".wf-shipping-cost").textContent =
+              "正在获取…";
+            document.querySelector(".wf-total-cost").textContent = "—";
+            document.querySelectorAll(".wf-footer .wf-button")[1].disabled =
+              true;
+          }
+          if (state === "提交中") {
+            const b = document.querySelectorAll(".wf-footer .wf-button")[1];
+            b.textContent = "正在提交…";
+            b.disabled = true;
+          }
+        }
+        if (p.id === "p23" && state && state !== "待制作") {
+          const descriptions = {
+            待付款: "完成付款后开始制作",
+            付款确认中: "请先查询付款结果，避免重复付款",
+            已发货: "可查看运单，配送为原型演示",
+          };
+          document.querySelector(".wf-body h3").textContent = state;
+          document.querySelector(".wf-body p").textContent =
+            descriptions[state];
+          document.querySelector(".wf-footer").innerHTML =
+            '<div class="wf-actions">' +
+            (state === "待付款"
+              ? btn("取消订单", "p22", true) + btn("继续支付", "p20")
+              : btn(
+                  state === "付款确认中"
+                    ? "查询结果（示意）"
+                    : "查看运单（示意）",
+                  "p23",
+                )) +
+            "</div>";
+        }
+        document.getElementById("notes").innerHTML =
+          '<span class="doc-tag">' +
+          p.id.toUpperCase() +
+          " / 结构与流程说明</span><h2>" +
+          escape(p.name) +
+          "</h2><ol>" +
+          p.notes.map((s) => "<li>" + escape(s) + "</li>").join("") +
+          '</ol><div class="doc-callout">此结构图用于明确标题、内容、操作的职责与分区；不是视觉定稿。付款、检查等按钮仅跳转文档示意。以产品需求和实际原型为准。</div>';
+        document.getElementById("states").innerHTML = (v.states || [])
+          .map(
+            (s) =>
+              `<button class="${state === s ? "active" : ""}" data-state="${s}">${s}</button>`,
+          )
+          .join("");
+        document.getElementById("count").textContent =
+          current + 1 + " / " + pages.length;
+        document.getElementById("prev").disabled = current === 0;
+        document.getElementById("next").disabled = current === pages.length - 1;
+        document.getElementById("page-select").value = p.id;
+        document
+          .querySelectorAll("#nav a")
+          .forEach((a) =>
+            a.setAttribute(
+              "aria-current",
+              a.hash === "#" + p.id ? "page" : "false",
+            ),
+          );
+      }
+      function go(id) {
+        const next = pages.findIndex((p) => p.id === id);
+        if (next < 0) return;
+        current = next;
+        state = view[id].states?.[0] || "";
+        if (location.hash !== "#" + id) location.hash = id;
+        render();
+      }
+      document.getElementById("nav").innerHTML = pages
+        .map(
+          (p) =>
+            `<a href="#${p.id}"><strong>${p.id.toUpperCase()}</strong>${escape(p.name)}</a>`,
+        )
+        .join("");
+      document.getElementById("page-select").innerHTML = pages
+        .map(
+          (p) =>
+            `<option value="${p.id}">${p.id.toUpperCase()} ${escape(p.name)}</option>`,
+        )
+        .join("");
+      document
+        .getElementById("page-select")
+        .addEventListener("change", (e) => go(e.target.value));
+      document.getElementById("prev").onclick = () => go(pages[current - 1].id);
+      document.getElementById("next").onclick = () => go(pages[current + 1].id);
+      document.addEventListener("click", (e) => {
+        const b = e.target.closest(
+          "[data-go],[data-state],[data-doc-exit],[data-note]",
+        );
+        if (!b) return;
+        if (b.dataset.note) {
+          document.getElementById("doc-feedback").textContent = b.dataset.note;
+          return;
+        }
+        if (b.hasAttribute("data-doc-exit")) {
+          document.getElementById("page-select").focus();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } else if (b.dataset.go) {
+          go(b.dataset.go);
+          if (b.dataset.targetState) {
+            state = b.dataset.targetState;
+            render();
+          }
+        } else if (b.dataset.state) {
+          state = b.dataset.state;
+          render();
+        }
+      });
+      window.addEventListener("hashchange", () => {
+        if (location.hash.slice(1) !== pages[current].id)
+          go(location.hash.slice(1));
+      });
+      go(
+        pages.some((p) => p.id === location.hash.slice(1))
+          ? location.hash.slice(1)
+          : "p01",
+      );
+    </script>
+  </body>
+</html>

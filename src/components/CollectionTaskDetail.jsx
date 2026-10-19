@@ -1,4 +1,7 @@
 import React from "react";
+import PhotoProcessingEffect, {
+  PhotoProcessingStatus,
+} from "./PhotoProcessingEffect.jsx";
 import { CollectionIcon } from "./CollectionHome.jsx";
 import CollectionStatusArtwork from "./CollectionStatusArtwork.jsx";
 import { canEditCollectionPhoto } from "../domain/collection-status.js";
@@ -80,20 +83,27 @@ export default function CollectionTaskDetail({ scope: s }) {
       <div className="collection-task-content">
         <section className="collection-task-visual" aria-label="本次采集照片">
           {s.photoSrc ? (
-            <figure className="collection-task-photo">
-              <img
-                src={s.photoSrc}
-                alt={record.name ? record.name + "的采集照片" : "本次采集照片"}
+            <>
+              <figure className="collection-task-photo">
+                <img
+                  src={s.photoSrc}
+                  alt={
+                    record.name ? record.name + "的采集照片" : "本次采集照片"
+                  }
+                />
+                <PhotoProcessingEffect
+                  active={status === "processing"}
+                  imageSrc={s.photoSrc}
+                />
+              </figure>
+              <PhotoProcessingStatus
+                label={status === "processing" ? "正在制作证件照" : ""}
               />
-            </figure>
+            </>
           ) : status === "pending" ? (
             <PortraitGuide />
           ) : status === "processing" ? (
-            <div
-              className="collection-task-processing"
-              aria-label="正在制作照片"
-            >
-              <span className="collection-task-spinner" aria-hidden="true" />
+            <div className="collection-task-processing" role="status">
               <span>制作完成后，照片将在此展示</span>
             </div>
           ) : (

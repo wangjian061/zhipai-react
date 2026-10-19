@@ -1,0 +1,31 @@
+$ node scripts/test-flows.mjs camera-scan-flow.cjs
+PASS: camera/scan separation, confirmation before processing, watermark unlock gate, cancel/unknown/same-order query, no duplicate payment/save, refresh recovery, raw-file retention, caller preservation, stale processing isolation, QR fallback and unverified-code boundary.
+
+$ node scripts/test-flows.mjs photo-making.cjs
+PASS: prototype accepts original photo without model or portrait gate, contain/zoom/drag geometry, JPEG colour fill and PNG alpha export.
+
+$ node scripts/test-flows.mjs album-flow.cjs
+PASS: direct finished-library entry, camera return visibility, management/all-selection, real ZIP/single/raw downloads, delete cancel/failure/detail return, missing-file restrictions, current six tools, legacy URLs/print return, stale deletion isolation.
+
+$ node --test tests/bindings.test.mjs tests/photo-processing.test.mjs tests/photo-processing-lifecycle.test.mjs
+✔ all initial JSX data bindings resolve against the migrated domain state (43.280583ms)
+✔ active processing is measured; completion removes the effect and all event subscriptions (0.95625ms)
+✔ loading, image replacement, resize and read failure never use a stale image rectangle (0.726083ms)
+✔ without ResizeObserver the window fallback updates measurements and is removed on stop (0.093541ms)
+✔ a new task without a photo cannot reuse the previous photo's measured overlay (0.101792ms)
+✔ matching portrait fills the image frame (1.055667ms)
+✔ landscape and square photos exclude top and bottom contain gutters (0.090208ms)
+✔ narrow portrait excludes side gutters (0.050125ms)
+✔ device scaling and translated viewport preserve normalized image boundaries (0.090375ms)
+✔ manual crop uses only the visible intersection of the enlarged photo (0.0685ms)
+✔ hidden, unreadable and offscreen photo boxes have no processing effect (0.052625ms)
+✔ object position and resizing recompute the actual image area (0.044125ms)
+✔ only actual photo work shows a processing status; completion, error and payment do not (0.075459ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 133.49275

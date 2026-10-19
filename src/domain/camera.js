@@ -155,6 +155,8 @@ registerController("cameraStudio", () => ({
   editingFrom: "camera",
   creationContext: null,
   phoneContext: null,
+  confirmationWrite: null,
+  confirmationRevision: 0,
   panel: null,
   previousFocus: null,
   paymentMethod: "wechat",
@@ -191,6 +193,13 @@ registerController("cameraStudio", () => ({
       mm: "35 × 45 mm",
       width: 413,
       height: 531,
+    },
+    {
+      id: "large-one",
+      name: "大一寸",
+      mm: "33 × 48 mm",
+      width: 390,
+      height: 567,
     },
   ],
   colors: [
@@ -234,13 +243,20 @@ registerController("cameraStudio", () => ({
     this.chosenHandler = (e) => {
       const { context, photo, kind } = e.detail;
       if (["print", "toolStudio"].includes(context.intent)) return;
+      if (
+        context.replaceSession &&
+        (context.replaceSession !== this.draft?.id ||
+          this.step !== "confirm" ||
+          this.busy)
+      )
+        return;
       this.returnTo = context.exitTo || context.returnTo || "/?page=album";
       this.editingFrom = context.cameraCaller || context.intent || "camera";
       if (context.cameraCreationContext)
         this.creationContext = {
           ...context.cameraCreationContext,
         };
-      this.newDraft(kind, photo);
+      return this.newDraft(kind, photo);
     };
     this.phoneHandler = (e) => {
       this.phoneContext = {
@@ -278,6 +294,62 @@ registerController("cameraStudio", () => ({
   get active() {
     return new URLSearchParams(location.search).get("page") === "camera";
   },
+  get confirmationFromCamera() {
+    return this.draft?.source === "camera";
+  },
+  get confirmationReplaceLabel() {
+    return this.confirmationFromCamera ? "重新拍摄" : "重新选择";
+  },
+  get confirmationBackLabel() {
+    return this.confirmationFromCamera ? "返回拍摄" : "返回上一页";
+  },
+  get collectionCapture() {
+    return this.creationContext?.intent === "collectionCapture";
+  },
+  get canConfigureConfirmation() {
+    return (
+      this.step === "confirm" &&
+      !!this.draft &&
+      !!this.sourcePhoto?.blob &&
+      !this.collectionCapture &&
+      !this.busy
+    );
+  },
+  get quickSpecs() {
+    return this.specs.filter((spec) =>
+      ["one", "two", "small-two"].includes(spec.id),
+    );
+  },
+  get confirmationSizeLabel() {
+    const spec = this.spec;
+    return this.quickSpecs.some((item) => item.id === spec.id)
+      ? spec.mm
+      : spec.name + " · " + spec.mm;
+  },
+  get sizePanelError() {
+    return this.fields.specId === "custom"
+      ? this.customSizeError(this.fields)
+      : "";
+  },
+  customSizeError(settings) {
+    const w = Number(settings.customWidth),
+      h = Number(settings.customHeight);
+    if (
+      settings.customWidth === "" ||
+      settings.customHeight === "" ||
+      settings.customWidth == null ||
+      settings.customHeight == null
+    )
+      return "请输入照片的宽度和高度。";
+    if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1)
+      return "宽度和高度需为大于0的整数像素。";
+    if (w > 6000 || h > 6000 || w * h > 24000000)
+      return "单边尺寸不能超过6000 px，总像素不能超过2400万。";
+    return "";
+  },
+  get panelPreviewURL() {
+    return this.step === "confirm" ? this.sourceURL : this.standardURL;
+  },
   get processing() {
     return ["processing", "awaiting_result"].includes(this.draft?.status);
   },
@@ -297,6 +369,23 @@ registerController("cameraStudio", () => ({
   },
   specFor(settings) {
     if (settings?.specId === "custom") {
+      if (settings.customWidth != null || settings.customHeight != null) {
+        const valid = !this.customSizeError(settings),
+          width = valid
+            ? Number(settings.customWidth)
+            : Number(this.draft?.outputWidth) || 413,
+          height = valid
+            ? Number(settings.customHeight)
+            : Number(this.draft?.outputHeight) || 579;
+        return {
+          id: "custom",
+          name: "自定义",
+          mm: `${width} × ${height} px`,
+          width,
+          height,
+        };
+      }
+      // Read legacy ratio-based sessions without relabelling them as physical sizes.
       const w = Number(settings.ratioWidth) || 3,
         h = Number(settings.ratioHeight) || 4,
         ratio = w / h,
@@ -377,6 +466,8 @@ registerController("cameraStudio", () => ({
     this.stopCamera();
     this.releaseURLs();
     this.draft = null;
+    this.confirmationWrite = null;
+    this.confirmationRevision = 0;
     this.sourcePhoto = null;
     this.standardBlob = null;
     this.standardWidth = 0;
@@ -548,7 +639,7 @@ registerController("cameraStudio", () => ({
       ) {
         this.reset();
         this.step = "capture";
-        this.error = "照片未能恢复，请重新拍摄。";
+        this.error = "照片未能恢复，请重新选择照片。";
         this.route("capture", true);
       }
     } finally {
@@ -604,10 +695,33 @@ registerController("cameraStudio", () => ({
       return;
     }
     if (this.step === "confirm") {
-      this.retake();
+      if (this.confirmationFromCamera) this.retake();
+      else this.exit();
       return;
     }
     this.exit();
+  },
+  replaceConfirmationPhoto() {
+    if (this.busy || this.step !== "confirm") return;
+    if (this.confirmationFromCamera) {
+      this.retake();
+      return;
+    }
+    if (this.draft?.source === "phone") {
+      this.openPicker();
+      return;
+    }
+    this.$store.photoChoice.show({
+      intent: "camera",
+      sources: ["finished", "phone"],
+      exitTo: this.returnTo,
+      returnTo: location.pathname + location.search,
+      cameraCaller: this.editingFrom,
+      cameraCreationContext: this.creationContext
+        ? { ...this.creationContext }
+        : null,
+      replaceSession: this.draft?.id,
+    });
   },
   openPicker() {
     if (this.busy) return;
@@ -621,6 +735,7 @@ registerController("cameraStudio", () => ({
           }
         : null,
       returnTo: location.pathname + location.search,
+      replaceSession: this.step === "confirm" ? this.draft?.id : null,
     };
     this.$refs.sourceInput.value = "";
     this.$refs.sourceInput.click();
@@ -628,13 +743,13 @@ registerController("cameraStudio", () => ({
   async phoneSelected(e) {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file) return;
     const sourceRoute = location.pathname + location.search,
       context = this.phoneContext || {
         intent: this.editingFrom,
         returnTo: this.returnTo,
       };
     this.phoneContext = null;
+    if (!file) return;
     try {
       if (
         !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
@@ -643,6 +758,13 @@ registerController("cameraStudio", () => ({
         throw Error("file");
       const photo = await uploadedPhoto(file);
       if (sourceRoute !== location.pathname + location.search) return;
+      if (
+        context.replaceSession &&
+        (context.replaceSession !== this.draft?.id ||
+          this.step !== "confirm" ||
+          this.busy)
+      )
+        return;
       if (["print", "toolStudio"].includes(context.intent)) {
         window.dispatchEvent(
           new CustomEvent("zhipai-photo-chosen", {
@@ -661,10 +783,13 @@ registerController("cameraStudio", () => ({
         this.creationContext = {
           ...context.cameraCreationContext,
         };
-      await this.newDraft("phone", photo);
+      await this.newDraft(
+        context.photoSource === "camera" ? "camera" : "phone",
+        photo,
+      );
     } catch (_) {
       const message = "照片无法读取，请选择30 MB以内的 JPG、PNG 或 WebP。";
-      if (context.intent === "toolStudio")
+      if (["toolStudio", "print"].includes(context.intent))
         window.dispatchEvent(
           new CustomEvent("zhipai-phone-error", {
             detail: {
@@ -746,6 +871,7 @@ registerController("cameraStudio", () => ({
   deviceCapture() {
     this.phoneContext = {
       intent: "camera",
+      photoSource: "camera",
       cameraCaller: this.editingFrom,
       cameraCreationContext: this.creationContext
         ? {
@@ -834,6 +960,92 @@ registerController("cameraStudio", () => ({
       this.error = "照片暂未能备份，请保持当前页面并继续。";
     }
   },
+  async persistConfirmationSettings() {
+    const record = this.snapshot(),
+      task = this.task,
+      revision = ++this.confirmationRevision;
+    const write = (this.confirmationWrite || Promise.resolve())
+      .catch(() => {})
+      .then(() => {
+        if (task !== this.task || record.id !== this.draft?.id) return;
+        return writeCameraSession(record);
+      });
+    this.confirmationWrite = write;
+    try {
+      await write;
+    } catch (_) {
+      if (task === this.task && revision === this.confirmationRevision)
+        this.error = "照片设置暂未能备份，请保持当前页面并继续。";
+    }
+  },
+  async commitConfirmationSettings(values) {
+    if (!this.canConfigureConfirmation) return;
+    const keys = [
+      "specId",
+      "customWidth",
+      "customHeight",
+      "ratioWidth",
+      "ratioHeight",
+      "scale",
+      "offsetX",
+      "offsetY",
+      "background",
+    ];
+    if (
+      !keys.some(
+        (key) => Object.hasOwn(values, key) && values[key] !== this.draft[key],
+      )
+    )
+      return;
+    const candidate = { ...this.draft, ...values };
+    if (
+      candidate.specId === "custom" &&
+      (candidate.customWidth != null || candidate.customHeight != null)
+    ) {
+      const error = this.customSizeError(candidate);
+      if (error) {
+        this.error = error;
+        return;
+      }
+    }
+    if (this.draft.status !== "failed") this.error = "";
+    for (const key of keys)
+      if (Object.hasOwn(values, key)) this.draft[key] = values[key];
+    const spec = this.spec;
+    this.draft.outputWidth = spec.width;
+    this.draft.outputHeight = spec.height;
+    this.draft.format =
+      this.draft.background === "transparent" ? "png" : "jpeg";
+    if (this.draft.status === "ready") this.draft.status = "queued";
+    this.draft.savedId = null;
+    this.outputBlob = null;
+    this.standardBlob = null;
+    this.standardWidth = 0;
+    this.standardHeight = 0;
+    for (const key of ["previewURL", "standardURL"]) {
+      if (this[key]) URL.revokeObjectURL(this[key]);
+      this[key] = "";
+    }
+    await this.persistConfirmationSettings();
+  },
+  async setConfirmationSpec(id) {
+    if (id === this.draft?.specId || !this.specs.some((spec) => spec.id === id))
+      return;
+    await this.commitConfirmationSettings({
+      specId: id,
+      scale: 1,
+      offsetX: 0,
+      offsetY: 0,
+    });
+  },
+  async setConfirmationBackground(value) {
+    if (
+      value === this.draft?.background ||
+      !this.colors.some((color) => color.value === value)
+    )
+      return;
+    await this.commitConfirmationSettings({ background: value });
+  },
   chooseSpec(id) {
     if (!this.draft || this.busy) return;
     this.openPanel("spec");
@@ -844,12 +1056,24 @@ registerController("cameraStudio", () => ({
   },
   async processDraft() {
     if (!this.sourcePhoto?.blob || this.busy || this.step !== "confirm") return;
+    if (
+      this.draft.specId === "custom" &&
+      (this.draft.customWidth != null || this.draft.customHeight != null)
+    ) {
+      const error = this.customSizeError(this.draft);
+      if (error) {
+        this.error = error;
+        return;
+      }
+    }
     const token = ++this.task;
     this.renderTask++;
     this.draft.status = "processing";
     this.error = "";
     this.panel = null;
     this.draft.failureReason = "";
+    await this.persistConfirmationSettings();
+    if (token !== this.task || !this.active || this.step !== "confirm") return;
     await new Promise((resolve) => setTimeout(resolve, 1600));
     if (token !== this.task || !this.active || this.step !== "confirm") return;
     this.draft.status = "awaiting_result";
@@ -887,7 +1111,7 @@ registerController("cameraStudio", () => ({
         makeCameraPhotoStep(this.sourcePhoto, {
           outcome,
           failureReason:
-            "照片制作服务暂时不可用，本次处理未完成。请重新制作；若仍未成功，可重新拍摄后再试。",
+            "照片制作服务暂时不可用，本次处理未完成。请重新制作；若仍未成功，可更换照片后再试。",
         }),
         25000,
       );
@@ -956,7 +1180,7 @@ registerController("cameraStudio", () => ({
             ? "照片处理超时，原照片已保留，请重新制作。"
             : error.code === "PROTOTYPE_FAILURE"
               ? error.message
-              : "照片文件未能完成处理，请重新制作或重新拍摄。";
+              : "照片文件未能完成处理，请重新制作或更换照片。";
         this.draft.failureReason = this.error;
         await writeCameraSession(this.snapshot()).catch(() => {});
       }
@@ -1024,12 +1248,20 @@ registerController("cameraStudio", () => ({
     }
   },
   openPanel(name) {
-    if (this.busy || !this.draft || this.draft.status !== "ready") return;
+    if (this.busy || !this.draft) return;
+    const confirmationPanel =
+      this.canConfigureConfirmation && ["spec", "background"].includes(name);
+    if (!confirmationPanel && this.draft.status !== "ready") return;
+    if (this.step === "confirm" && this.collectionCapture) return;
     this.error = "";
     this.previousFocus = document.activeElement;
     this.fields = {
       ...this.draft,
     };
+    if (name === "spec") {
+      this.fields.customWidth = this.spec.width;
+      this.fields.customHeight = this.spec.height;
+    }
     this.panel = name;
     this.$nextTick(() =>
       this.$refs.cameraDialog.querySelector("button:not([disabled])")?.focus({
@@ -1039,6 +1271,7 @@ registerController("cameraStudio", () => ({
   },
   closePanel() {
     if (this.paying || this.saving) return;
+    if (this.panel === "spec") this.error = "";
     if (
       this.panel === "makingResult" &&
       this.draft?.status === "awaiting_result"
@@ -1055,20 +1288,30 @@ registerController("cameraStudio", () => ({
   },
   async applyPanel() {
     if (this.busy || !["spec", "background"].includes(this.panel)) return;
-    if (
-      this.fields.specId === "custom" &&
-      (!Number.isFinite(Number(this.fields.ratioWidth)) ||
-        !Number.isFinite(Number(this.fields.ratioHeight)) ||
-        this.fields.ratioWidth < 0.1 ||
-        this.fields.ratioHeight < 0.1 ||
-        this.fields.ratioWidth > 100 ||
-        this.fields.ratioHeight > 100)
-    ) {
-      this.error = "自定义比例需为 0.1–100 之间的数值。";
+    if (this.panel === "spec" && this.sizePanelError) {
+      this.error = this.sizePanelError;
+      return;
+    }
+    if (this.panel === "spec" && this.fields.specId === "custom") {
+      this.fields.customWidth = Number(this.fields.customWidth);
+      this.fields.customHeight = Number(this.fields.customHeight);
+    }
+    if (this.step === "confirm") {
+      if (!this.canConfigureConfirmation) return;
+      const values = { ...this.fields };
+      if (this.panel === "spec") {
+        values.scale = 1;
+        values.offsetX = 0;
+        values.offsetY = 0;
+      }
+      this.closePanel();
+      await this.commitConfirmationSettings(values);
       return;
     }
     for (const key of [
       "specId",
+      "customWidth",
+      "customHeight",
       "ratioWidth",
       "ratioHeight",
       "scale",
@@ -1081,6 +1324,8 @@ registerController("cameraStudio", () => ({
     await this.renderResult();
   },
   setPanelSpec(id) {
+    if (id !== "custom" && !this.specs.some((spec) => spec.id === id)) return;
+    this.error = "";
     this.fields.specId = id;
     this.fields.scale = 1;
     this.fields.offsetX = 0;
@@ -1091,7 +1336,15 @@ registerController("cameraStudio", () => ({
     return this.panel === "spec" ? this.fields : this.draft;
   },
   startCropGesture(e) {
-    if (this.paying || this.saving || !this.standardBlob || this.previewing)
+    if (
+      this.step !== "editor" ||
+      (this.busy && !Object.keys(this.cropPointers).length) ||
+      !this.standardBlob ||
+      this.processing ||
+      this.previewing ||
+      this.paying ||
+      this.saving
+    )
       return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);

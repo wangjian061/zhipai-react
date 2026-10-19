@@ -9,7 +9,12 @@ import {
   getStore,
   storageValue,
 } from "../runtime/state.js";
-import { decodePhotoBlob, actualPhotoURL } from "./album.js";
+import {
+  decodePhotoBlob,
+  actualPhotoURL,
+  photoCropBounds,
+  renderPhotoBlob,
+} from "./album.js";
 import { openZhipaiShare } from "./my.js";
 function printId() {
   if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
@@ -85,8 +90,20 @@ function printLayoutCopy(item) {
     })),
   };
 }
+function isPrintRatio(photo) {
+  return !!(
+    Number.isFinite(photo?.width) &&
+    photo.width > 0 &&
+    Number.isFinite(photo?.height) &&
+    photo.height > 0 &&
+    // Allow a one-pixel rounding difference in common photo dimensions.
+    Math.abs(photo.width * 7 - photo.height * 5) <= 7
+  );
+}
 async function requestPrintLayouts(photo) {
   if (!photo?.blob) return { options: [], message: "请先选择一张照片。" };
+  if (!isPrintRatio(photo))
+    return { options: [], message: "请先将照片裁剪为一寸比例（5∶7）。" };
   const image = await decodePhotoBlob(photo.blob);
   if (!image.naturalWidth || !image.naturalHeight)
     throw new Error("invalid image");
@@ -359,7 +376,7 @@ function printSlots(layout) {
   }
   return small;
 }
-function printSheetMarkup(layout, url = "") {
+function printSheetMarkup(layout, url = "", landscape = false) {
   const plan =
     typeof layout === "object"
       ? layout
@@ -387,7 +404,8 @@ function printSheetMarkup(layout, url = "") {
   const footer = plan?.paperWidth
     ? `<g fill="#173358" font-family="sans-serif"><text x="3" y="146" font-size="4" font-weight="700">知拍</text><text x="19" y="145" font-size="2.5">免剪裁 · 自带胶 · 背胶模切</text><text x="19" y="149" font-size="2.5">${escape(plan.description || "")}</text></g>`
     : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="背胶模切排版预览"><rect width="${width}" height="${height}" fill="white"/>${portraits}${footer}</svg>`;
+  const content = `<rect width="${width}" height="${height}" fill="white"/>${portraits}${footer}`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${landscape ? `${height} ${width}` : `${width} ${height}`}" role="img" aria-label="背胶模切排版预览">${landscape ? `<g transform="translate(${height} 0) rotate(90)">${content}</g>` : content}</svg>`;
 }
 registerStore("printUi", {
   opened: false,
@@ -440,6 +458,9 @@ registerStore("printLibrary", {
 registerController("printStudio", () => ({
   view: "select",
   entryPhotoId: null,
+  entryPhoto: null,
+  entryKind: null,
+  selectionId: null,
   flowCompleted: false,
   checkoutPayment: false,
   orderId: null,
@@ -466,6 +487,8 @@ registerController("printStudio", () => ({
   demoOutcome: "success",
   resolution: "paid",
   processing: false,
+  crop: { scale: 1, offsetX: 0, offsetY: 0 },
+  cropTask: 0,
   addonExpanded: false,
   layoutExpanded: false,
   addressFields: {},
@@ -476,17 +499,30 @@ registerController("printStudio", () => ({
   onRoute: null,
   onOpen: null,
   onPhoto: null,
+  onPhoneError: null,
   onNetwork: null,
   init() {
     this.onRoute = () => this.syncLocation();
     this.onOpen = (event) => this.enter(event.detail);
     this.onPhoto = (event) => {
-      if (event.detail.context.intent === "print")
+      if (
+        event.detail.context.intent === "print" &&
+        (!event.detail.context.selectionId ||
+          event.detail.context.selectionId === this.selectionId)
+      )
         this.choosePhoto(
           event.detail.photo,
           event.detail.kind,
           event.detail.context.returnTo,
         );
+    };
+    this.onPhoneError = (event) => {
+      if (
+        this.page === "print" &&
+        event.detail.context.intent === "print" &&
+        event.detail.context.selectionId === this.selectionId
+      )
+        this.error = event.detail.message;
     };
     this.onNetwork = () => {
       this.online = navigator.onLine;
@@ -504,6 +540,7 @@ registerController("printStudio", () => ({
     window.addEventListener("popstate", this.onRoute);
     window.addEventListener("zhipai-print-open", this.onOpen);
     window.addEventListener("zhipai-photo-chosen", this.onPhoto);
+    window.addEventListener("zhipai-phone-error", this.onPhoneError);
     window.addEventListener("online", this.onNetwork);
     window.addEventListener("offline", this.onNetwork);
     this.$watch("$store.printLibrary.ready", (ready) => {
@@ -512,10 +549,12 @@ registerController("printStudio", () => ({
     this.syncLocation();
   },
   destroy() {
+    this.cropTask++;
     window.removeEventListener("zhipai-route", this.onRoute);
     window.removeEventListener("popstate", this.onRoute);
     window.removeEventListener("zhipai-print-open", this.onOpen);
     window.removeEventListener("zhipai-photo-chosen", this.onPhoto);
+    window.removeEventListener("zhipai-phone-error", this.onPhoneError);
     window.removeEventListener("online", this.onNetwork);
     window.removeEventListener("offline", this.onNetwork);
     window.removeEventListener("zhipai-print-resume", this.onResume);
@@ -555,8 +594,9 @@ registerController("printStudio", () => ({
   get canSubmit() {
     return !!(
       !this.flowCompleted &&
-      this.draft.kind === "finished" &&
+      ["finished", "phone"].includes(this.draft.kind) &&
       this.draft.photo?.blob &&
+      isPrintRatio(this.draft.photo) &&
       this.selectedLayout &&
       this.address &&
       this.quote?.serviceable &&
@@ -645,6 +685,7 @@ registerController("printStudio", () => ({
     return {
       preview: "冲印服务",
       select: "选择照片",
+      crop: "裁剪照片",
       layouts: "选择排版",
       confirm: "确认订单",
       addresses: "收货地址",
@@ -721,7 +762,7 @@ registerController("printStudio", () => ({
       ""
     );
   },
-  sheet(layout, selected = true) {
+  sheet(layout, selected = true, landscape = false) {
     const photo = this.draft.photo;
     const plan =
       layout === this.draft.layout
@@ -735,6 +776,7 @@ registerController("printStudio", () => ({
             id: "print-" + photo.id,
           })
         : "",
+      landscape,
     );
   },
   orderSheet(order) {
@@ -756,6 +798,10 @@ registerController("printStudio", () => ({
   async loadLayouts(force = false) {
     if (!this.store.ready || !["layouts", "confirm"].includes(this.view))
       return;
+    if (this.draft.photo && !isPrintRatio(this.draft.photo)) {
+      this.route("crop", {}, true);
+      return;
+    }
     const key = this.photoKey;
     if (
       !force &&
@@ -853,7 +899,16 @@ registerController("printStudio", () => ({
         ? this.draft.photo.id
         : null;
   },
-  finishedPhoto(photo, kind) {
+  inputPhoto(photo, kind) {
+    if (!photo?.blob) return null;
+    if (kind === "phone")
+      return photo.blob instanceof Blob &&
+        Number.isFinite(photo.width) &&
+        photo.width > 0 &&
+        Number.isFinite(photo.height) &&
+        photo.height > 0
+        ? photo
+        : null;
     return kind === "finished"
       ? this.library.finished.find(
           (item) => item.id === photo?.id && item.blob,
@@ -891,6 +946,7 @@ registerController("printStudio", () => ({
     await this.store.loading;
     if (this.disabled || this.guardPendingPayment()) return;
     const source =
+      this.entryPhoto ||
       this.library.finished.find((p) => p.id === this.entryPhotoId && p.blob) ||
       null;
     try {
@@ -905,13 +961,15 @@ registerController("printStudio", () => ({
             state.addresses[0]?.id ||
             null,
           photo: printPhotoCopy(source),
-          kind: source ? "finished" : null,
+          kind: source ? this.entryKind || "finished" : null,
         };
       });
       this.flowCompleted = false;
       this.checkoutPayment = false;
       this.orderId = null;
       this.entryPhotoId = null;
+      this.entryPhoto = null;
+      this.entryKind = null;
       this.candidatePhotoId = source?.id || null;
       this.layoutRequest++;
       this.releaseLayouts();
@@ -921,24 +979,121 @@ registerController("printStudio", () => ({
       this.loadedQuoteKey = "";
       this.error = "";
       this.message = "";
-      this.route(source ? "layouts" : "select");
+      this.crop = { scale: 1, offsetX: 0, offsetY: 0 };
+      if (source) this.nextLayouts();
+      else this.route("select");
     } catch (_) {
       this.error = "暂时无法开始冲印，请重试。";
     }
   },
   openAlbum() {
-    if (!this.disabled && !this.library.busy) {
+    if (this.view === "select" && !this.disabled && !this.library.busy) {
       this.syncCandidate();
       this.showModal("album");
     }
   },
+  pickPhone() {
+    if (this.disabled || this.view !== "select") return;
+    this.closeModal();
+    this.error = "";
+    this.selectionId = printId();
+    window.dispatchEvent(
+      new CustomEvent("zhipai-phone-picker", {
+        detail: {
+          intent: "print",
+          selectionId: this.selectionId,
+          returnTo: location.pathname + location.search,
+          sources: ["phone"],
+        },
+      }),
+    );
+  },
   nextLayouts() {
     if (
-      this.draft.kind === "finished" &&
+      ["finished", "phone"].includes(this.draft.kind) &&
       this.draft.photo?.blob &&
       !this.disabled
     )
-      this.route("layouts");
+      this.route(isPrintRatio(this.draft.photo) ? "layouts" : "crop");
+  },
+  setCrop(value) {
+    if (this.disabled || this.view !== "crop") return;
+    this.crop = {
+      scale: Math.max(1, Math.min(3, Number(value.scale) || 1)),
+      offsetX: Math.max(-100, Math.min(100, Number(value.offsetX) || 0)),
+      offsetY: Math.max(-100, Math.min(100, Number(value.offsetY) || 0)),
+    };
+  },
+  async applyCrop() {
+    if (this.disabled || this.view !== "crop" || !this.draft.photo?.blob)
+      return;
+    if (this.guardPendingPayment()) return;
+    const source = this.draft.photo,
+      settings = { ...this.crop };
+    const task = ++this.cropTask;
+    const originalLocation = location.pathname + location.search;
+    this.processing = true;
+    this.error = "";
+    try {
+      const bounds = photoCropBounds(
+        source.width,
+        source.height,
+        5,
+        7,
+        settings,
+      );
+      const unit = Math.max(1, Math.floor(bounds.w / 5));
+      const width = unit * 5,
+        height = unit * 7;
+      const blob = await renderPhotoBlob(source.blob, {
+        ...settings,
+        outputWidth: width,
+        outputHeight: height,
+        format: "jpeg",
+      });
+      if (
+        task !== this.cropTask ||
+        this.view !== "crop" ||
+        this.draft.photo.id !== source.id ||
+        location.pathname + location.search !== originalLocation
+      )
+        return;
+      await this.store.commit((state) => {
+        state.draft.photo = printPhotoCopy({
+          ...source,
+          id: "print-crop-" + printId(),
+          blob,
+          width,
+          height,
+          type: "image/jpeg",
+          spec: "一寸比例 · 5∶7",
+        });
+        state.draft.layout = null;
+        state.draft.layoutSnapshot = null;
+        state.draft.orderId = null;
+        state.draft.completedOrderId = null;
+        state.draft.token = printId();
+      });
+      // Every preview must be rebuilt from the committed crop, never the previous source.
+      this.layoutRequest++;
+      this.releaseLayouts();
+      this.layoutsLoading = false;
+      this.loadedPhotoKey = "";
+      this.requestedPhotoKey = "";
+      this.quote = null;
+      this.loadedQuoteKey = "";
+      if (
+        task === this.cropTask &&
+        this.view === "crop" &&
+        location.pathname + location.search === originalLocation
+      )
+        this.route("layouts");
+    } catch (_) {
+      if (task === this.cropTask)
+        this.error = "裁剪未完成，调整已保留，请重试。";
+    } finally {
+      if (task === this.cropTask) this.processing = false;
+    }
   },
   resumePrint(context = {}) {
     this.route("select");
@@ -981,12 +1136,6 @@ registerController("printStudio", () => ({
     );
     this.go("camera");
   },
-  editPhotos() {
-    if (this.processing || !this.library.ready) return;
-    this.closeModal();
-    this.$store.photoChoice.printReturnContext = this.returnContext();
-    this.go("album");
-  },
   async selectLayout(id) {
     if (this.disabled) return;
     const item = this.layouts.find((l) => l.id === id);
@@ -1009,12 +1158,21 @@ registerController("printStudio", () => ({
   },
   syncLocation() {
     const q = new URLSearchParams(location.search);
+    if (this.view === "crop" && q.get("print") !== "crop") {
+      this.cropTask++;
+      this.processing = false;
+    }
     this.modal = null;
     this.moreOpen = false;
     this.$store.printUi.opened = false;
     this.message = "";
     this.error = "";
-    if (q.get("page") !== "print") return;
+    if (q.get("page") !== "print") {
+      this.cropTask++;
+      this.processing = false;
+      this.selectionId = null;
+      return;
+    }
     const requested = q.get("print");
     const next = !requested || requested === "preview" ? "select" : requested;
     if (next === "orders") {
@@ -1024,6 +1182,7 @@ registerController("printStudio", () => ({
     this.view = [
       "preview",
       "select",
+      "crop",
       "layouts",
       "confirm",
       "addresses",
@@ -1035,11 +1194,19 @@ registerController("printStudio", () => ({
       ? next
       : "select";
     if (
-      ["layouts", "confirm"].includes(this.view) &&
+      ["crop", "layouts", "confirm"].includes(this.view) &&
       this.store.ready &&
-      (!this.draft.photo || this.draft.kind !== "finished")
+      (!this.draft.photo || !["finished", "phone"].includes(this.draft.kind))
     ) {
       this.route("select", {}, true);
+      return;
+    }
+    if (
+      ["layouts", "confirm"].includes(this.view) &&
+      this.store.ready &&
+      !isPrintRatio(this.draft.photo)
+    ) {
+      this.route("crop", {}, true);
       return;
     }
     this.orderId = q.get("order");
@@ -1088,6 +1255,7 @@ registerController("printStudio", () => ({
     window.dispatchEvent(new Event("zhipai-route"));
   },
   async enter(detail) {
+    this.selectionId = null;
     this.$store.photoChoice.printReturnContext = null;
     if (detail.view === "orders") {
       this.filter = "all";
@@ -1095,8 +1263,10 @@ registerController("printStudio", () => ({
       return;
     }
     await this.store.loading;
-    const source = this.finishedPhoto(detail.photo, detail.kind);
+    const source = this.inputPhoto(detail.photo, detail.kind);
     this.entryPhotoId = source?.id || null;
+    this.entryPhoto = source;
+    this.entryKind = source ? detail.kind : null;
     this.flowCompleted = false;
     this.checkoutPayment = false;
     try {
@@ -1118,7 +1288,9 @@ registerController("printStudio", () => ({
       this.closeModal();
       return;
     }
-    if (["preview", "select", "layouts", "confirm"].includes(this.view)) {
+    if (
+      ["preview", "select", "crop", "layouts", "confirm"].includes(this.view)
+    ) {
       const url = new URL(
         this.draft.returnTo || "/?page=home",
         location.origin,
@@ -1153,7 +1325,7 @@ registerController("printStudio", () => ({
   },
   previousStep() {
     if (this.disabled || this.modal || this.flowCompleted) return;
-    if (!["layouts", "confirm"].includes(this.view)) return;
+    if (!["crop", "layouts", "confirm"].includes(this.view)) return;
     if (this.guardPendingPayment()) return;
     this.route(this.view === "confirm" ? "layouts" : "select");
   },
@@ -1196,12 +1368,17 @@ registerController("printStudio", () => ({
     this.openAlbum();
   },
   async choosePhoto(photo, kind, returnTo = "/?page=print&print=preview") {
-    photo = this.finishedPhoto(photo, kind);
+    photo = this.inputPhoto(photo, kind);
     if (!photo) return;
     await this.store.loading;
     if (this.disabled) return;
     const originalLocation = location.pathname + location.search;
     if (this.guardPendingPayment()) return;
+    this.selectionId = null;
+    const samePhoto =
+      this.draft.photo?.id === photo.id &&
+      this.draft.photo.blob === photo.blob &&
+      this.draft.kind === kind;
     this.processing = true;
     try {
       await this.store.commit((state) => {
@@ -1219,7 +1396,8 @@ registerController("printStudio", () => ({
       this.processing = false;
       if (location.pathname + location.search === originalLocation) {
         this.closeModal();
-        if (!["select", "layouts"].includes(this.view)) this.route("select");
+        if (!samePhoto) this.crop = { scale: 1, offsetX: 0, offsetY: 0 };
+        this.nextLayouts();
       }
     } catch (_) {
       this.error = "照片准备失败，选择已保留，请重试。";
@@ -1230,6 +1408,7 @@ registerController("printStudio", () => ({
   confirm() {
     if (
       this.draft.photo &&
+      isPrintRatio(this.draft.photo) &&
       this.selectedLayout &&
       !this.layoutError &&
       !this.disabled

@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-19",
+  "kind": "source-state-contract-checks-no-browser",
+  "rounds": [
+    {
+      "round": 1,
+      "results": [
+        {
+          "command": "node scripts/test-flows.mjs tools-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs print-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs camera-scan-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs album-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node --test tests/bindings.test.mjs tests/print-crop.test.mjs tests/orders.test.mjs tests/device-preview.test.mjs tests/runtime.test.mjs",
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "results": [
+        {
+          "command": "node scripts/test-flows.mjs tools-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs print-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs camera-scan-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs album-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node --test tests/bindings.test.mjs tests/print-crop.test.mjs tests/orders.test.mjs tests/device-preview.test.mjs tests/runtime.test.mjs",
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "results": [
+        {
+          "command": "node scripts/test-flows.mjs tools-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs print-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs camera-scan-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs album-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node --test tests/bindings.test.mjs tests/print-crop.test.mjs tests/orders.test.mjs tests/device-preview.test.mjs tests/runtime.test.mjs",
+          "exit": 0
+        }
+      ]
+    }
+  ],
+  "sha256": {
+    "src/domain/tools.js": "5be70b7277caf8c2532cfac095e3384057d21825a18bf141a12ea221e2ae597b",
+    "src/domain/print.js": "373f9a6d471560c88505795c60e46e1ac0cbd2113a71ceb9bef4c2040d148c3c",
+    "src/domain/camera.js": "ef77c1a1ae8b786270de435aaf04ce691f1772b001343d404e4c4b7a28fbd743",
+    "src/pages/ToolsPage.jsx": "633314513d6e1e66a94eac4ce7e22b0fce1f5e9d2b941cbbe5f7d6a128c2bd9a",
+    "src/pages/PrintPage.jsx": "f6a3590a7790836e2844a1807330be3fed5b55ef559d0bd63e41e5bcc6569f8a",
+    "src/components/ToolStepper.jsx": "4b565f718293f6024b0ec0ded4fc71113cea02ef2c3053358138f6523fd8d840",
+    "src/components/PhotoSelectionPreview.jsx": "43d7379e8730a57d2a3ca632ed8658f936c0f5b958189c9741ac9992437f2750",
+    "src/components/ToolPhotoSelection.jsx": "fbe33c0a2ae0192081f953abbd9d63944b09630104109df1f983ed4f1c0431b8",
+    "src/styles/tools.css": "c4c16b0c1cb5d610d74818646a25c060635307284b4bc1d2382a48df1f1b6523",
+    "src/styles/print.css": "fca68ed24cec68239367d213a01d4fe8b0c07c7d79869c0b48a8e24c4ba8f1f5",
+    "src/styles/tool-stepper.css": "10b15b1faeac64714e4d6bc3cf31236427d142044614b403f4dd18f8f2724276",
+    "src/styles/portrait-photo-check.css": "7a2999d7964888dfdce1289720a63baaaf8b8c77d378daa3e1d1e36a4c5643d6",
+    "src/styles/photo-selection.css": "2af12644ff2bc6656617275e97355aee4cee23d00cd01398129bfcb2d5b32aa4"
+  }
+}

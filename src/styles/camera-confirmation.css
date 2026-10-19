@@ -1,0 +1,184 @@
+/* Confirmation configures the next production; result editing retains its own surface. */
+.camera-confirm[data-configurable="true"] .camera-confirm-scroll {
+  padding-top: 12px;
+  padding-bottom: 16px;
+}
+.camera-confirm[data-configurable="true"] .capture-confirm-photo {
+  height: clamp(200px, calc(var(--device-screen-height, 100dvh) * 0.35), 310px);
+  min-height: 200px;
+  max-height: 310px;
+  background: transparent;
+  border-radius: 0;
+}
+.camera-confirm-replace {
+  margin: 4px auto 0;
+  display: flex;
+  color: var(--brand-blue);
+  font-size: 13px;
+}
+.camera-confirm .camera-confirm-message {
+  margin: 8px 0 0;
+}
+.camera-confirm .camera-confirm-message .camera-stage-hint {
+  margin-top: 6px;
+}
+.camera-confirm-settings {
+  display: grid;
+  gap: 18px;
+  margin-top: 20px;
+  text-align: left;
+}
+.camera-confirm-settings fieldset {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.camera-confirm-settings legend,
+.camera-confirm-setting-heading > span {
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 600;
+  color: var(--ui-heading, #203b60);
+}
+.camera-confirm-settings legend:not(.sr-only) {
+  margin-bottom: 12px;
+}
+.camera-confirm-setting-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 20px;
+  margin-bottom: 8px;
+}
+.camera-confirm-setting-heading > .camera-confirm-current-size {
+  min-width: 0;
+  color: var(--ui-body, #53637b);
+  font-size: 12px;
+  font-weight: 400;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.camera-confirm-specs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.camera-confirm-specs > button {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 2px;
+  border: 0;
+  background: none;
+  color: var(--ui-heading, #203b60);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.camera-confirm-specs > button::before {
+  content: "";
+  position: absolute;
+  inset: 6px 0;
+  z-index: -1;
+  border: 1px solid #dce4f0;
+  border-radius: 8px;
+  background: #ffffff8c;
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+  pointer-events: none;
+}
+.camera-confirm-specs button[aria-pressed="true"] {
+  color: var(--brand-blue);
+  font-weight: 600;
+}
+.camera-confirm-specs button[aria-pressed="true"]::before {
+  border-color: var(--brand-blue);
+  background: var(--brand-tint, #edf2ff);
+}
+.camera-confirm-colors {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 4px 5px;
+  scrollbar-width: thin;
+}
+.camera-confirm-colors > button {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 44px;
+  min-height: 62px;
+  color: var(--ui-body, #53637b);
+  font-size: 12px;
+}
+.camera-confirm-colors button[aria-pressed="true"] {
+  color: var(--brand-blue);
+  font-weight: 600;
+}
+.camera-confirm-swatch {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #cbd5e3;
+}
+.camera-confirm-colors button[aria-pressed="true"] .camera-confirm-swatch {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 3px;
+}
+.camera-confirm-swatch svg {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--brand-blue);
+  color: #fff;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.camera-confirm-settings button:focus-visible,
+.camera-confirm-replace:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 3px;
+}
+.camera-confirm-settings button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.camera-confirm-locked {
+  margin: 20px 0 0;
+  text-align: center;
+  color: var(--ui-body, #53637b);
+  font-size: 12px;
+  line-height: 1.7;
+}
+@media (max-width: 360px) {
+  .camera-confirm-settings {
+    gap: 14px;
+    margin-top: 16px;
+  }
+  .camera-confirm-colors {
+    gap: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .camera-confirm-settings button,
+  .camera-confirm-settings button::before {
+    transition: none;
+  }
+  .camera-confirm-settings button:active:not(:disabled) {
+    transform: none;
+  }
+}

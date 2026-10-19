@@ -1,0 +1,90 @@
+{
+  "date": "2026-10-19",
+  "scope": "V1 unified navigation; awaiting user acceptance",
+  "rounds": [
+    {
+      "round": 1,
+      "results": [
+        {
+          "command": "node /tmp/zhipai-navigation-check.mjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs tools-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs print-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs background-album-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node --test tests/bindings.test.mjs tests/runtime.test.mjs",
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "results": [
+        {
+          "command": "node /tmp/zhipai-navigation-check.mjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs tools-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs print-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs background-album-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node --test tests/bindings.test.mjs tests/runtime.test.mjs",
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "results": [
+        {
+          "command": "node /tmp/zhipai-navigation-check.mjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs tools-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs print-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs background-album-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node --test tests/bindings.test.mjs tests/runtime.test.mjs",
+          "exit": 0
+        }
+      ]
+    }
+  ],
+  "sha256": {
+    "src/components/ToolNavigation.jsx": "bd717efe2465146114479892bd29962555497cb46b32ff2b3c3094b31d809442",
+    "src/styles/tool-navigation.css": "79014ec6ad9528cb111cf0c62115081f3b8ecaccee3b7d83546c0df9e3f13a6b",
+    "src/pages/ToolsPage.jsx": "5823e087a852019676d1cda908d35c7f1578b8ce9ef27390529ee96ba623f7dc",
+    "src/pages/PrintPage.jsx": "1e9b2a595861fef950166580fa39a9d72837d1893bd2d1781f7868bacee45237",
+    "src/styles/tools.css": "4eb026fa6592c770de6a5da797849b16555519bd4db196e5a9bad389de83caf5",
+    "src/styles/print.css": "fadef2358a0ed16d457ad06daa1286d3554b22858fa2064c0f643bfd4b65b0a4",
+    "src/styles/device-preview.css": "ecafab656be964bb7e03e35df3157de335195d3b0bcd86b6cad51dbff6dbc608"
+  }
+}

@@ -1,0 +1,50 @@
+$ node scripts/test-flows.mjs tools-flow.cjs
+PASS: seven-tool source/content rules, prototype portrait gates, paid-before-repair, payment-before-outfit, automatic paid-tool save and result recovery/continuation, duplicate-payment/save protection, order snapshots/recovery, real free downloads without album writes, formats/custom crop/size limits/background foreground preservation.
+
+Exit: 0
+
+$ node scripts/test-flows.mjs print-flow.cjs
+PASS: fixed 5:7 ratio gate, automatic advance, manual crop/retry/cancellation and immutable originals, direct selection and photo entry, fresh three-step journeys, sheet closure, completion without order navigation, single selection from library or phone, template matching, quote/address gating, double-submit protection, payment timeout/retry, physical fulfillment states, snapshots and failed-write recovery.
+
+Exit: 0
+
+$ node scripts/test-flows.mjs camera-scan-flow.cjs
+PASS: camera/scan separation, confirmation before processing, watermark unlock gate, cancel/unknown/same-order query, no duplicate payment/save, refresh recovery, raw-file retention, caller preservation, stale processing isolation, QR fallback and unverified-code boundary.
+
+Exit: 0
+
+$ node scripts/test-flows.mjs album-flow.cjs
+PASS: direct finished-library entry, camera return visibility, management/all-selection, real ZIP/single/raw downloads, delete cancel/failure/detail return, missing-file restrictions, current six tools, legacy URLs/print return, stale deletion isolation.
+
+Exit: 0
+
+$ node --test tests/bindings.test.mjs tests/print-crop.test.mjs tests/orders.test.mjs tests/device-preview.test.mjs tests/runtime.test.mjs
+✔ all initial JSX data bindings resolve against the migrated domain state (52.80375ms)
+✔ phone body proportions and OS-safe dimensions stay correct (0.579542ms)
+✔ small, tall, landscape and large windows fit the complete device without distortion or enlargement (0.123583ms)
+✔ floating menu indicator positions stay in logical pixels under whole-device scaling (0.1635ms)
+✔ navigation acrylic threshold remains the same logical distance at every preview scale (0.900542ms)
+✔ full-bleed page hosts use fixed transparent OS chrome with protected controls and drawers (0.932958ms)
+✔ five sources preserve amounts and business progress; payment never implies production completion (1.442584ms)
+✔ orders exclude foreign, anonymous and fixture records; retries and immutable source ids do not duplicate (0.199166ms)
+✔ collection status grouping keeps review/CHSI progress and captured payment price (1.750792ms)
+✔ hub counts, type/status/search filters and contextual navigation use one account-scoped source (1.304958ms)
+✔ business detail back actions return to their originating filtered order hub (1.754166ms)
+✔ source rendering exposes list filters and one detail action, plus signed-out/error states (8.792666ms)
+✔ crop flows through real reactive routing into both layout previews and checkout (38.496583ms)
+✔ layout markup has a sized preview stage and uses the current draft for all previews (0.391667ms)
+✔ React subscription sees nested changes and async updates while native blobs remain unwrapped (2.720375ms)
+✔ child state writes shared route on parent and lifecycle methods run only in their own controller (0.184ms)
+✔ derived and cross-store watchers react once to a new value and stop on unmount (1.036583ms)
+✔ loop-local names shadow controller state without corrupting it (0.121416ms)
+✔ storage conversion preserves shared identity and cycles while removing reactive wrappers (0.109375ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 294.181666
+
+Exit: 0

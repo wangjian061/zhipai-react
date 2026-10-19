@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-19",
+  "scope": "D1 background album save; awaiting user acceptance",
+  "rounds": [
+    {
+      "round": 1,
+      "results": [
+        {
+          "command": "node scripts/test-flows.mjs tools-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs background-album-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs album-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node --test tests/bindings.test.mjs tests/runtime.test.mjs",
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "results": [
+        {
+          "command": "node scripts/test-flows.mjs tools-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs background-album-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs album-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node --test tests/bindings.test.mjs tests/runtime.test.mjs",
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "results": [
+        {
+          "command": "node scripts/test-flows.mjs tools-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs background-album-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node scripts/test-flows.mjs album-flow.cjs",
+          "exit": 0
+        },
+        {
+          "command": "node --test tests/bindings.test.mjs tests/runtime.test.mjs",
+          "exit": 0
+        }
+      ]
+    }
+  ],
+  "sha256": {
+    "src/domain/tools.js": "d8002cacf705de8fba5e6c47685b16eeb349d0d8663402538581192a6978feec",
+    "src/pages/ToolsPage.jsx": "96a7d7e1003c2179d7d460cce629f48c882ba4a7c1812f57d3f940c549c5ff18",
+    "tests/legacy/tools-flow.cjs": "265f3aca6fefabb559eca73741a8ec4a8d65a559605b34b800e37fb5d4fdc48f",
+    "tests/legacy/background-album-flow.cjs": "37ed560ac3d40721d8bf2fcd3e8717e28ab267d9e99988509ba8ef7438984582"
+  }
+}

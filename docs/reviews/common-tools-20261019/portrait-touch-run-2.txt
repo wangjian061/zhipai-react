@@ -1,0 +1,17 @@
+$ node scripts/test-flows.mjs tools-flow.cjs
+PASS: seven-tool source/content rules, prototype portrait gates, paid-before-repair, payment-before-outfit, automatic paid-tool save and result recovery/continuation, duplicate-payment/save protection, order snapshots/recovery, background album save/readback/retry without downloads or orders, other free-tool downloads, formats/custom crop/size limits/background foreground preservation.
+
+Exit: 0
+
+$ node --test tests/bindings.test.mjs
+✔ all initial JSX data bindings resolve against the migrated domain state (44.790791ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 127.217292
+
+Exit: 0

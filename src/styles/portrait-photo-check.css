@@ -1,4 +1,4 @@
-.repair-check-status {
+.portrait-check-status {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -8,22 +8,22 @@
   background: #edf3ff;
   color: #31527f;
 }
-.repair-check-status > div {
+.portrait-check-status > div {
   flex: 1;
   min-width: 0;
 }
-.repair-check-status strong {
+.portrait-check-status strong {
   font-size: 13px;
   line-height: 1.5;
   font-weight: 650;
 }
-.repair-check-status p {
+.portrait-check-status p {
   margin: 3px 0 0;
   font-size: 11px;
   line-height: 1.6;
   color: #71819a;
 }
-.repair-check-mark {
+.portrait-check-mark {
   display: grid;
   place-items: center;
   width: 25px;
@@ -34,57 +34,63 @@
   font-size: 14px;
   font-weight: 600;
 }
-.repair-check-status button {
-  min-height: 40px;
+.portrait-check-status button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
   flex: none;
   border: 0;
   background: none;
   padding: 0 3px;
   color: inherit;
   font-size: 12px;
+  white-space: nowrap;
+  touch-action: manipulation;
 }
-.repair-check-status.passed {
+.portrait-check-status.passed {
   background: #edf7f2;
   color: #37745e;
 }
-.repair-check-status.passed .repair-check-mark {
+.portrait-check-status.passed .portrait-check-mark {
   background: #d7ece2;
 }
-.repair-check-status.rejected {
+.portrait-check-status.rejected {
   background: #fff1ef;
   color: #ad514b;
 }
-.repair-check-status.rejected .repair-check-mark {
+.portrait-check-status.rejected .portrait-check-mark {
   background: #f7deda;
 }
-.repair-check-panel h3 {
+.portrait-check-panel h3 {
   margin: 4px 0 10px;
   color: #293e60;
   font-size: 16px;
   font-weight: 650;
   line-height: 1.5;
 }
-.repair-check-panel p,
-.repair-check-panel li {
+.portrait-check-panel p,
+.portrait-check-panel li {
   font-size: 13px;
   line-height: 1.8;
   color: #6b7d96;
 }
-.repair-check-panel ul {
+.portrait-check-panel ul {
   padding-left: 20px;
   margin: 16px 0 22px;
 }
-.repair-demo-label {
+.portrait-demo-label {
   font-size: 11px;
   color: #7b8aa2;
 }
-.repair-demo-choices {
+.portrait-demo-choices {
   display: flex;
   flex-direction: column;
   gap: 14px;
   margin-top: 22px;
 }
-.repair-demo-choices button {
+.portrait-demo-choices button {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -96,23 +102,23 @@
   text-align: left;
   color: #31527f;
 }
-.repair-demo-choices strong {
+.portrait-demo-choices strong {
   font-size: 14px;
   font-weight: 600;
 }
-.repair-demo-choices span {
+.portrait-demo-choices span {
   font-size: 12px;
   line-height: 1.7;
   color: #71819a;
 }
-.repair-demo-choices label {
+.portrait-demo-choices label {
   display: flex;
   flex-direction: column;
   gap: 8px;
   font-size: 12px;
   color: #6b7d96;
 }
-.repair-demo-choices select {
+.portrait-demo-choices select {
   height: 42px;
   padding: 0 12px;
   border: 1px solid #e0e7f1;
@@ -121,7 +127,7 @@
   color: #354c6e;
   font-size: 13px;
 }
-.repair-demo-error {
+.portrait-demo-error {
   display: block;
   min-height: 44px;
   margin: 18px auto 0;

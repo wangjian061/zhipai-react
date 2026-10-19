@@ -1,0 +1,63 @@
+:is(
+  .photo-selection-current,
+  .tool-image-stage,
+  .capture-confirm-photo,
+  .camera-result-photo,
+  .print-crop-frame,
+  .collection-task-photo
+) {
+  position: relative;
+}
+
+.photo-processing-effect {
+  position: absolute;
+  z-index: 5;
+  overflow: hidden;
+  pointer-events: none;
+  background: transparent;
+}
+
+.photo-processing-effect::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 28%;
+  background: linear-gradient(transparent, #6aa8ff14 45%, #6aa8ff38);
+  border-bottom: 1px solid #7cb3ffb3;
+  animation: photo-processing-scan 2.2s ease-in-out infinite alternate;
+}
+
+.photo-processing-status {
+  margin: 8px 0 12px;
+  color: var(--ui-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.tool-comparison-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px auto 0;
+  width: 100%;
+  color: var(--ui-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@keyframes photo-processing-scan {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(360%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-processing-effect::before {
+    animation: none;
+    transform: translateY(130%);
+  }
+}

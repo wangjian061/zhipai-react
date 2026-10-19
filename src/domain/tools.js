@@ -26,6 +26,7 @@ const PHOTO_TOOLS = {
     headline: ["让好照片", "清晰一点"],
     icon: "repair",
     sources: ["finished", "phone"],
+    requiresPortrait: true,
     service: true,
     steps: ["选照片", "AI精修", "看效果"],
   },
@@ -34,10 +35,11 @@ const PHOTO_TOOLS = {
     subtitle: "一张证件照，换上合适的衣服",
     infoTitle: "选择服装，生成换装照片",
     description:
-      "从知拍相册选择证件照，完成标准化处理后，按男装、女装、童装分类选择服装。选择服装后付款开始换装，完成后自动保存至知拍相册。",
+      "从知拍相册或手机相册选择证件照，通过证件照检查并完成标准化处理后，按男装、女装、童装分类选择服装。选择服装后付款开始换装，完成后自动保存至知拍相册。",
     headline: ["换身衣服", "换个状态"],
     icon: "shirt",
-    sources: ["finished"],
+    sources: ["finished", "phone"],
+    requiresPortrait: true,
     service: true,
     steps: ["选照片", "选服装", "看效果"],
   },
@@ -62,10 +64,12 @@ const PHOTO_TOOLS = {
     subtitle: "标准化后，选择你需要的底色",
     infoTitle: "标准化后，更换底色",
     description:
-      "从知拍相册或手机相册选图，完成标准化处理后，选择蓝、红、白或灰色背景。处理结果可保存至设备。",
+      "从知拍相册或手机相册选择证件照，通过证件照检查并完成标准化处理后，选择蓝、红、白或灰色背景。处理结果保存至知拍相册，原照片仍然保留。",
     headline: ["换个底色", "清爽出片"],
     icon: "tool-background",
     sources: ["finished", "phone"],
+    requiresPortrait: true,
+    saveToAlbum: true,
     steps: ["选照片", "换背景", "保存"],
   },
   format: {
@@ -350,6 +354,8 @@ registerController("toolStudio", () => ({
   targetValue: 200,
   sizeUnit: "KB",
   background: "blue",
+  backgroundEditing: false,
+  flowCompleted: false,
   outfit: "men-suit",
   comparison: 50,
   standardized: false,
@@ -579,7 +585,10 @@ registerController("toolStudio", () => ({
   get step() {
     return this.view === "saved"
       ? 2
-      : !this.photo || this.choosingPhoto
+      : !this.photo ||
+          this.choosingPhoto ||
+          !this.portraitEligible ||
+          (this.action === "background" && !this.backgroundEditing)
         ? 0
         : this.config.service
           ? this.serviceApplied
@@ -590,6 +599,12 @@ registerController("toolStudio", () => ({
   get canSave() {
     return !!(
       this.photo &&
+      this.portraitEligible &&
+      !this.flowCompleted &&
+      (this.action !== "background" ||
+        (this.backgroundEditing &&
+          !this.flowCompleted &&
+          this.view === "work")) &&
       this.output &&
       this.stage === "ready" &&
       !this.busy &&
@@ -602,8 +617,21 @@ registerController("toolStudio", () => ({
           this.currentOrder?.status === "paid"))
     );
   },
-  get repairEligible() {
-    return this.action !== "repair" || this.portraitCheck.status === "passed";
+  get portraitEligible() {
+    return (
+      !this.config.requiresPortrait || this.portraitCheck.status === "passed"
+    );
+  },
+  get showPortraitCheck() {
+    return !!(
+      this.view === "work" &&
+      this.config.requiresPortrait &&
+      this.portraitCheck.status !== "passed" &&
+      this.photo &&
+      !this.choosingPhoto &&
+      !this.serviceApplied &&
+      (this.action !== "background" || this.step === 0)
+    );
   },
   get serviceResult() {
     return !!(
@@ -624,6 +652,9 @@ registerController("toolStudio", () => ({
       (this.action === "repair" ? "精修" : "换装") + "照片已保存到知拍相册"
     );
   },
+  get savesToAlbum() {
+    return !!(this.config.service || this.config.saveToAlbum);
+  },
   get primaryLabel() {
     if (this.busy)
       return this.paying
@@ -635,12 +666,12 @@ registerController("toolStudio", () => ({
             : "正在处理…";
     if (this.choosingPhoto && this.photo) return "下一步";
     if (!this.photo) return "选取照片";
-    if (!this.repairEligible)
-      return this.portraitCheck.status === "error"
-        ? "重新检查照片"
-        : this.portraitCheck.status === "awaiting"
-          ? "等待检查结果"
-          : "请更换证件照";
+    if (!this.portraitEligible)
+      return this.portraitCheck.status === "awaiting"
+        ? "等待检查结果"
+        : "下一步";
+    if (this.action === "background" && !this.backgroundEditing)
+      return "下一步";
     if (this.action === "repair" && !this.serviceApplied)
       return this.paid ? "开始精修" : "付款并开始精修";
     if (this.serviceResult)
@@ -650,15 +681,15 @@ registerController("toolStudio", () => ({
           : "继续换装"
         : "重试保存";
     if (this.action === "outfit") return "开始换装";
-    return this.config.service ? "保存到知拍相册" : "保存到设备";
+    return this.savesToAlbum ? "保存到知拍相册" : "保存到设备";
   },
   get primaryEnabled() {
     if (this.busy) return false;
+    if (!this.portraitEligible && this.photo) return false;
     if (this.choosingPhoto) return true;
-    if (!this.repairEligible && this.photo)
-      return this.portraitCheck.status === "error";
     if (this.error) return this.serviceResult && !this.savedRecord;
     if (!this.photo) return true;
+    if (this.action === "background" && !this.backgroundEditing) return true;
     if (this.stage === "standardize-required") return false;
     if (this.config.service && !this.serviceApplied)
       return this.action !== "outfit" || this.standardized;
@@ -733,6 +764,8 @@ registerController("toolStudio", () => ({
       targetValue: 200,
       sizeUnit: "KB",
       background: "blue",
+      backgroundEditing: false,
+      flowCompleted: false,
       outfit: "men-suit",
       outfitCategory: "men",
       standardized: false,
@@ -784,13 +817,7 @@ registerController("toolStudio", () => ({
       this.saving = false;
       this.panel = null;
       if (["processing", "standardizing", "checking"].includes(this.stage))
-        this.stage = this.standardized
-          ? "ready"
-          : this.photo && this.action !== "repair"
-            ? "standardize-required"
-            : this.photo
-              ? "ready"
-              : "empty";
+        this.restoreInterruptedStage();
       return;
     }
     if (this.orderId && this.ordersStore.ready && !this.currentOrder)
@@ -811,7 +838,7 @@ registerController("toolStudio", () => ({
       this.paying = false;
       this.saving = false;
       if (["processing", "standardizing", "checking"].includes(this.stage))
-        this.stage = this.photo ? "ready" : "empty";
+        this.restoreInterruptedStage();
     }
     this.view =
       action === "spec"
@@ -820,6 +847,7 @@ registerController("toolStudio", () => ({
           ? next
           : "work";
     if (!this.photo && this.view === "saved") this.view = "work";
+    if (this.view === "work" && this.flowCompleted) this.reset();
     const resume = q.get("resume");
     if (resume && resume !== this.resumeRequest) {
       this.resumeRequest = resume;
@@ -838,6 +866,20 @@ registerController("toolStudio", () => ({
         else this.error = "订单不存在或不属于当前账号";
       });
     } else if (!resume) this.resumeRequest = null;
+  },
+  restoreInterruptedStage() {
+    const needsPreparation =
+      this.photo &&
+      (this.action === "outfit" ||
+        (this.action === "background" && this.backgroundEditing)) &&
+      !this.standardized;
+    this.stage = needsPreparation
+      ? "standardize-required"
+      : this.photo
+        ? "ready"
+        : "empty";
+    if (needsPreparation && this.portraitEligible)
+      this.error = "照片准备未完成，照片已保留，请重试。";
   },
   async start() {
     if (this.busy || this.action === "spec") return;
@@ -934,8 +976,8 @@ registerController("toolStudio", () => ({
     window.dispatchEvent(new Event("zhipai-route"));
   },
   pick() {
-    if (this.busy) return;
-    if (this.repairEligible) this.error = "";
+    if (this.busy || this.view !== "work" || this.step !== 0) return;
+    if (this.portraitEligible) this.error = "";
     this.candidateId = this.sourceKind === "finished" ? this.photo?.id : null;
     this.openPanel("album");
   },
@@ -957,7 +999,8 @@ registerController("toolStudio", () => ({
       });
   },
   pickPhone() {
-    if (this.busy || !this.config.sources.includes("phone")) return;
+    if (this.busy || this.step !== 0 || !this.config.sources.includes("phone"))
+      return;
     this.closePanel();
     this.selectionId = photoToolId();
     window.dispatchEvent(
@@ -1015,8 +1058,11 @@ registerController("toolStudio", () => ({
     ) {
       this.choosingPhoto = false;
       this.closePanel();
-      if (this.action === "repair" && this.portraitCheck.status !== "passed")
-        await this.validateRepairPhoto();
+      if (
+        this.config.requiresPortrait &&
+        this.portraitCheck.status !== "passed"
+      )
+        await this.validatePortraitPhoto();
       return;
     }
     this.reset();
@@ -1031,17 +1077,12 @@ registerController("toolStudio", () => ({
         this.specs.find(
           (s) => s.width === photo.width && s.height === photo.height,
         )?.id || "two";
-    if (["outfit", "background"].includes(this.action)) {
-      this.stage = "standardize-required";
-      await this.standardize();
-    } else {
-      this.stage = "ready";
-      if (this.action === "repair") await this.validateRepairPhoto();
-      if (!this.config.service) await this.preview();
-    }
+    this.stage = "ready";
+    if (this.config.requiresPortrait) await this.validatePortraitPhoto();
+    else if (!this.config.service) await this.preview();
   },
-  async validateRepairPhoto() {
-    if (this.action !== "repair" || !this.photo || this.busy) return;
+  async validatePortraitPhoto() {
+    if (!this.config.requiresPortrait || !this.photo || this.busy) return;
     const token = ++this.task;
     this.stage = "checking";
     this.portraitCheck = { status: "checking", reasons: [] };
@@ -1060,7 +1101,8 @@ registerController("toolStudio", () => ({
           reasons: [
             {
               code: "unavailable",
-              message: "照片检测未完成，请重新检测。通过检测前无法付款或精修。",
+              message:
+                "照片检测未完成，请重新检测。通过检测前无法继续当前操作。",
             },
           ],
         };
@@ -1068,9 +1110,9 @@ registerController("toolStudio", () => ({
       if (token === this.task) this.stage = "ready";
     }
   },
-  choosePortraitOutcome(outcome, reason = "not_id") {
+  async choosePortraitOutcome(outcome, reason = "not_id") {
     if (
-      this.action !== "repair" ||
+      !this.config.requiresPortrait ||
       !this.photo ||
       this.busy ||
       this.panel !== "portraitOutcome" ||
@@ -1082,7 +1124,7 @@ registerController("toolStudio", () => ({
       not_id:
         "当前照片不是人像证件照，请上传背景简洁、人物居中的单人正面证件照。",
       no_face: "未识别到清晰人脸，请重新选择单人正面证件照。",
-      multiple_faces: "照片包含多人，暂不支持精修，请重新选择单人证件照。",
+      multiple_faces: "照片包含多人，暂不支持当前操作，请重新选择单人证件照。",
       background: "照片背景较复杂，不符合证件照要求，请重新选择。",
     };
     this.portraitCheck = {
@@ -1095,22 +1137,28 @@ registerController("toolStudio", () => ({
                 code: outcome === "error" ? "unavailable" : reason,
                 message:
                   outcome === "error"
-                    ? "照片检查未完成，请重试。通过检查前无法付款或精修。"
+                    ? "照片检查未完成，请重试。通过检查前无法继续当前操作。"
                     : reasons[reason] || reasons.not_id,
               },
             ],
     };
     this.closePanel();
+    if (outcome === "passed") {
+      if (this.action === "background") this.backgroundEditing = true;
+      if (["outfit", "background"].includes(this.action) && !this.standardized)
+        await this.standardize();
+    }
   },
   async retry() {
     if (this.busy) return;
     this.error = "";
-    if (!this.repairEligible) return this.validateRepairPhoto();
+    if (!this.portraitEligible) return this.validatePortraitPhoto();
     if (this.stage === "standardize-required") return this.standardize();
+    if (this.action === "background" && this.canSave) return this.save();
     return this.config.service ? this.primary() : this.preview();
   },
   async standardize(epoch = null) {
-    if (!this.photo || this.busy) return;
+    if (!this.photo || !this.portraitEligible || this.busy) return;
     const token = epoch === null ? ++this.task : epoch;
     this.stage = "standardizing";
     this.error = "";
@@ -1162,7 +1210,13 @@ registerController("toolStudio", () => ({
     this.invalidateService();
   },
   async preview() {
-    if (!this.photo || this.saving || this.config.service) return;
+    if (
+      !this.photo ||
+      !this.portraitEligible ||
+      this.saving ||
+      this.config.service
+    )
+      return;
     const token = ++this.task;
     this.previewPending = true;
     this.needsPreview = true;
@@ -1227,7 +1281,13 @@ registerController("toolStudio", () => ({
     await this.preview();
   },
   async setBackground(id) {
-    if (this.busy) return;
+    if (
+      this.busy ||
+      !this.backgroundEditing ||
+      this.flowCompleted ||
+      this.view !== "work"
+    )
+      return;
     this.background = id;
     await this.preview();
   },
@@ -1235,11 +1295,19 @@ registerController("toolStudio", () => ({
     if (!this.primaryEnabled) return;
     if (this.choosingPhoto && this.photo) {
       this.choosingPhoto = false;
+      if (
+        this.action === "background" &&
+        !this.backgroundEditing &&
+        this.portraitEligible
+      ) {
+        this.backgroundEditing = true;
+        await this.standardize();
+      }
       return;
     }
-    if (!this.repairEligible && this.photo) {
-      if (this.portraitCheck.status === "error")
-        await this.validateRepairPhoto();
+    if (this.action === "background" && !this.backgroundEditing && this.photo) {
+      this.backgroundEditing = true;
+      await this.standardize();
       return;
     }
     if (this.serviceResult) {
@@ -1269,10 +1337,7 @@ registerController("toolStudio", () => ({
   previousStep() {
     if (this.busy || this.panel) return;
     if (!this.photo || this.choosingPhoto) return;
-    if (this.view === "saved") {
-      this.route("work");
-      return;
-    }
+    if (this.view === "saved" || this.flowCompleted) return;
     if (!this.serviceResult) this.choosingPhoto = true;
   },
   previousOutfitStep() {
@@ -1292,7 +1357,7 @@ registerController("toolStudio", () => ({
     this.route("work");
   },
   async openPayment() {
-    if (!this.photo || !this.repairEligible || this.busy) return;
+    if (!this.photo || !this.portraitEligible || this.busy) return;
     if (!requireOrderAccount()) return;
     const token = this.task;
     await this.ordersStore.loading;
@@ -1316,7 +1381,7 @@ registerController("toolStudio", () => ({
       this.busy ||
       this.paid ||
       !this.photo ||
-      !this.repairEligible ||
+      !this.portraitEligible ||
       !this.ordersStore.ready ||
       this.ordersStore.busy ||
       (this.action === "outfit" && (!this.standardized || !this.chosenOutfit))
@@ -1400,7 +1465,7 @@ registerController("toolStudio", () => ({
   async runService() {
     if (
       !this.photo ||
-      !this.repairEligible ||
+      !this.portraitEligible ||
       this.busy ||
       (this.config.service &&
         (!this.paid || this.currentOrder?.status !== "paid")) ||
@@ -1472,15 +1537,18 @@ registerController("toolStudio", () => ({
     this.error = "";
     try {
       const ext = blob.type.replace("image/", "").replace("jpeg", "jpg");
-      if (!config.service) {
+      if (!this.savesToAlbum) {
         downloadAlbumBlob(blob, `${config.title}-${id}.${ext}`);
-        if (token === this.task) this.route("saved");
+        if (token === this.task) {
+          this.flowCompleted = true;
+          this.route("saved");
+        }
         return;
       }
       if (!store.ready || store.busy) throw Error("相册尚未就绪");
       const record = {
         id,
-        name: `${config.title}-${orderId.slice(0, 8)}.${ext}`,
+        name: `${config.title}-${(orderId || id).slice(0, 8)}.${ext}`,
         width,
         height,
         type: blob.type,
@@ -1496,18 +1564,25 @@ registerController("toolStudio", () => ({
             : photo.spec || "",
       };
       const next = store.snapshot();
-      if (!next.finished.some((p) => p.id === id))
-        next.finished.unshift(record);
+      const existing = next.finished.findIndex((p) => p.id === id);
+      if (existing < 0) next.finished.unshift(record);
+      else if (!config.service) next.finished[existing] = record;
       await store.commit(next);
-      await orders.commit((items) => {
-        const o = items.find((o) => o.id === orderId);
-        o.savedId = id;
-        o.output = blob;
-      });
+      if (config.service)
+        await orders.commit((items) => {
+          const o = items.find((o) => o.id === orderId);
+          o.savedId = id;
+          o.output = blob;
+        });
       if (token === this.task) {
         this.savedRecord = record;
-        this.notice = this.savedNotice;
-        this.view = "work";
+        if (config.service) {
+          this.notice = this.savedNotice;
+          this.view = "work";
+        } else {
+          this.flowCompleted = true;
+          this.route("saved");
+        }
       }
     } catch (_) {
       if (token === this.task)
@@ -1541,15 +1616,15 @@ registerController("toolStudio", () => ({
     this.stage = "ready";
     this.saveId = order.id;
     this.route("work");
-    if (action === "repair") {
+    if (this.config.requiresPortrait) {
       if (this.paid && order.output)
         this.portraitCheck = { status: "passed", reasons: [] };
       else {
-        await this.validateRepairPhoto();
+        await this.validatePortraitPhoto();
         if (
           this.orderId !== order.id ||
           this.action !== action ||
-          !this.repairEligible
+          !this.portraitEligible
         )
           return;
         token = this.task;

@@ -1,0 +1,49 @@
+$ node scripts/test-flows.mjs tools-flow.cjs
+PASS: seven-tool source/content rules, prototype portrait gates, paid-before-repair, payment-before-outfit, automatic paid-tool save and result recovery/continuation, duplicate-payment/save protection, order snapshots/recovery, background album save/readback/retry without downloads or orders, other free-tool downloads, formats/custom crop/size limits/background foreground preservation.
+
+Exit: 0
+
+$ node scripts/test-flows.mjs print-flow.cjs
+PASS: fixed 5:7 ratio gate, automatic advance, manual crop/retry/cancellation and immutable originals, direct selection and photo entry, fresh three-step journeys, sheet closure, completion without order navigation, single selection from library or phone, template matching, quote/address gating, double-submit protection, payment timeout/retry, physical fulfillment states, snapshots and failed-write recovery.
+
+Exit: 0
+
+$ node scripts/test-flows.mjs camera-scan-flow.cjs
+PASS: camera/scan separation, confirmation before processing, watermark unlock gate, cancel/unknown/same-order query, no duplicate payment/save, refresh recovery, raw-file retention, caller preservation, stale processing isolation, QR fallback and unverified-code boundary.
+
+Exit: 0
+
+$ node scripts/test-flows.mjs account-collection-flow.cjs
+PASS: consent and local account flows, SMS purpose/expiry, password hashing and overwrite protection, OAuth binding/verified unbinding, cancellation, collection supported methods/duplicate identity, real capture storage, failed submission retry, review-to-completion/download, asynchronous photo restoration, approval status gate, QR upload, temporary identity cleanup and owner isolation.
+
+Exit: 0
+
+$ node scripts/test-flows.mjs background-album-flow.cjs
+PASS: background result persists through the real album commit/load path; failure/retry, original preservation, no download/payment, completion and restart.
+
+Exit: 0
+
+$ node --test tests/photo-processing.test.mjs tests/photo-processing-lifecycle.test.mjs tests/bindings.test.mjs
+✔ all initial JSX data bindings resolve against the migrated domain state (45.041084ms)
+✔ active processing is measured; completion removes the effect and all event subscriptions (1.177167ms)
+✔ loading, image replacement, resize and read failure never use a stale image rectangle (0.867458ms)
+✔ without ResizeObserver the window fallback updates measurements and is removed on stop (0.09425ms)
+✔ a new task without a photo cannot reuse the previous photo's measured overlay (0.097125ms)
+✔ matching portrait fills the image frame (1.055583ms)
+✔ landscape and square photos exclude top and bottom contain gutters (0.090833ms)
+✔ narrow portrait excludes side gutters (0.046458ms)
+✔ device scaling and translated viewport preserve normalized image boundaries (0.094208ms)
+✔ manual crop uses only the visible intersection of the enlarged photo (0.0565ms)
+✔ hidden, unreadable and offscreen photo boxes have no processing effect (0.053083ms)
+✔ object position and resizing recompute the actual image area (0.044291ms)
+✔ only actual photo work shows a processing status; completion, error and payment do not (0.074042ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 135.080708
+
+Exit: 0

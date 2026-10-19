@@ -1,0 +1,77 @@
+.tool-stepper {
+  flex: none;
+  margin: 0 16px 4px;
+  padding: 8px 0;
+  background: transparent;
+}
+.tool-stepper > ol {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tool-stepper li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: #73849a;
+  text-align: center;
+}
+.tool-stepper li:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: calc(-50% + 12px);
+  right: calc(50% + 12px);
+  height: 1px;
+  background: #dce3ee;
+  pointer-events: none;
+}
+.tool-stepper li:is(.current, .done)::before {
+  background: #b9c7ff;
+}
+.tool-stepper-number {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #dce3ee;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.tool-stepper-label {
+  max-width: 100%;
+  padding-inline: 4px;
+  font-size: 12px;
+  line-height: 18px;
+}
+.tool-stepper .current .tool-stepper-number {
+  border-color: var(--brand-blue, #0032ff);
+  background: var(--brand-blue, #0032ff);
+  color: #fff;
+}
+.tool-stepper .done .tool-stepper-number {
+  border-color: var(--brand-blue, #0032ff);
+  color: var(--brand-blue, #0032ff);
+}
+.tool-stepper .current .tool-stepper-label {
+  color: var(--brand-blue, #0032ff);
+  font-weight: 600;
+}
+.tool-stepper .done .tool-stepper-label {
+  color: #415574;
+}
+@media (max-width: 360px) {
+  .tool-stepper {
+    margin-inline: 14px;
+  }
+}

@@ -1,0 +1,13 @@
+$ node scripts/test-flows.mjs print-flow.cjs
+PASS: fixed 5:7 ratio gate, automatic advance, manual crop/retry/cancellation and immutable originals, direct selection and photo entry, fresh three-step journeys, sheet closure, completion without order navigation, single selection from library or phone, template matching, quote/address gating, double-submit protection, payment timeout/retry, physical fulfillment states, snapshots and failed-write recovery.
+
+$ node --test tests/bindings.test.mjs
+✔ all initial JSX data bindings resolve against the migrated domain state (49.811875ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 141.819917

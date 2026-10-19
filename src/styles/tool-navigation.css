@@ -1,0 +1,77 @@
+.tool-navigation {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  height: 52px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--ui-heading);
+}
+
+.tool-navigation .tool-navigation-back {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--ui-heading);
+  touch-action: manipulation;
+  transition:
+    transform 160ms var(--ease),
+    opacity 160ms var(--ease);
+}
+
+.tool-navigation-back svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.tool-navigation .tool-navigation-back:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+.tool-navigation .tool-navigation-back:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+}
+
+.tool-navigation .tool-navigation-back:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+
+.tool-navigation-title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--ui-heading);
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.4;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-navigation-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-navigation .tool-navigation-back {
+    transition: none;
+  }
+}

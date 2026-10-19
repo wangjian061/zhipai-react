@@ -1,0 +1,38 @@
+$ node /tmp/zhipai-navigation-check.mjs
+PASS: shared navigation static React rendering (68 title/disabled/right-slot cases), callback wiring and removal of legacy navigation selectors.
+This verifies source/render contracts, not actual browser layout, touch or visual acceptance.
+
+Exit: 0
+
+$ node scripts/test-flows.mjs tools-flow.cjs
+PASS: seven-tool source/content rules, prototype portrait gates, paid-before-repair, payment-before-outfit, automatic paid-tool save and result recovery/continuation, duplicate-payment/save protection, order snapshots/recovery, background album save/readback/retry without downloads or orders, other free-tool downloads, formats/custom crop/size limits/background foreground preservation.
+
+Exit: 0
+
+$ node scripts/test-flows.mjs print-flow.cjs
+PASS: fixed 5:7 ratio gate, automatic advance, manual crop/retry/cancellation and immutable originals, direct selection and photo entry, fresh three-step journeys, sheet closure, completion without order navigation, single selection from library or phone, template matching, quote/address gating, double-submit protection, payment timeout/retry, physical fulfillment states, snapshots and failed-write recovery.
+
+Exit: 0
+
+$ node scripts/test-flows.mjs background-album-flow.cjs
+PASS: background result persists through the real album commit/load path; failure/retry, original preservation, no download/payment, completion and restart.
+
+Exit: 0
+
+$ node --test tests/bindings.test.mjs tests/runtime.test.mjs
+✔ all initial JSX data bindings resolve against the migrated domain state (42.329792ms)
+✔ React subscription sees nested changes and async updates while native blobs remain unwrapped (2.131542ms)
+✔ child state writes shared route on parent and lifecycle methods run only in their own controller (0.172875ms)
+✔ derived and cross-store watchers react once to a new value and stop on unmount (1.261125ms)
+✔ loop-local names shadow controller state without corrupting it (0.096625ms)
+✔ storage conversion preserves shared identity and cycles while removing reactive wrappers (0.106417ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 126.943125
+
+Exit: 0
