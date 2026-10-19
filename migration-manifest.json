@@ -1,0 +1,381 @@
+{
+  "source": "../sites/zhipai-mobile-20261009",
+  "sourceHtmlHash": "eb49e19894f20fe406afc08f562f67533868d319a9310780eea6f1ea8b8483d1",
+  "controllers": [
+    "AppShell",
+    "HomePage",
+    "ImageCarousel",
+    "CollectionCarousel",
+    "AccountPage",
+    "CollectionPage",
+    "SearchPage",
+    "AlbumPage",
+    "CameraPage",
+    "ScanPage",
+    "ToolsPage",
+    "SupportPage",
+    "PrintPage",
+    "MyPage",
+    "LiquidTabs",
+    "PhotoPicker"
+  ],
+  "domainFiles": [
+    "app",
+    "liquid-tabs",
+    "support",
+    "album",
+    "photo-making",
+    "camera",
+    "scan",
+    "photo-choice",
+    "my",
+    "print",
+    "tools",
+    "account",
+    "collection"
+  ],
+  "styles": [
+    {
+      "file": "styles.css",
+      "sha256": "3851417126406b18ef79cb49a03422c4f084163b4417136427304b913e74faae"
+    },
+    {
+      "file": "support.css",
+      "sha256": "00f74f62446965b657659600b69d7b42614aabccfcca019d0de70702df14b1d4"
+    },
+    {
+      "file": "album.css",
+      "sha256": "3c006d71a3a75052fa1f1d84fdf35ff01557a211c901bbce752144213789f0ee"
+    },
+    {
+      "file": "camera.css",
+      "sha256": "86bc991fc82daa4fe213b3321ce5858bea550383a31bb830534632e0f04d96c2"
+    },
+    {
+      "file": "album-flows.css",
+      "sha256": "7a7adc7551476d7ec0e8b00494bba5b276a00ea8c33e2a86be7efddc3b82eb38"
+    },
+    {
+      "file": "my.css",
+      "sha256": "7c316f268ec24aae8d1ff9c98f5b44e56dede8ec3e2a4738fdab6647b0987d43"
+    },
+    {
+      "file": "print.css",
+      "sha256": "9ef65f7303397f7f7ea48da7f68c1d4ec849b31039cdf41bebc9ee4b54ea43b0"
+    },
+    {
+      "file": "tools.css",
+      "sha256": "419adbb931532ea6e9ea0db2a0315b7a276c05e9f03b33c0199dbf48e0f91e11"
+    },
+    {
+      "file": "service-home.css",
+      "sha256": "46f1865ada454c7a4414fb008bb54328e8921dd2b379d47c52607819c910e9fa"
+    },
+    {
+      "file": "liquid-tabs.css",
+      "sha256": "23ca4667b5a4de7d4c626df9e62c51971478bd9457f32edd1eaede4893e0ab7a"
+    },
+    {
+      "file": "account.css",
+      "sha256": "df015601c065c5dd2e61feb0395b37b8c8001b56278acb28e42307dca38600f3"
+    },
+    {
+      "file": "collection.css",
+      "sha256": "9e67137725fdad4085483dda62f294a4eaab4d17f6972b016f3c0e989a247712"
+    }
+  ],
+  "assets": [
+    {
+      "file": "account-brand.webp",
+      "sha256": "ecad9388a13513aee3009ffa81bd5803fd0f4a72d21fe475af2c2966c535c815"
+    },
+    {
+      "file": "account-brand.webp.json",
+      "sha256": "7d3f2d55c2fdbe342638f0c1f67e409a7277385e6036c6a9ba7deb72b6c60837"
+    },
+    {
+      "file": "bear-album.webp",
+      "sha256": "3c366c1f29d2b91cfbbb9e48cd63555e34f712cf43963dbff8b7020728394e7c"
+    },
+    {
+      "file": "bear-album.webp.json",
+      "sha256": "db6cd75cdbc522135e9c78f3ee1ec4626004c9821ccac1ff842857e05aadb822"
+    },
+    {
+      "file": "bear-background.webp",
+      "sha256": "c38c29cba69343686798c24d8fe8898db804e7bc29f0b4fb9051cc9e337836ea"
+    },
+    {
+      "file": "bear-background.webp.json",
+      "sha256": "ce477b32e06da2aa57198465d1d3ad15d0def6044108548d8fb78711d524250a"
+    },
+    {
+      "file": "bear-crop.webp",
+      "sha256": "2a3a3e9b66d873ed7465afbb435380b947569bf634c1d7bf0f0b6256e6de76b6"
+    },
+    {
+      "file": "bear-crop.webp.json",
+      "sha256": "610c0fce1f2a8f7852a25bbd30626213af1c2baa24459e467402e15e93bcce19"
+    },
+    {
+      "file": "bear-format.webp",
+      "sha256": "7c94dd246df2163f152810858da6eaa6b0763d8f237044a82cb8f6e61957275f"
+    },
+    {
+      "file": "bear-format.webp.json",
+      "sha256": "5c2a974a11ab280ddae0e930506e578c2b5b639ad0be52a86100b7cd3e466b7b"
+    },
+    {
+      "file": "bear-outfit.webp",
+      "sha256": "4befec39dd01bcf432f252d7c6c620ec3aa8d45a745e81784a6332b7666df9ea"
+    },
+    {
+      "file": "bear-outfit.webp.json",
+      "sha256": "f986d84ccef0460dd06c7805ae73b4e721f21759dc3d0769128a57cf50267948"
+    },
+    {
+      "file": "bear-print.webp",
+      "sha256": "cc66c3827fe39b8656690b16f94c1677f16f1253bf15f930c2c3ead089bcb037"
+    },
+    {
+      "file": "bear-print.webp.json",
+      "sha256": "e150222f4ae5b9b2c3a8da0b46b9502d553fcebb78f8f073105d6d6435c21053"
+    },
+    {
+      "file": "bear-repair.webp",
+      "sha256": "eb98cdaf404d4ccadc5ae41fc9b934e168fd4d82f74c68e6693dac5cd46684f0"
+    },
+    {
+      "file": "bear-repair.webp.json",
+      "sha256": "fe428dc6a62d4cc55b589a84aa218c41741bac3934b9900a82bcfa298c86aa4e"
+    },
+    {
+      "file": "bear-resize.webp",
+      "sha256": "71d4b31fd6e88238ab8392ac5bbe7d3179ed5ca88362c8d3899c0109c80a2596"
+    },
+    {
+      "file": "bear-resize.webp.json",
+      "sha256": "c6b7257a38307599582ccc7325c257ea48a42196e89c40b9f1bc350ae9b9e173"
+    },
+    {
+      "file": "collection-campus.webp",
+      "sha256": "0bfb16fc09f6ab9f84299e9bebb878ce57c83b7c48e08694d0f3a80c7d96695d"
+    },
+    {
+      "file": "collection-campus.webp.json",
+      "sha256": "4155657b9e45cdb5ef92d520ddc67ce4adedbdf3aaf394108864580ca48b943a"
+    },
+    {
+      "file": "collection-credentials-v2.webp",
+      "sha256": "073721ebf218fe932da610684306c5c292a253759e4f6762e52a3b523fcd32e7"
+    },
+    {
+      "file": "collection-credentials-v2.webp.json",
+      "sha256": "197c1961d5559ab1dab957826a11d3db98d87a125b878243e74ff3f32251bcc5"
+    },
+    {
+      "file": "collection-enrollment.png",
+      "sha256": "713d966333d694c59d95ee3e968df8a79af7986b4e154e274bab9c3021e7c0a0"
+    },
+    {
+      "file": "collection-example-gaze.webp",
+      "sha256": "eb0f4a77f2b15093549b30d6d3b0b45cddd69d235b83316b97ad600d812887e2"
+    },
+    {
+      "file": "collection-example-gaze.webp.json",
+      "sha256": "7bbbc1950ec60548cb793ed20178f3366a5ef36975e4530147faa2960b448997"
+    },
+    {
+      "file": "collection-example-good.webp",
+      "sha256": "b33c86251d04336ca912267f4d530cb88db336c7be49ecde72d3d414350c7364"
+    },
+    {
+      "file": "collection-example-good.webp.json",
+      "sha256": "f392b9bb221163c3191cf3f660df2df8d43e1a4ea86889be222a6043c5666ea4"
+    },
+    {
+      "file": "collection-example-mask.webp",
+      "sha256": "e809542c1cd0ce6ecc6e5527513d640aef461d98c0f17f6fee459689330353d9"
+    },
+    {
+      "file": "collection-example-mask.webp.json",
+      "sha256": "78881aa1b52b6eec46e5782b832dfb39f64405481b99b50f90e90d8e1fc70583"
+    },
+    {
+      "file": "collection-example-outfit.webp",
+      "sha256": "285257e8d4b4dde9da9116fea08496a325c9a73c41dd9df876eea762b8d187ef"
+    },
+    {
+      "file": "collection-example-outfit.webp.json",
+      "sha256": "6b204bdfd050533cb60fddddf72f8568b4290b2fe0613daa6edfe58e34d46916"
+    },
+    {
+      "file": "collection-graduate.png",
+      "sha256": "4ac98282e6159c4f970317dedef0aa37bde5d4713de6e0085f8b6eb84f9ce989"
+    },
+    {
+      "file": "collection-membership.png",
+      "sha256": "ab61c82b54e2f5c41d4da3fa9eb510bff62b9c7927541e2586e48ce8e5856c6f"
+    },
+    {
+      "file": "hero-background.png",
+      "sha256": "d5f062135ec795de2110f9815d36a1d84840c0dd1a88a6af0003aaee27c4f06b"
+    },
+    {
+      "file": "hero-background.webp",
+      "sha256": "41aa3a13427cea94db325f81a9faade8aba69ed0dee9ef00eff7bebf921a3425"
+    },
+    {
+      "file": "hero-portrait.png",
+      "sha256": "5bb50fbdd2aa04b1011ff3de3e5ec17521c6ae51e866d53a7290b54eff2ff858"
+    },
+    {
+      "file": "hero-portrait.webp",
+      "sha256": "9ff7e03be5733cfa0044d0e7da8300bb44a42aa68936ed8f690bffbcf1e68586"
+    },
+    {
+      "file": "hero-tools.png",
+      "sha256": "47f23e39b31e38d8e4c0918ad01985ba2d7a17af4acf7ed7ad41f80a324b1634"
+    },
+    {
+      "file": "hero-tools.webp",
+      "sha256": "c956c34760e5ca6e66418fc9c8856202b7685def490bca52c314a579b39e0ef7"
+    },
+    {
+      "file": "outfit-children-casual.svg",
+      "sha256": "a15f905fa6e139e245cf733dc9f896f5a5200531125d3595f9c299a8365efdda"
+    },
+    {
+      "file": "outfit-children-shirt.svg",
+      "sha256": "c258bf73c00d54af73a600b29f718c5a5ef642d9f96e523f724d4a552fb3cdc2"
+    },
+    {
+      "file": "outfit-children-suit.svg",
+      "sha256": "a8d60abf26aea0a5ffd01f3ff1a351b22c7786b0700e1726edd6b334c9500ad8"
+    },
+    {
+      "file": "outfit-men-casual.svg",
+      "sha256": "aa45bfa75fbcadbb77268074093816def72cb792e105adb21206aabec10b9c88"
+    },
+    {
+      "file": "outfit-men-shirt.svg",
+      "sha256": "f76d0d255ba530fb3ab99df7c3e7c9634196d26e6a9678451b5def230e522dff"
+    },
+    {
+      "file": "outfit-men-suit.svg",
+      "sha256": "d60772083a1d032f3bcc66079f3c06b50f252a0d080a9df6cb5f5255611ceef0"
+    },
+    {
+      "file": "outfit-women-casual.svg",
+      "sha256": "05a434995fb992e52219e536bfa273b571f27dcaeaf24f5a57039464ffa248cb"
+    },
+    {
+      "file": "outfit-women-shirt.svg",
+      "sha256": "efc69935bc799a002481f328620eeafed3955c3618f3ca884c9d33eb8d56715b"
+    },
+    {
+      "file": "outfit-women-suit.svg",
+      "sha256": "be2ca663a9cbeefd0269a262fa08f7adb84929ba3597f2bc2ff3d1052a708f8a"
+    },
+    {
+      "file": "print-benefit-adhesive.webp",
+      "sha256": "d4d4193d7aeaac0f7413e685a4956fbac786fcc0195b90287bc2cb4208745bb8"
+    },
+    {
+      "file": "print-benefit-delivery.webp",
+      "sha256": "2a884fbf67252eeb3f80873f6daaf8d607dc38fc74e357a9f3ae3dc6b1734f4f"
+    },
+    {
+      "file": "print-benefit-silver.webp",
+      "sha256": "6c9d062f05b8fc021c3a6f93b26bb5744ec5df7028aafd499bdfe5e474e74878"
+    },
+    {
+      "file": "print-photo-journey.png",
+      "sha256": "3685c9f25e8cc58048c8f81580b6aaeb0fcbad370fac5f48a2f759590cddc713"
+    },
+    {
+      "file": "print-photo-journey.png.json",
+      "sha256": "1bc13a9be51cea6ab4f0f31700bd3ab508f59c46eea6b2e36fe2dfcc8268b34d"
+    },
+    {
+      "file": "print-portrait.png",
+      "sha256": "7f0c67aa9553de668899f33a1883a54a8b516fb2600fe00960e9d9041798db0c"
+    },
+    {
+      "file": "print-theme.png",
+      "sha256": "e5f89f8c0c0c5b8b2e751c72c36a36145117c5b9d4ea0ebdcd5190604ee2610c"
+    },
+    {
+      "file": "scan-collection-guide.webp",
+      "sha256": "dae41117c2eec298f4a4225507bffce4d6645521c340c1fd861bb6a206cfb2e4"
+    },
+    {
+      "file": "scan-collection-guide.webp.json",
+      "sha256": "0d0dc36f5951c140a2c1cb33bebcd7e81341765fadafb9fb930f84a791673cdd"
+    },
+    {
+      "file": "steps-background.png",
+      "sha256": "05342792e458e5484f88cd018bf40fcfbcc476ae2a4b0bf05131dbb951a71e31"
+    },
+    {
+      "file": "steps-crop.png",
+      "sha256": "f36894561250244df20cc766ac7679a272f24b18af8615a23f026b53d446c6d3"
+    },
+    {
+      "file": "steps-format.png",
+      "sha256": "f74df1309bc4f23f66e439ee312e0cd6d6187d977234afc29d2395d94da8f58b"
+    },
+    {
+      "file": "steps-outfit.png",
+      "sha256": "7a2bc4596cd67ae1bbbd22b685d4ff5053a831b49d6b8751f4945a4f7938fa9f"
+    },
+    {
+      "file": "steps-repair.png",
+      "sha256": "1c291e49091a384b198a83925d140777cc779c18f4de3a74fd2b1941cd0a9d2b"
+    },
+    {
+      "file": "steps-resize.png",
+      "sha256": "43be203ab68e14fbc441fa60a48cafa7d53fa5424fe4bae6490e0f1d3d1a493f"
+    },
+    {
+      "file": "tool-banner-background.svg",
+      "sha256": "5cbf047b2da44b19ac9b1b68be54e9222f812b984f5b8fd3885fe53000920b44"
+    },
+    {
+      "file": "tool-banner-crop.svg",
+      "sha256": "ca02c4d3551b98b7dbf8f398e93bda0ce2993f6c3d145e964e25f0b576816885"
+    },
+    {
+      "file": "tool-banner-format.svg",
+      "sha256": "52755b8ee2946072d5d6ca47897df22f937e97a35416a986cca02ccf3c6d0998"
+    },
+    {
+      "file": "tool-banner-outfit.svg",
+      "sha256": "daea9271adfd5b83ebea23101eaeac55afbaff80bffbaba2474efca3ccb0fad5"
+    },
+    {
+      "file": "tool-banner-print.svg",
+      "sha256": "fa23d7d9e27681aafd9d3a303da0bf1c388762f6265b0ffe33be40d2ebadb4da"
+    },
+    {
+      "file": "tool-banner-repair.svg",
+      "sha256": "954881ce795169f90bfccb1f66b718d6b4f97a1fff1f0e3d988828a2ae1ccaaa"
+    },
+    {
+      "file": "tool-banner-resize.svg",
+      "sha256": "e25e67710ad6c8d61675e72f2cd28867013857aba4eeabbd249e391b25b33ea4"
+    },
+    {
+      "file": "tool-banner-spec.svg",
+      "sha256": "61f21c94ae3f30e717b68654b8008eaaaca9a1a05e5c45b5a1d5d33b2089858c"
+    },
+    {
+      "file": "zhipai-mascot.webp",
+      "sha256": "e191f2c97b46108271bdf37d00f68245f95f56583f7076a3cf7e54c3f1cfb4f3"
+    },
+    {
+      "file": "zhipai-mascot.webp.json",
+      "sha256": "14966412c73ae9940e712351593e041ebb08416becddc6ef2c3893b7cadbe55c"
+    }
+  ]
+}

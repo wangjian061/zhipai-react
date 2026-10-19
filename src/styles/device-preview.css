@@ -1,0 +1,82 @@
+/* Fixed 402×874 logical display, immersive content and fixed transparent OS overlays. */
+html,body{background:#292b30}
+.stage{padding:16px;background:#292b30}
+.device-fit{position:relative;flex:none}
+.device-entry{position:absolute;top:0;left:0;transform:scale(var(--device-scale,1));transform-origin:top left}
+.device-entry>.phone{width:100%;height:100%;padding:var(--device-inset-y) var(--device-inset-x);border-radius:60px;background:linear-gradient(120deg,#b7bbc2 0%,#747981 14%,#c9cdd2 28%,#9298a1 65%,#cbd0d6 84%,#7e848e 100%);box-shadow:0 28px 55px -25px #27334555,0 5px 12px #1f29351c;isolation:isolate}
+.device-entry>.phone:before{content:"";position:absolute;inset:2px;border:1px solid #ffffff80;border-radius:58px;background:#17191e;z-index:-1;pointer-events:none;box-shadow:inset 0 0 0 3px #60656d,inset 0 0 0 4px #050607}
+.device-entry>.phone>.screen{position:relative;width:var(--device-screen-width);height:var(--device-screen-height);border-radius:47px;overflow:hidden;box-shadow:0 0 0 5px #050607,0 0 0 6px #3f434a;--native-chrome-ink:#111318;transform:translateZ(0)}
+.app-viewport{position:absolute;inset:0;overflow:hidden;isolation:isolate;z-index:1}
+.native-status-bar{position:fixed;inset:0 0 auto;height:var(--device-status-height);background:transparent;color:var(--native-chrome-ink);z-index:1000;pointer-events:none;user-select:none}
+.native-clock{position:absolute;top:24px;left:32px;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;font-size:17px;font-weight:600;line-height:22px;letter-spacing:-.35px;font-variant-numeric:tabular-nums}
+.native-island{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:125px;height:36px;border-radius:24px;background:#050507;box-shadow:inset 0 0 0 1px #000}
+.native-island-camera{position:absolute;right:13px;top:11px;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 42% 38%,#26334c 0,#102039 25%,#040812 51%,#090a0e 74%);box-shadow:0 0 0 2px #101117}
+.native-status-indicators{position:absolute;right:28px;top:28px;display:flex;align-items:center;gap:6px;height:16px}
+.native-status-indicators>.native-signal{width:18px;height:14px;fill:currentColor;stroke:none}
+.native-status-indicators>.native-wifi{width:18px;height:15px;stroke-width:1.7}
+.native-wifi circle{fill:currentColor;stroke:none}
+.native-status-indicators>.native-battery{width:27px;height:14px;stroke-width:1.2}
+.native-battery-shell{stroke:currentColor;fill:none;opacity:.72}
+.native-battery-fill{fill:currentColor;stroke:none}
+.native-battery-cap{stroke:currentColor;stroke-width:2;opacity:.55}
+.native-home-area{position:fixed;bottom:0;left:0;right:0;height:var(--device-home-height);background:transparent;z-index:1000;pointer-events:none;user-select:none}
+.native-home-indicator{position:absolute;bottom:var(--device-home-indicator-bottom);left:50%;transform:translateX(-50%);width:139px;height:var(--device-home-indicator-height);border-radius:4px;background:var(--native-chrome-ink)}
+.device-side-keys{position:absolute;inset:0;pointer-events:none;z-index:1}
+.device-side-keys>span{position:absolute;width:3px;border-radius:2px;background:linear-gradient(90deg,#8c919a,#c1c5cb,#71767e);box-shadow:inset 0 0 0 .5px #656a72}
+.device-action-key{left:-3px;top:150px;height:27px}
+.device-volume-up{left:-3px;top:208px;height:49px}
+.device-volume-down{left:-3px;top:274px;height:49px}
+.device-power-key{right:-3px;top:226px;height:82px}
+.phone[data-page="camera"][data-camera-step="capture"]>.screen{--native-chrome-ink:#fff}
+.device-fit .phone .tabbar{bottom:var(--device-nav-bottom)}
+.device-fit .phone[data-page="home"]{--home-nav-bottom:var(--device-nav-bottom)}
+.device-fit .phone[data-page="album"]{--album-nav-bottom:var(--device-nav-bottom)}
+.device-fit .collection-floating-nav{bottom:var(--device-nav-bottom)}
+.device-fit .collection-floating-nav:before{bottom:calc(-1 * var(--device-nav-bottom))}
+
+/* Standard task pages keep controls below the OS area; their canvas reaches y=0. */
+.device-fit .page{padding-top:var(--device-status-height)}
+.device-fit :is(.home-page,.album-page[data-view="library"],.collection-page:is([data-view="home"],[data-view="records"],[data-view="services"],[data-view="project"],[data-view="projects"],[data-view="notifications"]),.account-page[data-view="welcome"],.tool-page[data-view="home"],.print-page[data-view="preview"],.camera-page[data-step="capture"]){padding-top:0}
+.device-fit :is(.print-nav,.tool-app-nav,.account-nav,.collection-nav,.album-header,.page-header,.search-header,.camera-stage-header){background:transparent}
+
+/* The poster starts at the screen edge; OS chrome overlays its existing artwork. */
+.device-fit .home-page .hero{height:calc(var(--device-screen-width) * 977 / 1610);aspect-ratio:auto}
+.device-fit .home-page .hero .carousel-track{inset:0;height:auto}
+.device-fit .home-page .hero-cta{inset:var(--device-status-height) 0 0;height:auto}
+.device-fit .home-page .hero-cta>span{top:auto;bottom:30px;left:auto;right:16px;padding:3px 9px;border-radius:18px;background:#ffffffed;font-size:11px;line-height:22px;box-shadow:0 2px 8px #20385810}
+
+/* Institutional and album heroes reserve space inside the full-bleed background. */
+.device-fit .collection-home-hero{height:196px;padding-top:calc(24px + var(--device-status-height))}
+.device-fit .collection-records-inner,.device-fit .collection-services-inner{padding-top:20px}
+.device-fit .collection-themed-hero.has-back{height:238px;padding-top:calc(62px + var(--device-status-height))}
+.device-fit .collection-page[data-view="project"] .collection-nav{top:var(--device-status-height)}
+.device-fit .album-hero{flex-basis:calc(20% + var(--device-status-height) * .8);min-height:calc(120px + var(--device-status-height));max-height:calc(176px + var(--device-status-height))}
+.device-fit .album-hero-copy{top:calc(50% + var(--device-status-height) / 2)}
+.device-fit .album-hero-bear{top:var(--device-status-height);height:calc(100% - var(--device-status-height) + 100px)}
+
+/* All service entrance content retains its original geometry below the OS overlay. */
+.device-fit .service-hero{height:calc(320px + var(--device-status-height));min-height:calc(320px + var(--device-status-height));max-height:calc(320px + var(--device-status-height))}
+.device-fit .service-hero :is(.tool-hero-controls,.print-home-controls){height:calc(76px + var(--device-status-height));padding-top:calc(16px + var(--device-status-height))}
+.device-fit .account-page[data-view="welcome"] .account-nav{top:var(--device-status-height)}
+.device-fit .account-welcome-hero{height:calc(282px + var(--device-status-height));padding-top:calc(82px + var(--device-status-height))}
+.device-fit .account-welcome-art{top:calc(62px + var(--device-status-height))}
+.device-fit .camera-floating-back,.device-fit .resume-draft{top:calc(16px + var(--device-status-height))}
+
+/* Action areas share the 16px clearance above the home indicator, with no second OS strip. */
+.device-fit :is(.print-footer,.tool-footer,.camera-stage-actions,.album-actions){padding-bottom:var(--device-nav-bottom)}
+.device-fit .collection-page>.collection-action-footer{padding-bottom:var(--device-nav-bottom)}
+.device-fit .capture-toolbar{padding-bottom:var(--device-nav-bottom)}
+.device-fit :is(.account-drawer-body,.collection-drawer-body,.camera-dialog,.tool-sheet-body,.print-dialog,.my-sheet,.photo-choice-sheet){padding-bottom:var(--device-nav-bottom)}
+.device-fit .my-overlay{inset:0}
+.device-fit .my-sheet{max-height:calc(100% - var(--device-status-height))}
+.device-fit .album-overlay{padding-top:calc(var(--device-status-height) + 16px);padding-bottom:var(--device-home-height)}
+.device-fit :is(.share-content,.search-content,.collection-scan-scroll){padding-bottom:var(--device-home-height)}
+.device-fit .share-page .page-header,.device-fit .search-header{top:var(--device-status-height)}
+@media(max-width:360px){
+  .device-fit .collection-home-hero{height:190px;padding-top:calc(20px + var(--device-status-height))}
+  .device-fit .account-welcome-hero{height:calc(268px + var(--device-status-height));padding-top:calc(90px + var(--device-status-height))}
+  .device-fit .account-welcome-art{top:calc(73px + var(--device-status-height))}
+}
+@media(max-width:32px),(max-height:32px){.stage{padding:0}}
+
+.device-fit .phone[data-page="my"][data-my-view="overview"] .my-page{padding-top:0}

@@ -1,0 +1,14 @@
+.tab-menu{position:relative;isolation:isolate}
+.liquid-tab-indicator{position:absolute;inset:0;display:none;width:100%;height:100%;fill:var(--brand-blue);stroke:none;pointer-events:none;z-index:0;overflow:visible;filter:drop-shadow(0 3px 3px #0032ff16)}
+.liquid-tab-copy{position:absolute;inset:0;display:none;grid-template-columns:repeat(3,minmax(0,1fr));padding:4px;pointer-events:none;z-index:2;color:#fff}
+.liquid-tab-label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;font-weight:500;line-height:1.3}
+.liquid-tab-label>svg{width:23px;height:23px;stroke-width:1.7}
+.liquid-tab-label>span{font-size:11px;line-height:1.3;font-weight:500}
+.liquid-ready>.tab,.liquid-ready>.tab.active{z-index:1;background:none;color:#4f5b6b;box-shadow:none;font-weight:500;transform:none;transition:none}
+.liquid-ready>.tab:not([aria-disabled="true"]):active{transform:none}
+.liquid-ready>.liquid-tab-indicator{display:block}
+.liquid-ready>.liquid-tab-copy{display:grid}
+.liquid-moving>.liquid-tab-copy{will-change:clip-path}
+.liquid-no-clip>.liquid-tab-copy{display:none}
+.liquid-no-clip>.tab.active{color:#fff}
+@media(prefers-reduced-motion:reduce){.liquid-moving>.liquid-tab-copy{will-change:auto}}

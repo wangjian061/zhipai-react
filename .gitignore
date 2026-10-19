@@ -1,0 +1,28 @@
+# Dependencies and build outputs
+node_modules/
+dist/
+coverage/
+*.log
+
+# Local credentials and environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local editor / assistant state
+.DS_Store
+.idea/
+.vscode/
+.impeccable/
+AGENTS.md
+
+# Internal presentations and design experiments
+docs/reports/
+docs/design-previews/
+
+# Image-generation metadata (runtime assets are included)
+public/assets/*.json

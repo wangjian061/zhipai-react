@@ -1,0 +1,32 @@
+/* One fixed service-home geometry for print and all six photo tools. */
+.service-hero{height:320px;min-height:320px;max-height:320px}
+.service-hero .tool-hero-controls,.service-hero .print-home-controls{height:76px;padding:16px 18px}
+.service-hero-composition{height:244px;padding:24px 24px 52px;display:grid;grid-template-columns:minmax(0,1fr) 152px;align-items:center;gap:12px}
+.service-hero-composition>.tool-hero-copy,.service-hero-composition>.print-home-copy{position:relative;padding:0;margin:0;z-index:1}
+.service-hero-composition h1{font-size:36px;line-height:1.24;font-weight:700;letter-spacing:-.025em;color:#153164}
+.service-hero-composition .tool-hero-copy p,.service-hero-composition .print-home-copy p{font-size:14px;line-height:1.6;margin:12px 0 0;color:#425c87}
+.service-hero-composition>.tool-hero-bear,.service-hero-composition>.print-home-bear{position:static;width:152px;height:140px;max-width:100%;object-fit:contain;object-position:center;margin:0;transform:scale(1.5);transform-origin:center;pointer-events:none}
+.service-summary{height:320px;min-height:320px;max-height:320px;display:flex;flex-direction:column;padding:28px 24px;background:#fff;border-radius:24px 24px 0 0;overflow:hidden}
+.service-summary h2{flex:none;font-size:20px;line-height:1.5;font-weight:650;letter-spacing:-.02em;color:#293240;margin:0}
+.service-summary>p{flex:1;min-height:0;overflow:auto;scrollbar-width:thin;font-size:14px;line-height:1.8;color:#53637b;margin:14px 0 16px}
+.service-summary>.tool-service-process,.service-summary>.print-service-process{flex:none;margin:0}
+.service-summary figcaption{display:flex;justify-content:space-between;gap:8px;padding:0 4px;margin-top:12px;color:#53637b;font-size:12px;line-height:1.6}
+.service-summary figcaption span{min-width:64px;text-align:center}
+.print-service-details{padding:0;background:none;border-radius:0;display:grid;gap:16px;margin:24px 16px 32px}
+.print-service-details .print-benefit-card{display:grid;grid-template-columns:minmax(0,1fr) 116px;align-items:center;gap:16px;padding:24px 20px;min-height:176px;border:0;border-radius:16px;background:#fff;box-shadow:var(--card-shadow)}
+.print-service-details .print-benefit-card h3{font-size:18px;line-height:1.5;font-weight:650;color:#153164;margin:0 0 10px}
+.print-service-details .print-benefit-card p{font-size:14px;line-height:1.8;color:#53637b;margin:0}
+.print-benefit-visual{width:116px;height:132px;display:grid;place-items:center;border-radius:16px;background:#edf3ff}
+.print-benefit-visual img{display:block;width:128px;height:128px;max-width:none;object-fit:contain}
+.print-benefit-adhesive .print-benefit-visual{background:#fff5dc}
+@media(max-width:360px){
+  .service-hero-composition{padding-inline:20px;grid-template-columns:minmax(0,1fr) 136px;gap:8px}
+  .service-hero-composition h1{font-size:32px}
+  .service-hero-composition>.tool-hero-bear,.service-hero-composition>.print-home-bear{width:136px;height:126px}
+  .service-summary{padding-inline:20px}
+  .service-summary h2{font-size:19px}
+  .print-service-details{margin-inline:14px}
+  .print-service-details .print-benefit-card{grid-template-columns:minmax(0,1fr) 96px;gap:12px;padding:22px 18px}
+  .print-benefit-visual{width:96px;height:116px}
+  .print-benefit-visual img{width:108px;height:108px}
+}

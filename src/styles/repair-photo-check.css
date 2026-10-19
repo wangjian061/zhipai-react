@@ -1,0 +1,133 @@
+.repair-check-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  padding: 13px 14px;
+  border-radius: 13px;
+  background: #edf3ff;
+  color: #31527f;
+}
+.repair-check-status > div {
+  flex: 1;
+  min-width: 0;
+}
+.repair-check-status strong {
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 650;
+}
+.repair-check-status p {
+  margin: 3px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #71819a;
+}
+.repair-check-mark {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  flex: none;
+  border-radius: 50%;
+  background: #dce8ff;
+  font-size: 14px;
+  font-weight: 600;
+}
+.repair-check-status button {
+  min-height: 40px;
+  flex: none;
+  border: 0;
+  background: none;
+  padding: 0 3px;
+  color: inherit;
+  font-size: 12px;
+}
+.repair-check-status.passed {
+  background: #edf7f2;
+  color: #37745e;
+}
+.repair-check-status.passed .repair-check-mark {
+  background: #d7ece2;
+}
+.repair-check-status.rejected {
+  background: #fff1ef;
+  color: #ad514b;
+}
+.repair-check-status.rejected .repair-check-mark {
+  background: #f7deda;
+}
+.repair-check-panel h3 {
+  margin: 4px 0 10px;
+  color: #293e60;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+.repair-check-panel p,
+.repair-check-panel li {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #6b7d96;
+}
+.repair-check-panel ul {
+  padding-left: 20px;
+  margin: 16px 0 22px;
+}
+.repair-demo-label {
+  font-size: 11px;
+  color: #7b8aa2;
+}
+.repair-demo-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 22px;
+}
+.repair-demo-choices button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 15px;
+  border: 0;
+  border-radius: 12px;
+  background: #f0f4fc;
+  text-align: left;
+  color: #31527f;
+}
+.repair-demo-choices strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.repair-demo-choices span {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #71819a;
+}
+.repair-demo-choices label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: #6b7d96;
+}
+.repair-demo-choices select {
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #e0e7f1;
+  border-radius: 10px;
+  background: #fff;
+  color: #354c6e;
+  font-size: 13px;
+}
+.repair-demo-error {
+  display: block;
+  min-height: 44px;
+  margin: 18px auto 0;
+  padding: 0 12px;
+  background: none;
+  border: 0;
+  font-size: 12px;
+  color: #71819a;
+}

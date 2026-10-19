@@ -1,0 +1,16 @@
+/* Shared mobile UI values; status surfaces and branded artwork remain contextual. */
+:root{
+  --ui-heading:#203858;
+  --ui-muted:#73849a;
+  --ui-canvas:#f5f7fb;
+  --ui-card-radius:16px;
+  --ui-button-height:48px;
+  --ui-button-radius:14px;
+  --ui-button-font:15px;
+  --ui-sheet-radius:24px;
+  --ui-sheet-title:18px;
+  --ui-container-shadow:0 -3px 16px #29496b06;
+  --ui-card-shadow:0 2px 8px #29496b06,0 6px 18px -10px #29496b0d;
+  --ui-sheet-shadow:0 -10px 32px #20385812;
+  --card-shadow:var(--ui-card-shadow);
+}

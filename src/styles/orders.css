@@ -1,0 +1,435 @@
+.phone[data-page="orders"] .pages {
+  bottom: 0;
+}
+/* One order hub, with business progress separated from transaction state. */
+.orders-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding-top: var(--device-status-height, 62px);
+  background: #f5f7fb;
+  color: #203858;
+  overflow: hidden;
+}
+.orders-page button {
+  font: inherit;
+  cursor: pointer;
+}
+.orders-page svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  flex-shrink: 0;
+}
+.orders-header {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 18px 14px;
+  flex-shrink: 0;
+}
+.orders-header h1 {
+  margin: 0;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 650;
+}
+.orders-circle {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border: 0;
+  border-radius: 50%;
+  color: #203858;
+}
+.orders-status-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  padding: 8px 12px 12px;
+  flex-shrink: 0;
+}
+.orders-status-tabs button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 60px;
+  padding: 6px 0 12px;
+  border: 0;
+  background: transparent;
+  color: #73849a;
+}
+.orders-status-tabs b {
+  font-size: 23px;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.orders-status-tabs span {
+  font-size: 12px;
+}
+.orders-status-tabs .active {
+  color: #0032ff;
+}
+.orders-status-tabs .active:after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 18px;
+  height: 3px;
+  border-radius: 4px;
+  background: currentColor;
+}
+.orders-type-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px 18px 16px;
+  overflow: auto;
+  flex-shrink: 0;
+  scrollbar-width: none;
+}
+.orders-type-tabs button {
+  white-space: nowrap;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #fff;
+  color: #65748c;
+  font-size: 12px;
+}
+.orders-type-tabs .active {
+  background: #e7edff;
+  border-color: #d7e1ff;
+  color: #0032ff;
+  font-weight: 600;
+}
+.orders-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 16px calc(var(--device-nav-bottom, 29px) + 16px);
+  scrollbar-width: none;
+}
+.order-list-card {
+  display: block;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 16px;
+  border: 0;
+  text-align: left;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 3px 12px #20385805;
+  color: inherit;
+}
+.order-card-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  font-size: 12px;
+  color: #73849a;
+}
+.order-status-text {
+  text-align: right;
+  font-weight: 600;
+  max-width: 60%;
+}
+.is-pending {
+  --order-tone: #bd6508;
+  --order-tint: #fff1e2;
+}
+.is-processing {
+  --order-tone: #265bc0;
+  --order-tint: #eaf0ff;
+}
+.is-complete {
+  --order-tone: #248063;
+  --order-tint: #e5f4ed;
+}
+.is-closed {
+  --order-tone: #778397;
+  --order-tint: #edf0f4;
+}
+.order-status-text {
+  color: var(--order-tone, #203858);
+}
+.order-product {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.order-thumbnail {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 54px;
+  height: 68px;
+  background: #f1f5fb;
+  border-radius: 8px;
+  color: #7289b0;
+  overflow: hidden;
+}
+.order-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.order-product strong,
+.order-product h2 {
+  display: block;
+  font-size: 15px;
+  line-height: 1.45;
+  margin: 0;
+  font-weight: 600;
+}
+.order-description,
+.order-product p {
+  display: block;
+  font-size: 12px;
+  color: #73849a;
+  line-height: 1.6;
+  margin: 5px 0 0;
+}
+.order-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+.order-card-meta time {
+  font-size: 11px;
+  color: #8491a5;
+}
+.order-card-meta strong {
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.orders-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 18px 12px;
+  padding: 0 12px;
+  min-height: 44px;
+  background: #fff;
+  border-radius: 22px;
+  flex-shrink: 0;
+  color: #73849a;
+}
+.orders-search svg {
+  width: 18px;
+}
+.orders-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: #203858;
+}
+.orders-search button {
+  border: 0;
+  background: transparent;
+  color: #0032ff;
+  font-size: 13px;
+  min-height: 44px;
+}
+.orders-empty {
+  padding: 70px 20px 30px;
+  text-align: center;
+  color: #73849a;
+}
+.orders-empty > svg {
+  width: 36px;
+  height: 36px;
+  color: #8c9eb8;
+}
+.orders-empty h2 {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 20px 0 8px;
+  color: #526885;
+}
+.orders-empty p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.orders-primary {
+  border: 0;
+  border-radius: 12px;
+  min-height: 48px;
+  width: 100%;
+  padding: 12px 16px;
+  color: #fff;
+  background: #0032ff;
+  font-size: 16px;
+  font-weight: 600;
+}
+.orders-empty .orders-primary {
+  margin-top: 16px;
+  max-width: 220px;
+}
+.orders-footer {
+  flex-shrink: 0;
+  padding: 12px 18px calc(var(--device-nav-bottom, 29px) + 8px);
+  background: #ffffffdc;
+  backdrop-filter: blur(18px);
+}
+.order-detail-scroll {
+  padding-bottom: 20px;
+}
+.order-status-panel {
+  padding: 18px 20px 22px;
+  margin-bottom: 14px;
+  border-radius: 18px;
+  background: var(--order-tint);
+  color: var(--order-tone);
+}
+.order-status-panel > span {
+  font-size: 12px;
+}
+.order-status-panel h2 {
+  font-size: 24px;
+  line-height: 1.3;
+  margin: 8px 0;
+}
+.order-status-panel p {
+  font-size: 13px;
+  margin: 0;
+  opacity: 0.85;
+}
+.order-detail-card {
+  padding: 18px;
+  margin-bottom: 14px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 3px 12px #20385805;
+}
+.order-detail-card > h2 {
+  font-size: 15px;
+  margin: 0 0 16px;
+}
+.order-detail-card > p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #60748e;
+  margin: 6px 0;
+}
+.order-detail-card dl {
+  margin: 16px 0 0;
+}
+.order-detail-card dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.order-detail-card dt {
+  flex-shrink: 0;
+  color: #73849a;
+}
+.order-detail-card dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.order-detail-card .order-amount {
+  padding-top: 14px;
+  border-top: 1px solid #eef1f7;
+  align-items: center;
+}
+.order-amount dd {
+  font-size: 22px;
+  font-weight: 650;
+}
+.order-number {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.order-number button {
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  color: #718096;
+  padding: 0;
+}
+.order-number svg {
+  width: 18px;
+  height: 18px;
+}
+.orders-load-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #fff1e2;
+  color: #9b5914;
+  padding: 10px 18px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.orders-load-error button {
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-decoration: underline;
+  min-height: 28px;
+}
+.orders-notice {
+  text-align: center;
+  font-size: 12px;
+  color: #60748e;
+}
+.orders-page button:focus-visible {
+  outline: 2px solid #0032ff;
+  outline-offset: 3px;
+}
+.orders-page button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.orders-page .is-orange {
+  --order-tone: #c36a13;
+  --order-tint: #fff2e4;
+}
+.orders-page .is-red {
+  --order-tone: #cb393d;
+  --order-tint: #fff0f0;
+}
+.orders-page .is-green {
+  --order-tone: #248063;
+  --order-tint: #e5f4ed;
+}
+.orders-page .is-blue {
+  --order-tone: #0032ff;
+  --order-tint: #eaf0ff;
+}
+
+.order-number button {
+  width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  margin: -12px -10px -12px 0;
+}

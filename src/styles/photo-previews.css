@@ -1,0 +1,153 @@
+/* Display-only portrait frames. Crop editors, live cameras and print sheets
+   retain their actual working ratios. Export dimensions are never changed. */
+:root {
+  --portrait-preview-ratio: 5/7;
+  --portrait-preview-ground: #f1f2f4;
+}
+:is(
+  .capture-confirm-photo,
+  .camera-result-photo,
+  .detail-preview,
+  .tool-image-stage,
+  .collection-task-photo
+) {
+  aspect-ratio: var(--portrait-preview-ratio);
+  background: var(--portrait-preview-ground);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+}
+.camera-confirm-scroll .capture-confirm-photo,
+.camera-result-photo {
+  width: min(100%, calc(48dvh * 5 / 7), 280px);
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  min-width: 0;
+  margin: 0 auto 20px;
+}
+:is(
+    .capture-confirm-photo,
+    .camera-result-photo,
+    .detail-preview,
+    .tool-image-stage,
+    .collection-task-photo
+  )
+  > img,
+.tool-comparison img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  object-position: center;
+  background: var(--portrait-preview-ground);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.detail-preview {
+  width: min(100%, calc(330px * 5 / 7));
+  height: auto;
+}
+.detail-preview.zoomed {
+  width: min(100%, calc(510px * 5 / 7));
+  height: auto;
+}
+.tool-image-stage {
+  width: min(100%, 250px);
+  height: auto;
+  max-height: none;
+  margin-inline: auto;
+}
+.tool-comparison {
+  background: var(--portrait-preview-ground);
+}
+.collection-task-photo {
+  width: min(100%, 200px);
+  height: auto;
+  min-height: 0;
+  margin-inline: auto;
+}
+.collection-task-photo > img {
+  aspect-ratio: var(--portrait-preview-ratio);
+}
+:is(.camera-saved-photo, .tool-saved-photo) {
+  width: min(100%, 230px);
+  height: auto;
+  max-height: none;
+  aspect-ratio: var(--portrait-preview-ratio);
+  object-fit: contain;
+  background: var(--portrait-preview-ground);
+  border-radius: 0;
+  box-shadow: none;
+}
+.album-full-grid .photo,
+.tool-library-grid button {
+  aspect-ratio: var(--portrait-preview-ratio);
+  background: var(--portrait-preview-ground);
+}
+.album-full-grid .photo img,
+.tool-library-grid img {
+  object-fit: contain;
+  background: var(--portrait-preview-ground);
+}
+.choice-photo {
+  height: 91px;
+  aspect-ratio: var(--portrait-preview-ratio);
+  background: var(--portrait-preview-ground);
+}
+.choice-photo img {
+  object-fit: contain;
+  background: var(--portrait-preview-ground);
+}
+.collection-examples img {
+  aspect-ratio: var(--portrait-preview-ratio);
+  object-fit: contain;
+  background: var(--portrait-preview-ground);
+}
+:is(
+    .camera-payment-summary,
+    .tool-order-card,
+    .tool-payment-order,
+    .print-source-strip
+  )
+  > img {
+  height: auto;
+  aspect-ratio: var(--portrait-preview-ratio);
+  object-fit: contain;
+  background: var(--portrait-preview-ground);
+}
+
+.print-photo-frame {
+  aspect-ratio: var(--portrait-preview-ratio);
+  background: var(--portrait-preview-ground);
+}
+.print-photo-frame img {
+  object-fit: contain;
+  background: var(--portrait-preview-ground);
+}
+.collection-task-guide {
+  background: var(--portrait-preview-ground);
+  box-shadow: none;
+}
+.collection-task-guide > img {
+  object-fit: contain;
+  object-position: center;
+}
+.collection-submit-summary > img {
+  height: 126px;
+  object-fit: contain;
+  background: var(--portrait-preview-ground);
+}
+.order-thumbnail {
+  height: auto;
+  aspect-ratio: var(--portrait-preview-ratio);
+  background: var(--portrait-preview-ground);
+}
+.tool-photo-card {
+  background: transparent;
+  box-shadow: none;
+}
