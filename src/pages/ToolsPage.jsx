@@ -4,6 +4,7 @@ import PhotoProcessingEffect, {
 } from "../components/PhotoProcessingEffect.jsx";
 import { toolPhotoProcessingLabel } from "../components/photo-processing.js";
 import ToolNavigation from "../components/ToolNavigation.jsx";
+import ToolResult from "../components/ToolResult.jsx";
 import ToolStepper from "../components/ToolStepper.jsx";
 import PhotoSelectionPreview from "../components/PhotoSelectionPreview.jsx";
 import ToolPhotoSelection from "../components/ToolPhotoSelection.jsx";
@@ -712,79 +713,6 @@ export default function ToolsPage({ scope, args = [] }) {
                 text={s.notice}
                 role="status"
               ></View>
-              <View
-                as="section"
-                scope={s}
-                className="tool-saved-confirmation"
-                show={s.serviceResult && s.savedRecord}
-                role="status"
-              >
-                <View
-                  as="span"
-                  scope={s}
-                  className="tool-saved-icon"
-                  aria-hidden="true"
-                >
-                  <View as="svg" scope={s}>
-                    <View as="use" scope={s} href="#i-check"></View>
-                  </View>
-                </View>
-                <View as="div" scope={s}>
-                  <View as="strong" scope={s}>
-                    {"已保存到知拍相册"}
-                  </View>
-                  <View as="span" scope={s}>
-                    {"原照片仍然保留"}
-                  </View>
-                </View>
-                <View
-                  as="button"
-                  scope={s}
-                  disabled={s.busy}
-                  events={[
-                    {
-                      type: "click",
-                      prevent: false,
-                      stop: false,
-                      self: false,
-                      passive: false,
-                      run: function (scope, $event, $el) {
-                        scope.openResultAlbum();
-                      },
-                    },
-                  ]}
-                >
-                  {"查看相册"}
-                  <View as="svg" scope={s} aria-hidden="true">
-                    <View as="use" scope={s} href="#i-arrow"></View>
-                  </View>
-                </View>
-              </View>
-              <View
-                as="div"
-                scope={s}
-                className="tool-recovery"
-                show={s.error && s.photo && !s.busy && !s.choosingPhoto}
-              >
-                <View
-                  as="button"
-                  scope={s}
-                  events={[
-                    {
-                      type: "click",
-                      prevent: false,
-                      stop: false,
-                      self: false,
-                      passive: false,
-                      run: function (scope, $event, $el) {
-                        scope.retry();
-                      },
-                    },
-                  ]}
-                >
-                  {"重试"}
-                </View>
-              </View>
             </View>
             <View
               as="footer"
@@ -836,83 +764,7 @@ export default function ToolsPage({ scope, args = [] }) {
               ></View>
             </View>
           </View>
-          <View
-            as="div"
-            scope={s}
-            className="tool-flow"
-            show={s.view === "saved"}
-          >
-            <ToolNavigation title={"保存完成"} onBack={() => s.back()} />
-            <View as="div" scope={s} className="tool-saved">
-              <View
-                as="img"
-                scope={s}
-                className="tool-saved-bear"
-                src={s.mascot}
-                width="1024"
-                height="1024"
-                alt=""
-              ></View>
-              <View
-                as="h2"
-                scope={s}
-                text={s.savesToAlbum ? "已保存到知拍相册" : "已发起下载"}
-              ></View>
-              <View
-                as="p"
-                scope={s}
-                text={s.savesToAlbum ? "原照片仍然保留" : "请在手机相册中查看"}
-              ></View>
-              <View
-                as="img"
-                scope={s}
-                className="tool-saved-photo"
-                src={s.outputURL || undefined}
-                alt="保存的照片"
-              ></View>
-              <View as="small" scope={s} text={s.outputInfo}></View>
-              <View
-                as="button"
-                scope={s}
-                className="tool-primary"
-                show={s.savesToAlbum && s.savedRecord}
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.viewSaved();
-                    },
-                  },
-                ]}
-              >
-                {"查看照片"}
-              </View>
-
-              <View
-                as="button"
-                scope={s}
-                className="tool-secondary"
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.start();
-                    },
-                  },
-                ]}
-              >
-                {"再处理一张"}
-              </View>
-            </View>
-          </View>
+          {s.page === "tool" && s.view === "saved" && <ToolResult studio={s} />}
           <View
             as="div"
             scope={s}

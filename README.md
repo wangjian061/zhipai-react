@@ -62,7 +62,7 @@ npm run dev
 - [证照规格产品契约](docs/product/photo-specifications-1.4.6.md)与[交互线框](docs/product/photo-specifications-1.4.6.html)：九项目录、选色、现有相机与制作参数交接；[头图来源](docs/assets/specifications-hero-20261020.md)、[实施记录](docs/reviews/photo-specifications-20261020/review.md)、[独立收尾评审](docs/reviews/photo-specifications-20261020/finish-review.md)及[文档收尾](docs/reviews/photo-specifications-20261020/documentation.md)。首页与规格页共用[宫格样式](src/styles/utility-grid.css)。
 - [常用工具产品需求与验收](docs/product/common-tools-1.4.6.md)：冲印及六项工具的最新规则、逐页功能和前后步关系。
 - [逐页交互式结构说明](docs/product/common-tools-1.4.6.html)：23个页面与抽屉的结构示意，可切换状态；不是实际页面截图或视觉定稿。本地服务运行时可访问 [结构说明页面](http://127.0.0.1:4180/docs/product/common-tools-1.4.6.html)。
-- [逻辑校验与 oil-ui-pro 视觉规范审查](docs/reviews/common-tools-20261019/review.md)：三轮检查证据、问题分级、整改方案与待验收边界。
+- [六项工具完成页统一与交付校验](docs/reviews/tool-results-20261021/review.md)：2026-10-21更换背景设备交付、共用完成页、保存重试及待验收边界；[2026-10-19历史审查](docs/reviews/common-tools-20261019/review.md)保留早期检查证据。
 
 ## 构建与检查
 

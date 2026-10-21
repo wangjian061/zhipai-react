@@ -70,7 +70,7 @@
 .collection-task-photo > img {
   aspect-ratio: var(--portrait-preview-ratio);
 }
-:is(.camera-saved-photo, .tool-saved-photo) {
+.camera-saved-photo {
   width: min(100%, 230px);
   height: auto;
   max-height: none;
