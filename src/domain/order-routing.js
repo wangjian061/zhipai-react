@@ -42,3 +42,34 @@ export function returnToOrderCenter() {
   orderNavigate(safe);
   return true;
 }
+
+// Canonical detail route. Older print links retain the originating hub filters.
+export function printOrderPath(id, fallback = "/?page=my") {
+  const current = new URL(location.href);
+  const oldBack = safeOrderPath(current.searchParams.get("orderBack"), "");
+  const source =
+    current.searchParams.get("page") === "orders"
+      ? current
+      : oldBack
+        ? new URL(oldBack, location.origin)
+        : null;
+  let back = safeOrderPath(fallback);
+  const backQuery = new URL(back, location.origin).searchParams;
+  if (
+    backQuery.get("page") === "orders" ||
+    (backQuery.get("page") === "print" &&
+      ["order", "result", "orders"].includes(backQuery.get("print")))
+  )
+    back = "/?page=my";
+  const q =
+    source?.searchParams.get("page") === "orders"
+      ? new URLSearchParams(source.search)
+      : new URLSearchParams({
+          page: "orders",
+          type: "print",
+          status: "all",
+          back,
+        });
+  q.set("id", "print:" + id);
+  return "/?" + q;
+}

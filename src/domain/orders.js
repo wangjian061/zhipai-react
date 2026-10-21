@@ -101,10 +101,12 @@ export function normalizeOrders({
       address: r.address,
       tracking: r.tracking,
       events: r.events || [],
+      sourceStatus: r.status,
       details: [
         ["版式", r.layoutSnapshot?.name || r.layout],
         ["冲印数量", `${r.quantity || 1}版`],
         ["冲印费", money((r.base || 0) * (r.quantity || 1))],
+        ...(r.addon ? [["历史附加套餐", money(r.addonPrice * r.addon)]] : []),
         ["配送费", money(r.shipping || 0)],
       ],
       action:
@@ -112,9 +114,7 @@ export function normalizeOrders({
           ? "继续付款"
           : r.status === "verifying"
             ? "查询付款结果"
-            : r.status === "shipped"
-              ? "查看物流"
-              : "查看冲印详情",
+            : null,
     });
   for (const r of tools
     .filter(own)
@@ -329,6 +329,7 @@ registerStore("orderCenter", {
   },
 });
 registerController("ordersFlow", () => ({
+  onRoute: null,
   type: "all",
   status: "all",
   query: "",
@@ -451,13 +452,10 @@ registerController("ordersFlow", () => ({
   continue(order = this.current) {
     if (!order || !this.hub.all.some((o) => o.key === order.key)) return;
     let q;
-    if (order.type === "print")
-      q = new URLSearchParams({
-        page: "print",
-        print: "order",
-        order: order.sourceId,
-      });
-    else if (order.type === "collection")
+    if (order.type === "print") {
+      if (this.selected !== order.key) this.open(order);
+      return;
+    } else if (order.type === "collection")
       q = new URLSearchParams({
         page: "collection",
         view: "detail",

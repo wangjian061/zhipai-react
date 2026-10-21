@@ -301,3 +301,250 @@ test("source rendering exposes list filters and one detail action, plus signed-o
   assert.match(html, /登录后查看订单/);
   assert.doesNotMatch(html, /receipt|¥18.00/);
 });
+
+test("print details share one canonical route including legacy result links and retained filters", async () => {
+  const s = scope();
+  const { printOrderPath } = await import("../src/domain/order-routing.js");
+  s.filter("print", "processing");
+  s.query = "same";
+  s.search();
+  s.open(s.list[0]);
+  s.sync();
+  const canonical = location.pathname + location.search;
+  assert.equal(printOrderPath("same"), canonical);
+  s.continue();
+  assert.equal(location.pathname + location.search, canonical);
+  const p = createController("printStudio", [], {}).scope;
+  p.$nextTick = () => {};
+  p.$el = { querySelectorAll: () => [] };
+  const onRoute = () => p.syncLocation();
+  window.addEventListener("zhipai-route", onRoute);
+  try {
+    for (const view of ["order", "result"]) {
+      locationValue = new URL(
+        "http://127.0.0.1:4180/?page=print&print=" +
+          view +
+          "&order=same&orderBack=" +
+          encodeURIComponent(canonical),
+      );
+      p.syncLocation();
+      assert.equal(location.pathname + location.search, canonical);
+      assert.equal(p.order.id, "same");
+      assert.equal(p.view, "order");
+    }
+    p.route("order", { order: "same" }, true);
+    assert.equal(location.pathname + location.search, canonical);
+    s.sync();
+    s.back();
+    s.sync();
+    assert.equal(s.type, "print");
+    assert.equal(s.status, "processing");
+    assert.equal(s.query, "same");
+    assert.equal(s.selected, "");
+    locationValue = new URL(
+      "http://127.0.0.1:4180/?page=print&print=order&order=same",
+    );
+    const fallback = new URL(
+      printOrderPath("same", "/?page=print&print=order&order=same"),
+      location.origin,
+    );
+    assert.equal(fallback.searchParams.get("back"), "/?page=my");
+  } finally {
+    window.removeEventListener("zhipai-route", onRoute);
+  }
+});
+
+function printScope() {
+  const s = scope(),
+    store = getStore("printLibrary");
+  store.busy = false;
+  store.orders = [
+    {
+      ...base,
+      id: "checkout",
+      status: "pending",
+      total: 2980,
+      base: 1980,
+      shipping: 1000,
+      quantity: 1,
+      addon: 0,
+      layout: "adhesive-mixed-4-8",
+      layoutSnapshot: { id: "adhesive-mixed-4-8", name: "4大8小" },
+      address: {
+        name: "测试",
+        phone: "13800000000",
+        region: "测试省市",
+        street: "测试地址",
+      },
+      events: [],
+    },
+  ];
+  store.draft.orderId = "checkout";
+  const commit = store.commit;
+  store.commit = async (mutate) => {
+    store.busy = true;
+    try {
+      mutate(store);
+    } finally {
+      store.busy = false;
+    }
+  };
+  s.filter("print", "pending");
+  s.open(s.list[0]);
+  s.sync();
+  const p = createController("printStudio", [], {}).scope;
+  p.$nextTick = () => {};
+  p.online = true;
+  p.syncLocation();
+  return {
+    s,
+    p,
+    store,
+    restore() {
+      store.commit = commit;
+      getStore("printUi").opened = false;
+    },
+  };
+}
+
+test("unified print detail continues the original payment, resolves unknown results and never creates another order", async () => {
+  const { s, p, store, restore } = printScope();
+  globalThis.document = { activeElement: null };
+  const onRoute = () => p.syncLocation();
+  window.addEventListener("zhipai-route", onRoute);
+  try {
+    const path = location.pathname + location.search;
+    p.continuePayment();
+    assert.equal(p.modal, "payment");
+    assert.equal(p.checkoutPayment, false);
+    p.demoOutcome = "timeout";
+    await Promise.all([p.pay(), p.pay()]);
+    assert.equal(p.order.status, "verifying");
+    assert.equal(p.modal, null);
+    assert.equal(store.orders.length, 1);
+    assert.equal(p.order.total, 2980);
+    p.continuePayment();
+    assert.equal(p.modal, null);
+    p.showModal("resolution");
+    p.resolution = "unknown";
+    await p.resolvePayment();
+    assert.equal(p.order.status, "verifying");
+    assert.equal(p.modal, "resolution");
+    p.resolution = "paid";
+    await p.resolvePayment();
+    assert.equal(p.order.status, "producing");
+    assert.equal(p.modal, null);
+    assert.equal(location.pathname + location.search, path);
+    assert.equal(s.current.payment, "已支付");
+    assert.equal(s.current.state, "processing");
+    assert.equal(store.draft.completedOrderId, "checkout");
+    assert.equal(store.orders.length, 1);
+  } finally {
+    window.removeEventListener("zhipai-route", onRoute);
+    restore();
+  }
+});
+
+test("detail payment success stays on the same detail; cancel only applies to pending orders", async () => {
+  const { p, store, restore } = printScope();
+  try {
+    const path = location.pathname + location.search;
+    p.continuePayment();
+    await p.pay();
+    assert.equal(p.order.status, "producing");
+    assert.equal(p.modal, null);
+    assert.equal(getStore("printUi").opened, false);
+    assert.equal(location.pathname + location.search, path);
+    await p.cancelOrder();
+    assert.equal(p.order.status, "producing");
+    p.order.status = "pending";
+    p.showModal("cancel");
+    await p.cancelOrder();
+    assert.equal(p.order.status, "cancelled");
+    assert.equal(p.modal, null);
+    assert.ok(p.order.photo.blob);
+    assert.ok(p.order.address);
+    assert.equal(store.draft.orderId, null);
+  } finally {
+    restore();
+  }
+});
+
+test("print detail renders transaction and delivery once, reveals layout on demand and varies payment actions by status", () => {
+  const { s, p, restore } = printScope();
+  try {
+    for (const status of [
+      "pending",
+      "verifying",
+      "producing",
+      "printing",
+      "shipped",
+      "completed",
+      "cancelled",
+    ]) {
+      p.order.status = status;
+      const html = renderToStaticMarkup(
+        React.createElement(OrdersContent, { s, print: p }),
+      );
+      assert.match(html, /配送信息/);
+      assert.match(html, /查看排版照片/);
+      assert.match(html, /¥29.80/);
+      assert.doesNotMatch(html, /查看冲印详情|客服|背胶模切排版预览/);
+      assert.equal(
+        (html.match(/<h1[^>]*[^>]*title="订单详情"/g) || []).length,
+        1,
+      );
+      assert.equal(html.includes("继续付款"), status === "pending");
+      assert.equal(html.includes("取消订单"), status === "pending");
+      assert.equal(html.includes("查询付款结果"), status === "verifying");
+      if (["producing", "printing", "shipped", "completed"].includes(status))
+        assert.match(html, /实付金额/);
+    }
+  } finally {
+    restore();
+  }
+});
+
+test("layout preview uses transient history and back closes it without leaving the order", () => {
+  const { p, restore } = printScope();
+  const push = history.pushState,
+    oldBack = history.back;
+  const path = location.pathname + location.search;
+  history.pushState = function (state, title, url) {
+    this.state = state;
+    push(state, title, url);
+  };
+  history.back = () => {
+    history.state = null;
+    p.syncLocation();
+  };
+  try {
+    p.showModal("layout");
+    assert.equal(p.modal, "layout");
+    assert.equal(history.state.zhipaiPrintLayout, "checkout");
+    p.closeModal();
+    assert.equal(p.modal, null);
+    assert.equal(getStore("printUi").opened, false);
+    assert.equal(location.pathname + location.search, path);
+    assert.equal(p.order.id, "checkout");
+  } finally {
+    history.pushState = push;
+    history.back = oldBack;
+    restore();
+  }
+});
+
+test("nested order controller retains its own lifecycle route handler", () => {
+  const { p, restore } = printScope();
+  p.onRoute = () => p.syncLocation();
+  const printHandler = p.onRoute;
+  const orders = createController("ordersFlow", [], p);
+  try {
+    orders.start();
+    assert.equal(p.onRoute, printHandler);
+    assert.notEqual(orders.scope.onRoute, printHandler);
+  } finally {
+    orders.stop();
+    restore();
+  }
+});

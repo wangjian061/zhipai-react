@@ -57,9 +57,15 @@ export default function AppShell({ scope, args = [] }) {
                 <ScanPage scope={s} args={[]} />
                 <ToolsPage scope={s} args={[]} />
                 <SupportPage scope={s} args={[]} />
-                <PrintPage scope={s} args={[]} />
+                <Controller name="printStudio">
+                  {(print) => (
+                    <>
+                      <PrintPage scope={print} />
+                      <OrdersPage print={print} />
+                    </>
+                  )}
+                </Controller>
                 <MyPage scope={s} args={[]} />
-                <OrdersPage scope={s} />
               </View>
               <View
                 as="nav"

@@ -2,7 +2,6 @@
 .phone[data-page="print"] .pages{bottom:0}
 .print-page{display:flex;flex-direction:column;overflow:hidden;background:#f5f7ff;color:#293240;font-size:14px;line-height:1.5}
 .print-page button,.print-dialog button{touch-action:manipulation}
-.print-nav-action{min-height:44px;font-size:13px;color:var(--brand-blue)}
 .print-screen{display:flex;flex-direction:column;flex:1;min-height:0}
 .print-body{padding:12px 16px max(18px,env(safe-area-inset-bottom));flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain}
 .print-body::-webkit-scrollbar{display:none}

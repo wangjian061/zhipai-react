@@ -7,7 +7,8 @@
     <style>
       :root {
         font-family:
-          Inter,
+          "Source Han Sans SC",
+          "Noto Sans CJK SC",
           -apple-system,
           BlinkMacSystemFont,
           "PingFang SC",
@@ -16,7 +17,7 @@
         color: #203954;
         background: #f3f6fa;
         --blue: #003cff;
-        --muted: #71839b;
+        --muted: #53637b;
         --line: #e5ebf2;
       }
       * {
@@ -51,7 +52,6 @@
       .doc-eyebrow {
         font-size: 12px;
         color: var(--muted);
-        letter-spacing: 1px;
       }
       .doc-header h1 {
         font-size: 22px;
@@ -1020,7 +1020,7 @@
           notes: [
             "工具顶部不放订单；从个人中心“我的订单”统一查看，按业务类型区分精修、换装、冲印等服务。",
             "订单详情保留服务快照与金额；精修、换装可恢复对应处理或结果，冲印展示待付款、制作与配送进度。",
-            "当前订单中心的栏目与筛选沿用统一订单设计，不在工具内建立第二套统计；冲印具体状态在订单详情中展示。",
+            "保留状态与类型两层筛选：计数作为辅助信息，类型横向滚动并有箭头提示；使用统一导航和44px触控区，不在工具内建立第二套统计。",
             "当前账号只展示具有该账号归属的订单；删除相册照片不删除已有订单快照。付款成功不得等同于照片或实物制作完成。",
           ],
         },
@@ -1028,10 +1028,10 @@
           id: "p23",
           name: "冲印订单详情页",
           notes: [
-            "顶部“订单详情”、返回及客服；主体依次展示状态、排版照片与服务快照、金额、收货地址和交易记录。",
-            "具体状态文案为“待付款／付款确认中／待制作／制作中／已发货／已签收／已取消”，不把统一订单中心的“处理中／已完成”误作同一层级的原始状态。",
-            "待付款可“取消订单／继续支付”；付款确认中先查询结果；已发货可查看运单。原型状态推进不表示真实物流回调。",
-            "从统一订单中心进入后，返回应保留来源筛选；历史照片、版式、金额与地址使用订单快照，不因相册或地址更新而覆盖。",
+            "统一为一层“订单详情”：顶部返回和标题、右侧无客服；主体依次展示付款状态与金额、服务和费用、配送信息及订单凭据。排版从“查看排版照片”打开上滑抽屉，关闭或返回留在原详情；订单记录按需展开。",
+            "主要付款状态为“待付款／付款确认中／已支付／已关闭”；“待制作／制作中／已发货／已签收”等进度单独展示。筛选分组仍沿用处理中／已完成，不把已支付当作已交付。",
+            "待付款底部为“取消订单／继续付款”；付款确认中仅查询同一订单；已支付或关闭不再提供重复详情入口，运单直接在配送信息查看。原型状态推进收在“原型演示”，不表示真实物流回调。",
+            "旧冲印详情／结果链接兼容进入统一详情；返回列表保留类型、状态和搜索。历史照片、版式、金额及地址使用订单快照，不因相册或地址更新而覆盖。付款、取消和查询在原详情完成。",
           ],
         },
       ];
@@ -1274,14 +1274,13 @@
         p22: {
           title: "我的订单",
           body: () =>
-            `<div class="wf-choice"><span class="selected">全部</span><span>照片服务</span><span>专项采集</span><span>冲印</span></div><div class="wf-order-card"><div class="wf-row"><strong>冲印 · 4大8小</strong><span class="wf-chip">待制作</span></div><p>背胶模切排版照 · 一版　¥29.80</p>${text("查看订单", "p23")}</div><div class="wf-order-card"><div class="wf-row"><strong>照片精修</strong><span class="wf-chip">处理中</span></div><p>¥2.00</p>${text("恢复处理", "p05")}</div><div class="wf-order-card"><div class="wf-row"><strong>照片换装</strong><span class="wf-chip">已完成</span></div><p>¥2.00</p>${text("查看结果", "p09")}</div><p>此处只示意统一订单归属，不复刻完整筛选布局。</p>`,
+            `<div class="wf-choice"><span class="selected">全部</span><span>待付款</span><span>处理中</span><span>已完成</span><span>已关闭</span></div><div class="wf-choice" style="flex-wrap:nowrap;overflow-x:auto"><span class="selected">全部类型</span><span>电子照片</span><span>照片冲印</span><span>照片精修</span><span>照片换装</span><span>专项采集 →</span></div><div class="wf-order-card"><div class="wf-row"><strong>冲印 · 4大8小</strong><span class="wf-chip">待制作</span></div><p>背胶模切排版照 · 一版　¥29.80</p>${text("查看订单", "p23")}</div><div class="wf-order-card"><div class="wf-row"><strong>照片精修</strong><span class="wf-chip">处理中</span></div><p>¥2.00</p>${text("恢复处理", "p05")}</div><div class="wf-order-card"><div class="wf-row"><strong>照片换装</strong><span class="wf-chip">已完成</span></div><p>¥2.00</p>${text("查看结果", "p09")}</div><p>此处只示意统一订单归属，不复刻完整筛选布局。</p>`,
         },
         p23: {
           title: "订单详情",
           body: () =>
-            `<h3>待制作</h3><p>付款已确认，等待制作</p><div class="wf-block"><strong style="font-size:13px">背胶模切 · 4大8小</strong>${layout()}<div class="wf-row">实付金额<strong>¥29.80</strong></div></div><div class="wf-block"><strong style="font-size:13px">收货信息</strong><p>示例用户　138 **** 0000<br>示例市 · 示例地址（虚构）</p></div><div class="wf-block"><strong style="font-size:13px">交易记录</strong><p>使用订单创建时的照片、版式与地址快照。</p></div>`,
-          footer: () => btn("返回我的订单", "p22"),
-          states: ["待制作", "待付款", "付款确认中", "已发货"],
+            `<h3>已支付</h3><p>冲印进度 · 待制作</p><div class="wf-row">实付金额<strong>¥29.80</strong></div><div class="wf-block"><strong style="font-size:13px">证件照排版冲印</strong><p>4大8小 · 1版</p><button class="wf-text-button" data-state="排版预览">查看排版照片</button><div class="wf-row">冲印费<strong>¥19.80</strong></div><div class="wf-row">配送费<strong>¥10.00</strong></div></div><div class="wf-block"><strong style="font-size:13px">配送信息</strong><p>示例用户　138 **** 0000<br>示例市 · 示例地址（虚构）</p><details><summary>订单记录</summary><p>支付成功，等待制作（虚构示例）</p></details></div><div class="wf-block"><strong style="font-size:13px">订单信息</strong><p>订单编号、创建时间、支付时间、支付方式</p></div>`,
+          states: ["待制作", "待付款", "付款确认中", "已发货", "排版预览"],
         },
       };
       let current = 0,
@@ -1300,6 +1299,7 @@
         return v.body();
       }
       function overlayState(id, v) {
+        if (id === "p23" && state === "排版预览") return sheet("排版预览", "示意，实际按订单快照展示", layout(), "", "", "p23");
         if (id === "p02" && state === "空相册")
           return sheet(
             "选择照片",
@@ -1421,26 +1421,19 @@
             b.disabled = true;
           }
         }
-        if (p.id === "p23" && state && state !== "待制作") {
+        if (p.id === "p23" && ["待付款", "付款确认中", "已发货"].includes(state)) {
           const descriptions = {
             待付款: "完成付款后开始制作",
             付款确认中: "请先查询付款结果，避免重复付款",
             已发货: "可查看运单，配送为原型演示",
           };
-          document.querySelector(".wf-body h3").textContent = state;
+          document.querySelector(".wf-body h3").textContent = state === "已发货" ? "已支付" : state;
           document.querySelector(".wf-body p").textContent =
             descriptions[state];
-          document.querySelector(".wf-footer").innerHTML =
-            '<div class="wf-actions">' +
-            (state === "待付款"
-              ? btn("取消订单", "p22", true) + btn("继续支付", "p20")
-              : btn(
-                  state === "付款确认中"
-                    ? "查询结果（示意）"
-                    : "查看运单（示意）",
-                  "p23",
-                )) +
-            "</div>";
+          if (state !== "已发货") document.getElementById("phone").insertAdjacentHTML("beforeend",
+            '<footer class="wf-footer"><div class="wf-actions">' +
+            (state === "待付款" ? btn("取消订单", "p22", true) + btn("继续付款", "p20") : btn("查询付款结果（示意）", "p23")) +
+            '</div></footer>');
         }
         document.getElementById("notes").innerHTML =
           '<span class="doc-tag">' +
