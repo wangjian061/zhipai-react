@@ -47,7 +47,6 @@ test("personal hub retains all account, library, order, help and settings destin
     ["accountRoute", "security", "/?page=my"],
     ["go", "album"],
     ["openOrders"],
-    ["showPanel", "guide"],
     ["showPanel", "support"],
     ["showPanel", "feedback"],
     ["showPanel", "language"],
@@ -61,8 +60,8 @@ test("signed-out security requires login while privacy stays public; counts come
   const elements = nodes(MyOverview({ scope: s }));
   const buttons = elements.filter((n) => n.type === "button");
   buttons[0].props.onClick();
+  buttons[6].props.onClick();
   buttons[7].props.onClick();
-  buttons[8].props.onClick();
   assert.deepEqual(calls, [
     ["accountRoute", "welcome", "/?page=my"],
     ["accountRoute", "welcome", "/?page=my"],

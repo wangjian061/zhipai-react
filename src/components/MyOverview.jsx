@@ -15,7 +15,6 @@ export default function MyOverview({ scope: s }) {
     {
       title: "帮助与服务",
       items: [
-        { title: "拍摄攻略", icon: "book", action: () => s.showPanel("guide") },
         {
           title: "客服中心",
           icon: "nav-service",

@@ -159,7 +159,6 @@ registerController("myCenter", () => ({
       {
         account: "登录 / 注册",
         orders: "我的订单",
-        guide: "拍摄攻略",
         support: this.supportEmailConfirm ? "打开邮箱" : "客服中心",
         feedback: "意见反馈",
         language: "切换语言",
