@@ -1,7 +1,8 @@
 import React from "react";
-import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
+import { View } from "../runtime/components.jsx";
 import ImageCarousel from "../components/ImageCarousel.jsx";
-import CollectionCarousel from "../components/CollectionCarousel.jsx";
+import HomeCollectionCard from "../components/HomeCollectionCard.jsx";
+import HomeToolIcon from "../components/HomeToolIcon.jsx";
 export default function HomePage({ scope: s }) {
   return (
     <View
@@ -64,52 +65,23 @@ export default function HomePage({ scope: s }) {
           </View>
         </View>
         <View as="div" scope={s} className="home-content">
-          <View as="div" scope={s} className="collection-card">
-            <CollectionCarousel scope={s} args={["collection"]} />
-            <View
-              as="button"
-              scope={s}
-              className="collection-footer"
-              aria-label="进入专项采集"
-              events={[
-                {
-                  type: "click",
-                  prevent: false,
-                  stop: false,
-                  self: false,
-                  passive: false,
-                  run: function (scope, $event, $el) {
-                    scope.go("collection");
-                  },
-                },
-              ]}
-            >
-              <View as="span" scope={s} className="collection-label">
-                <View as="strong" scope={s}>
-                  {"专项采集"}
-                </View>
-                <View as="small" scope={s}>
-                  {"毕业生 · 新生入学 · 会员证书"}
-                </View>
-              </View>
-              <View as="span" scope={s} className="round-arrow">
-                <View as="svg" scope={s} aria-hidden="true">
-                  <View as="use" scope={s} href="#i-arrow"></View>
-                </View>
-              </View>
-            </View>
-          </View>
-          <View as="div" scope={s} className="tools-card" refName="homeTools">
+          <HomeCollectionCard scope={s} />
+          <View
+            as="div"
+            scope={s}
+            className="tools-card utility-card"
+            refName="homeTools"
+          >
             <View as="div" scope={s} className="tools-heading">
               <View as="h2" scope={s}>
                 {"常用工具"}
               </View>
             </View>
-            <View as="div" scope={s} className="tools-grid">
+            <View as="div" scope={s} className="tools-grid utility-grid">
               <View
                 as="button"
                 scope={s}
-                className="tool"
+                className="tool utility-grid-item"
                 events={[
                   {
                     type: "click",
@@ -123,10 +95,12 @@ export default function HomePage({ scope: s }) {
                   },
                 ]}
               >
-                <View as="span" scope={s} className="tool-icon">
-                  <View as="svg" scope={s}>
-                    <View as="use" scope={s} href="#i-print"></View>
-                  </View>
+                <View
+                  as="span"
+                  scope={s}
+                  className="tool-icon utility-item-icon"
+                >
+                  <HomeToolIcon name="print" />
                 </View>
                 <View as="span" scope={s}>
                   {"冲印服务"}
@@ -135,7 +109,7 @@ export default function HomePage({ scope: s }) {
               <View
                 as="button"
                 scope={s}
-                className="tool"
+                className="tool utility-grid-item"
                 events={[
                   {
                     type: "click",
@@ -149,10 +123,12 @@ export default function HomePage({ scope: s }) {
                   },
                 ]}
               >
-                <View as="span" scope={s} className="tool-icon">
-                  <View as="svg" scope={s}>
-                    <View as="use" scope={s} href="#i-repair"></View>
-                  </View>
+                <View
+                  as="span"
+                  scope={s}
+                  className="tool-icon utility-item-icon"
+                >
+                  <HomeToolIcon name="repair" />
                 </View>
                 <View as="span" scope={s}>
                   {"照片精修"}
@@ -161,7 +137,7 @@ export default function HomePage({ scope: s }) {
               <View
                 as="button"
                 scope={s}
-                className="tool"
+                className="tool utility-grid-item"
                 events={[
                   {
                     type: "click",
@@ -175,10 +151,12 @@ export default function HomePage({ scope: s }) {
                   },
                 ]}
               >
-                <View as="span" scope={s} className="tool-icon">
-                  <View as="svg" scope={s}>
-                    <View as="use" scope={s} href="#i-shirt"></View>
-                  </View>
+                <View
+                  as="span"
+                  scope={s}
+                  className="tool-icon utility-item-icon"
+                >
+                  <HomeToolIcon name="outfit" />
                 </View>
                 <View as="span" scope={s}>
                   {"照片换装"}
@@ -187,8 +165,7 @@ export default function HomePage({ scope: s }) {
               <View
                 as="button"
                 scope={s}
-                className="tool unavailable-tool"
-                aria-disabled="true"
+                className="tool utility-grid-item"
                 events={[
                   {
                     type: "click",
@@ -202,10 +179,12 @@ export default function HomePage({ scope: s }) {
                   },
                 ]}
               >
-                <View as="span" scope={s} className="tool-icon">
-                  <View as="svg" scope={s}>
-                    <View as="use" scope={s} href="#i-id"></View>
-                  </View>
+                <View
+                  as="span"
+                  scope={s}
+                  className="tool-icon utility-item-icon"
+                >
+                  <HomeToolIcon name="spec" />
                 </View>
                 <View as="span" scope={s}>
                   {"证照规格"}
@@ -214,7 +193,7 @@ export default function HomePage({ scope: s }) {
               <View
                 as="button"
                 scope={s}
-                className="tool"
+                className="tool utility-grid-item"
                 events={[
                   {
                     type: "click",
@@ -228,10 +207,12 @@ export default function HomePage({ scope: s }) {
                   },
                 ]}
               >
-                <View as="span" scope={s} className="tool-icon">
-                  <View as="svg" scope={s}>
-                    <View as="use" scope={s} href="#i-crop-frame"></View>
-                  </View>
+                <View
+                  as="span"
+                  scope={s}
+                  className="tool-icon utility-item-icon"
+                >
+                  <HomeToolIcon name="crop" />
                   <View
                     as="small"
                     scope={s}
@@ -248,7 +229,7 @@ export default function HomePage({ scope: s }) {
               <View
                 as="button"
                 scope={s}
-                className="tool"
+                className="tool utility-grid-item"
                 events={[
                   {
                     type: "click",
@@ -262,10 +243,12 @@ export default function HomePage({ scope: s }) {
                   },
                 ]}
               >
-                <View as="span" scope={s} className="tool-icon">
-                  <View as="svg" scope={s}>
-                    <View as="use" scope={s} href="#i-tool-background"></View>
-                  </View>
+                <View
+                  as="span"
+                  scope={s}
+                  className="tool-icon utility-item-icon"
+                >
+                  <HomeToolIcon name="background" />
                   <View
                     as="small"
                     scope={s}
@@ -282,7 +265,7 @@ export default function HomePage({ scope: s }) {
               <View
                 as="button"
                 scope={s}
-                className="tool"
+                className="tool utility-grid-item"
                 events={[
                   {
                     type: "click",
@@ -296,10 +279,12 @@ export default function HomePage({ scope: s }) {
                   },
                 ]}
               >
-                <View as="span" scope={s} className="tool-icon">
-                  <View as="svg" scope={s}>
-                    <View as="use" scope={s} href="#i-tool-convert"></View>
-                  </View>
+                <View
+                  as="span"
+                  scope={s}
+                  className="tool-icon utility-item-icon"
+                >
+                  <HomeToolIcon name="format" />
                   <View
                     as="small"
                     scope={s}
@@ -316,7 +301,7 @@ export default function HomePage({ scope: s }) {
               <View
                 as="button"
                 scope={s}
-                className="tool"
+                className="tool utility-grid-item"
                 events={[
                   {
                     type: "click",
@@ -330,10 +315,12 @@ export default function HomePage({ scope: s }) {
                   },
                 ]}
               >
-                <View as="span" scope={s} className="tool-icon">
-                  <View as="svg" scope={s}>
-                    <View as="use" scope={s} href="#i-size"></View>
-                  </View>
+                <View
+                  as="span"
+                  scope={s}
+                  className="tool-icon utility-item-icon"
+                >
+                  <HomeToolIcon name="resize" />
                   <View
                     as="small"
                     scope={s}

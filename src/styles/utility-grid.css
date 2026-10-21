@@ -1,0 +1,99 @@
+/* One grid system: home tools use four columns; specifications use three. */
+.utility-card {
+  padding: 16px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 4px 14px -7px #26344a1c;
+}
+.utility-grid {
+  --utility-columns: 4;
+  --utility-divider: #f1f4f8;
+  display: grid;
+  grid-template-columns: repeat(var(--utility-columns), minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 0;
+  margin-top: 16px;
+  border: 1px solid var(--utility-divider);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.utility-grid[data-columns="3"] {
+  --utility-columns: 3;
+}
+.utility-grid > .utility-grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 76px;
+  gap: 6px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  color: #4f5f76;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.utility-grid:not([data-columns="3"]) > .utility-grid-item:not(:nth-child(4n)),
+.utility-grid[data-columns="3"] > .utility-grid-item:not(:nth-child(3n)) {
+  border-inline-end: 1px solid var(--utility-divider);
+}
+.utility-grid:not([data-columns="3"]) > .utility-grid-item:nth-child(n + 5),
+.utility-grid[data-columns="3"] > .utility-grid-item:nth-child(n + 4) {
+  border-block-start: 1px solid var(--utility-divider);
+}
+.utility-grid > .utility-grid-item:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline-offset: -3px;
+}
+.utility-grid > .utility-grid-item:active {
+  transform: none;
+}
+.utility-grid > .utility-grid-item:not([aria-disabled="true"]):active {
+  background: #f4f7ff;
+}
+.utility-grid .utility-item-icon {
+  --tool-icon-light: #e5ebf4;
+  --tool-icon-accent: #6583bc;
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  color: #7488a3;
+}
+.utility-grid .utility-item-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke: none;
+}
+.utility-grid > .utility-grid-item > span:not(.utility-item-icon) {
+  width: 100%;
+}
+.utility-grid-detail {
+  display: block;
+  flex: none;
+  min-height: 18px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: #59677a;
+}
+.utility-grid-item-label {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  line-height: 20px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

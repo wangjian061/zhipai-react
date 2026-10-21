@@ -910,7 +910,7 @@
           name: "照片裁剪操作页及手动裁剪抽屉",
           notes: [
             "顶部“照片裁剪”、第二步“裁剪”；主体为照片与裁剪尺寸。",
-            "尺寸包含一寸25×35 mm、二寸35×49 mm、小二寸35×45 mm和自定义像素；自定义宽高须为1—4096的整数。",
+            "尺寸包含一寸25×35 mm、二寸35×49 mm、小二寸35×45 mm；全原型不提供自定义尺寸或比例。",
             "“手动裁剪”打开裁剪抽屉，支持拖动、缩放；“完成”应用裁剪。该独立工具的比例随所选尺寸改变，不受冲印固定5∶7规则限制。",
             "底部“上一步”回选图，“保存到设备”取得当前结果；失败保留调整并提供重试。",
           ],
@@ -1175,7 +1175,7 @@
           title: "照片裁剪",
           step: steps(["选照片", "裁剪", "保存"], 1),
           body: () =>
-            `${portrait()}<div class="wf-choice"><span class="selected">一寸</span><span>二寸</span><span>小二寸</span><span>自定义</span></div><button class="wf-text-button" data-state="手动裁剪">手动裁剪</button><p>独立裁剪工具的比例跟随所选尺寸，此处抽屉仅演示构图。</p>`,
+            `${portrait()}<div class="wf-choice"><span class="selected">一寸</span><span>二寸</span><span>小二寸</span></div><button class="wf-text-button" data-state="手动裁剪">手动裁剪</button><p>独立裁剪工具的比例跟随所选尺寸，此处抽屉仅演示构图。</p>`,
           footer: () =>
             btn("上一步", "p01", true) +
             btn("保存到设备", "p14", false, false, "其他免费工具"),

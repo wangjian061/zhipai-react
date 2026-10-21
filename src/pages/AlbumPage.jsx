@@ -1,5 +1,6 @@
 import React from "react";
 import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
+import AlbumPhotoViewer from "../components/AlbumPhotoViewer.jsx";
 export default function AlbumPage({ scope, args = [] }) {
   return (
     <Controller name="albumCenter" args={args}>
@@ -13,6 +14,7 @@ export default function AlbumPage({ scope, args = [] }) {
           show={s.page === "album"}
           data-view={s.view}
           data-managing={s.managing}
+          data-preview={s.modal === "preview"}
           aria-label="知拍相册"
         >
           <View as="div" scope={s} className="album-body" inert={!!s.modal}>
@@ -387,12 +389,6 @@ export default function AlbumPage({ scope, args = [] }) {
                                 </View>
                               </View>
                             </View>
-                            <View
-                              as="small"
-                              scope={s}
-                              className="album-photo-caption"
-                              text={s.photoLabel(s.item)}
-                            ></View>
                           </View>
                         </>
                       </>
@@ -456,17 +452,15 @@ export default function AlbumPage({ scope, args = [] }) {
                           scope={s}
                           className="detail-preview"
                           show={s.photo.blob}
-                          dynamicClass={{
-                            zoomed: s.zoomed,
-                          }}
                           dynamicStyle={
                             "--photo-ratio:" +
                             s.photo.width +
                             "/" +
                             s.photo.height
                           }
-                          aria-label={s.zoomed ? "缩小照片" : "放大照片"}
-                          aria-pressed={s.zoomed}
+                          aria-label="放大照片"
+                          aria-haspopup="dialog"
+                          aria-expanded={s.modal === "preview"}
                           events={[
                             {
                               type: "click",
@@ -475,7 +469,7 @@ export default function AlbumPage({ scope, args = [] }) {
                               self: false,
                               passive: false,
                               run: function (scope, $event, $el) {
-                                scope.zoomed = !scope.zoomed;
+                                scope.openPreview();
                               },
                             },
                           ]}
@@ -520,19 +514,24 @@ export default function AlbumPage({ scope, args = [] }) {
                           </View>
                         </View>
                         <View
-                          as="p"
+                          as="button"
                           scope={s}
                           className="zoom-hint"
                           show={s.photo.blob}
+                          type="button"
+                          aria-haspopup="dialog"
+                          aria-expanded={s.modal === "preview"}
+                          events={[
+                            {
+                              type: "click",
+                              run: (scope) => scope.openPreview(),
+                            },
+                          ]}
                         >
                           <View as="svg" scope={s} aria-hidden="true">
                             <View as="use" scope={s} href="#i-search"></View>
                           </View>
-                          <View
-                            as="span"
-                            scope={s}
-                            text={s.zoomed ? "点击恢复大小" : "点击放大查看"}
-                          ></View>
+                          <View as="span" scope={s} text="点击放大查看"></View>
                         </View>
                         <View as="div" scope={s} className="photo-metadata">
                           <View
@@ -777,11 +776,12 @@ export default function AlbumPage({ scope, args = [] }) {
             <View as="span" scope={s} text={s.notice}></View>
           </View>
           <Portal target="#album-modal-layer">
+            <AlbumPhotoViewer scope={s} />
             <View
               as="div"
               scope={s}
               className="album-overlay"
-              show={s.page === "album" && s.modal}
+              show={s.page === "album" && s.modal && s.modal !== "preview"}
               events={[
                 {
                   type: "keydown",

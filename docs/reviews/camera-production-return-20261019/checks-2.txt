@@ -1,0 +1,35 @@
+$ node scripts/test-flows.mjs camera-scan-flow.cjs
+PASS: camera/scan separation, confirmation before processing, watermark unlock gate, cancel/unknown/same-order query, no duplicate payment/save, refresh recovery, raw-file retention, caller preservation, stale processing isolation, QR fallback and unverified-code boundary.
+
+$ node --test tests/camera-failure-presentation.test.mjs tests/photo-processing.test.mjs tests/photo-processing-lifecycle.test.mjs tests/bindings.test.mjs
+✔ all initial JSX data bindings resolve against the migrated domain state (44.7285ms)
+✔ failure exposes a reason drawer and only a footer return to confirmation (3.671459ms)
+✔ failure footer returns to confirmation without starting production, even with a missing source (0.229708ms)
+✔ processing has the photo scan and one status, with no back, settings or action button (0.317208ms)
+✔ production unmounts outside its dedicated step (0.148458ms)
+✔ confirmation retains presets, source replacement and one start action (0.865ms)
+✔ confirmation retains backup errors and project-controlled sizes (0.913833ms)
+✔ size drawer exposes only preset choices and preserves current selection (1.228167ms)
+✔ active processing is measured; completion removes the effect and all event subscriptions (0.961166ms)
+✔ loading, image replacement, resize and read failure never use a stale image rectangle (0.7725ms)
+✔ without ResizeObserver the window fallback updates measurements and is removed on stop (0.097542ms)
+✔ a new task without a photo cannot reuse the previous photo's measured overlay (0.103917ms)
+✔ matching portrait fills the image frame (1.0675ms)
+✔ landscape and square photos exclude top and bottom contain gutters (0.092416ms)
+✔ narrow portrait excludes side gutters (0.051334ms)
+✔ device scaling and translated viewport preserve normalized image boundaries (0.104334ms)
+✔ manual crop uses only the visible intersection of the enlarged photo (0.057792ms)
+✔ hidden, unreadable and offscreen photo boxes have no processing effect (0.061458ms)
+✔ object position and resizing recompute the actual image area (0.046417ms)
+✔ only actual photo work shows a processing status; completion, error and payment do not (0.073666ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 175.743333
+
+$ git diff --check
+

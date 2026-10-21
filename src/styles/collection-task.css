@@ -14,10 +14,7 @@
     var(--task-surface) var(--task-color-height) 100%
   );
 }
-.collection-page:is(
-    [data-view="detail"],
-    [data-view="complete"]
-  )[data-task-tone="orange"] {
+.collection-page:is([data-view="detail"], [data-view="complete"])[data-task-tone="orange"] {
   --task-accent: var(--collection-status-orange, #f97316);
   --task-heading: #9a3412;
   --task-description: #7c401e;
@@ -25,10 +22,7 @@
   --task-art-paper: #fff7ed;
   --task-outline: #f4c49d;
 }
-.collection-page:is(
-    [data-view="detail"],
-    [data-view="complete"]
-  )[data-task-tone="green"] {
+.collection-page:is([data-view="detail"], [data-view="complete"])[data-task-tone="green"] {
   --task-accent: var(--collection-status-green, #16a34a);
   --task-heading: #14532d;
   --task-description: #31563d;
@@ -36,10 +30,7 @@
   --task-art-paper: #f0fdf4;
   --task-outline: #9edbb4;
 }
-.collection-page:is(
-    [data-view="detail"],
-    [data-view="complete"]
-  )[data-task-tone="red"] {
+.collection-page:is([data-view="detail"], [data-view="complete"])[data-task-tone="red"] {
   --task-accent: var(--collection-status-red, #ef4444);
   --task-heading: #881b1b;
   --task-description: #753333;

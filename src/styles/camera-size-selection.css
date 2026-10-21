@@ -26,8 +26,7 @@
   flex-direction: column;
   gap: 4px;
 }
-.camera-size-list button,
-.camera-custom-size-toggle {
+.camera-size-list button {
   width: 100%;
   min-height: 62px;
   display: flex;
@@ -40,15 +39,13 @@
   color: var(--ui-heading);
   transition: background-color 150ms;
 }
-.camera-size-list button > span,
-.camera-custom-size-toggle > span {
+.camera-size-list button > span {
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: 4px;
 }
-.camera-size-list strong,
-.camera-custom-size-toggle > span {
+.camera-size-list strong {
   font-size: 14px;
   font-weight: 600;
   line-height: 1.5;
@@ -71,51 +68,13 @@
   fill: none;
   stroke-width: 1.8;
 }
-.camera-size-selection .camera-pixel-settings {
-  margin-top: 20px;
-}
-.camera-pixel-inputs {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  padding: 14px 0 2px;
-}
-.camera-pixel-inputs label {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-  gap: 8px;
-  color: var(--ui-body, #53637b);
-  font-size: 12px;
-  line-height: 1.5;
-}
-.camera-pixel-inputs input {
-  width: 100%;
-  min-width: 0;
-  min-height: 44px;
-  border: 1px solid #dce4ef;
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: #f7f9fc;
-  font: inherit;
-  font-size: 16px;
-  line-height: 1.4;
-  color: var(--ui-heading);
-}
-.camera-pixel-inputs > span {
-  height: 44px;
-  display: flex;
-  align-items: center;
-  color: var(--ui-body, #53637b);
-}
 .camera-size-error {
   font-size: 13px;
   line-height: 1.7;
   color: #b63e3e;
   margin: 14px 0 0;
 }
-.camera-size-selection :is(button, input):focus-visible {
+.camera-size-selection button:focus-visible {
   outline: 2px solid var(--brand-blue);
   outline-offset: 2px;
 }

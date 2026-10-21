@@ -33,3 +33,16 @@ test('storage conversion preserves shared identity and cycles while removing rea
  const object={name:'photo'};object.self=object;const state=observable({first:object,second:object});const value=storageValue(state);
  assert.equal(value.first,value.second);assert.equal(value.first.self,value.first);assert.doesNotThrow(()=>structuredClone(value));
 });
+test('read-only constant collections retain identity when read through reactive state',()=>{
+ const item=Object.freeze({id:'pass',label:'检测通过'});
+ const choices=Object.freeze([item]);
+ const checks=Object.freeze({checks:choices});
+ const action=()=>true;
+ const locked=Object.defineProperty({},'action',{value:action,configurable:false,writable:false});
+ const state=observable({choices,checks,locked});
+ assert.equal(state.choices[0],item);
+ assert.deepEqual(state.choices.map(value=>value.label),['检测通过']);
+ assert.equal(state.checks.checks,choices);
+ assert.equal(state.locked.action,action);
+ assert.throws(()=>{state.choices[0]={id:'changed'}},TypeError);
+});

@@ -151,3 +151,70 @@ test("discarding an unpaid draft closes its stable receipt; anonymous legacy dra
   await c.writeCameraSession(old);
   assert.equal((await c.readElectronicOrders()).length, 1);
 });
+test("variant output and purchase identity survive the actual session/receipt transaction", async () => {
+  const { context: c } = setup();
+  const r = session("verifying");
+  r.draft.resultMode = "dual";
+  r.draft.selectedVersionId = "ordinary";
+  Object.assign(r.draft.order, {
+    amount: 198,
+    versionId: "ordinary",
+    versionName: "普通证件照",
+  });
+  r.output = new Blob(["ordinary-photo"]);
+  r.versions = {
+    ordinary: { status: "ready", blob: r.output },
+    retouched: { status: "failed", blob: null, reason: "精修未完成" },
+  };
+  await c.writeCameraSession(r);
+  const restored = await c.readCameraSession(r.id);
+  assert.equal(restored.draft.selectedVersionId, "ordinary");
+  assert.equal(await restored.versions.ordinary.blob.text(), "ordinary-photo");
+  assert.equal(restored.versions.retouched.reason, "精修未完成");
+  const [receipt] = await c.readElectronicOrders();
+  assert.equal(receipt.versionId, "ordinary");
+  assert.equal(receipt.versionName, "普通证件照");
+  assert.equal(receipt.amount, 198);
+  assert.equal(await receipt.photo.blob.text(), "ordinary-photo");
+});
+
+test("returning from an unpaid result atomically retains the original, clears output and retires its receipt", async () => {
+  const fixture = setup(),
+    c = fixture.context,
+    r = session("pending");
+  await c.writeCameraSession(r);
+  const retired = {
+    ...(await c.readElectronicOrders())[0],
+    status: "cancelled",
+    sessionAvailable: false,
+  };
+  const next = {
+    ...r,
+    draft: { ...r.draft, order: null, status: "queued" },
+    output: null,
+    standard: null,
+  };
+  await c.writeCameraSession(next, retired);
+  const restored = await c.readCameraSession(r.id);
+  assert.equal(restored.output, null);
+  assert.equal(await restored.photo.blob.text(), "original");
+  let receipts = await c.readElectronicOrders();
+  assert.equal(receipts[0].status, "cancelled");
+  assert.equal(receipts[0].sessionAvailable, false);
+  assert.equal(await receipts[0].photo.blob.text(), "result");
+  next.draft.order = { ...r.draft.order, id: "electronic-next-result" };
+  next.output = new Blob(["new-result"]);
+  await c.writeCameraSession(next);
+  receipts = await c.readElectronicOrders();
+  assert.equal(receipts.length, 2);
+  assert.equal(
+    receipts.find((x) => x.id === r.draft.order.id).status,
+    "cancelled",
+  );
+  assert.equal(
+    await receipts
+      .find((x) => x.id === "electronic-next-result")
+      .photo.blob.text(),
+    "new-result",
+  );
+});

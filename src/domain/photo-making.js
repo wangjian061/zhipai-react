@@ -10,11 +10,17 @@ async function makeCameraPhotoStep(
   photo,
   { outcome = "success", failureReason } = {},
 ) {
-  if (outcome === "failure") {
+  if (["failure", "service_unavailable"].includes(outcome)) {
     const error = Error(
-      failureReason || "制作服务暂时不可用，请稍后重新制作。",
+      failureReason ||
+        (outcome === "failure"
+          ? "照片清晰度不足，无法完成人像处理，请重新拍摄或选择清晰的照片。"
+          : "制作服务暂时不可用，请稍后再试。"),
     );
-    error.code = "PROTOTYPE_FAILURE";
+    error.code =
+      outcome === "failure"
+        ? "PHOTO_MAKING_FAILED"
+        : "MAKING_SERVICE_UNAVAILABLE";
     throw error;
   }
   return {
@@ -91,6 +97,10 @@ async function renderCameraPhoto(blob, settings) {
     canvas.height,
     settings,
   );
+  // A modest prototype finishing pass, not face recognition or a real retouch model.
+  // Ordinary output retains the unfiltered render and both versions keep identical geometry.
+  if (settings.finish === "retouched")
+    c.filter = "brightness(1.045) contrast(1.025) saturate(1.02)";
   c.drawImage(
     image,
     placement.x,

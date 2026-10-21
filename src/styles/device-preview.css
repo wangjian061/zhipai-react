@@ -39,11 +39,8 @@ html,body{background:#292b30}
 .device-fit :is(.home-page,.album-page[data-view="library"],.collection-page:is([data-view="home"],[data-view="records"],[data-view="services"],[data-view="project"],[data-view="projects"],[data-view="notifications"]),.account-page[data-view="welcome"],.tool-page[data-view="home"],.print-page[data-view="preview"],.camera-page[data-step="capture"]){padding-top:0}
 .device-fit :is(.tool-navigation,.account-nav,.collection-nav,.album-header,.page-header,.search-header,.camera-stage-header){background:transparent}
 
-/* The poster starts at the screen edge; OS chrome overlays its existing artwork. */
-.device-fit .home-page .hero{height:calc(var(--device-screen-width) * 977 / 1610);aspect-ratio:auto}
-.device-fit .home-page .hero .carousel-track{inset:0;height:auto}
-.device-fit .home-page .hero-cta{inset:var(--device-status-height) 0 0;height:auto}
-.device-fit .home-page .hero-cta>span{top:auto;bottom:30px;left:auto;right:16px;padding:3px 9px;border-radius:18px;background:#ffffffed;font-size:11px;line-height:22px;box-shadow:0 2px 8px #20385810}
+/* System chrome sits on the poster's authored quiet top; no extra page spacer. */
+.device-fit .home-page{--home-hero-status-height:var(--device-status-height)}
 
 /* Institutional and album heroes reserve space inside the full-bleed background. */
 .device-fit .collection-home-hero{height:196px;padding-top:calc(24px + var(--device-status-height))}
@@ -71,7 +68,7 @@ html,body{background:#292b30}
 .device-fit .my-sheet{max-height:calc(100% - var(--device-status-height))}
 .device-fit .album-overlay{padding-top:calc(var(--device-status-height) + 16px);padding-bottom:var(--device-home-height)}
 .device-fit :is(.share-content,.search-content,.collection-scan-scroll){padding-bottom:var(--device-home-height)}
-.device-fit .share-page .page-header,.device-fit .search-header{top:var(--device-status-height)}
+.device-fit .share-page .page-header{top:var(--device-status-height)}
 @media(max-width:360px){
   .device-fit .collection-home-hero{height:190px;padding-top:calc(20px + var(--device-status-height))}
   .device-fit .account-welcome-hero{height:calc(268px + var(--device-status-height));padding-top:calc(90px + var(--device-status-height))}

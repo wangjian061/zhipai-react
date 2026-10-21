@@ -1,6 +1,7 @@
 import React from "react";
 import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
 import HomePage from "../pages/HomePage.jsx";
+import SpecificationsPage from "../pages/SpecificationsPage.jsx";
 import AccountPage from "../pages/AccountPage.jsx";
 import CollectionPage from "../pages/CollectionPage.jsx";
 import SearchPage from "../pages/SearchPage.jsx";
@@ -27,6 +28,8 @@ export default function AppShell({ scope, args = [] }) {
           data-page={s.page}
           data-album-view={s.albumView}
           data-album-managing={s.albumManaging}
+          data-album-preview={s.albumPreview}
+          data-camera-compare={s.cameraCompare}
           data-camera-step={s.cameraStep}
           data-my-view={s.myView}
         >
@@ -45,6 +48,7 @@ export default function AppShell({ scope, args = [] }) {
                 }
               >
                 <HomePage scope={s} />
+                <SpecificationsPage scope={s} />
                 <AccountPage scope={s} args={[]} />
                 <CollectionPage scope={s} args={[]} />
                 <SearchPage scope={s} args={[]} />
@@ -80,6 +84,7 @@ export default function AppShell({ scope, args = [] }) {
                   s.page !== "scan" &&
                   s.page !== "print" &&
                   s.page !== "tool" &&
+                  s.page !== "specifications" &&
                   (s.page !== "album" ||
                     (s.albumView !== "detail" && !s.albumManaging)) &&
                   (s.page !== "my" || s.myView === "overview")

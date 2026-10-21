@@ -29,12 +29,6 @@ export default function ToolsPage({ scope, args = [] }) {
           inert={!!s.panel}
           aria-label="照片工具"
         >
-          {s.action === "spec" && (
-            <div className="tool-flow">
-              <ToolNavigation title="证照规格" onBack={() => s.back()} />
-              <p className="tool-notice">该功能暂未开放</p>
-            </div>
-          )}
           <View
             as="div"
             scope={s}
@@ -248,27 +242,6 @@ export default function ToolsPage({ scope, args = [] }) {
                   <View as="h2" scope={s}>
                     {"裁剪尺寸"}
                   </View>
-                  <View
-                    as="button"
-                    scope={s}
-                    disabled={s.busy}
-                    aria-pressed={s.specId === "custom"}
-                    events={[
-                      {
-                        type: "click",
-                        prevent: false,
-                        stop: false,
-                        self: false,
-                        passive: false,
-                        run: function (scope, $event, $el) {
-                          scope.specId = "custom";
-                          scope.needsPreview = true;
-                        },
-                      },
-                    ]}
-                  >
-                    {"自定义"}
-                  </View>
                 </View>
                 <View as="div" scope={s} className="tool-spec-list">
                   <Repeat
@@ -314,104 +287,6 @@ export default function ToolsPage({ scope, args = [] }) {
                       </>
                     )}
                   </Repeat>
-                </View>
-                <View
-                  as="div"
-                  scope={s}
-                  className="tool-custom-dimensions"
-                  show={s.specId === "custom"}
-                >
-                  <View as="label" scope={s}>
-                    {"宽"}
-                    <View
-                      as="input"
-                      scope={s}
-                      type="number"
-                      min="1"
-                      max="4096"
-                      step="1"
-                      inputMode="numeric"
-                      disabled={s.busy}
-                      events={[
-                        {
-                          type: "input",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.needsPreview = true;
-                          },
-                        },
-                      ]}
-                      model={{
-                        read: function (scope, $event, $el) {
-                          return scope.customWidth;
-                        },
-                        write: function (scope, $event, $el) {
-                          scope.customWidth = $event;
-                        },
-                        number: true,
-                        lazy: false,
-                      }}
-                    ></View>
-                    {"px"}
-                  </View>
-                  <View as="label" scope={s}>
-                    {"高"}
-                    <View
-                      as="input"
-                      scope={s}
-                      type="number"
-                      min="1"
-                      max="4096"
-                      step="1"
-                      inputMode="numeric"
-                      disabled={s.busy}
-                      events={[
-                        {
-                          type: "input",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.needsPreview = true;
-                          },
-                        },
-                      ]}
-                      model={{
-                        read: function (scope, $event, $el) {
-                          return scope.customHeight;
-                        },
-                        write: function (scope, $event, $el) {
-                          scope.customHeight = $event;
-                        },
-                        number: true,
-                        lazy: false,
-                      }}
-                    ></View>
-                    {"px"}
-                  </View>
-                  <View
-                    as="button"
-                    scope={s}
-                    disabled={s.busy}
-                    events={[
-                      {
-                        type: "click",
-                        prevent: false,
-                        stop: false,
-                        self: false,
-                        passive: false,
-                        run: function (scope, $event, $el) {
-                          scope.preview();
-                        },
-                      },
-                    ]}
-                  >
-                    {"应用尺寸"}
-                  </View>
                 </View>
               </View>
               <View

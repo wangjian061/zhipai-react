@@ -46,6 +46,41 @@ const adaptedFs = {
           !["ImportDeclaration", "ExportNamedDeclaration"].includes(n.type),
       );
       code = generate(ast).code;
+      if (match[1] === "camera") {
+        const versions = parse(
+          fs.readFileSync(
+            path.join(root, "src/domain/photo-versions.js"),
+            "utf8",
+          ),
+          { sourceType: "module" },
+        );
+        versions.program.body = versions.program.body
+          .map((n) => (n.type === "ExportNamedDeclaration" ? n.declaration : n))
+          .filter(Boolean);
+        code = generate(versions).code + "\n" + code;
+        const catalog = parse(
+          fs.readFileSync(
+            path.join(root, "src/domain/photo-specifications.js"),
+            "utf8",
+          ),
+          { sourceType: "module" },
+        );
+        catalog.program.body = catalog.program.body
+          .map((n) => (n.type === "ExportNamedDeclaration" ? n.declaration : n))
+          .filter(Boolean);
+        code = generate(catalog).code + "\n" + code;
+        const policy = parse(
+          fs.readFileSync(
+            path.join(root, "src/domain/camera-detection.js"),
+            "utf8",
+          ),
+          { sourceType: "module" },
+        );
+        policy.program.body = policy.program.body
+          .map((n) => (n.type === "ExportNamedDeclaration" ? n.declaration : n))
+          .filter(Boolean);
+        code = generate(policy).code + "\n" + code;
+      }
       if (match[1] === "collection") {
         for (const dependency of [
           "collection-config.js",

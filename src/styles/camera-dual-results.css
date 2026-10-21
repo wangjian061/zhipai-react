@@ -1,0 +1,301 @@
+.camera-dual-results .camera-stage-scroll {
+  padding: 16px 16px 24px;
+}
+.camera-dual-results .camera-result-heading {
+  margin: 0 0 20px;
+  text-align: left;
+}
+.camera-dual-results .camera-result-heading h2 {
+  font-size: 18px;
+}
+.camera-result-instruction {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #53637b;
+}
+.camera-version-section {
+  padding: 16px 14px 6px;
+  background: #fff;
+  border-radius: 20px;
+}
+.camera-version-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.camera-version-grid:has(> :only-child) {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 220px;
+  margin: auto;
+}
+.camera-version {
+  min-width: 0;
+}
+.camera-version h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--ui-heading);
+}
+.camera-version-photo {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #e9edf3;
+}
+.camera-version-photo > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.camera-version-watermark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8%;
+  text-align: center;
+  pointer-events: none;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.72;
+  text-shadow: 0 1px 2px #14213b80;
+}
+.camera-version-price {
+  margin: 12px 0 2px;
+  color: var(--ui-heading);
+  font-size: 18px;
+  line-height: 1.5;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.camera-version-select {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  padding: 6px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #53637b;
+  border-bottom: 1px solid #edf0f5;
+  cursor: pointer;
+}
+.camera-version-select input {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  margin: 0;
+  accent-color: var(--brand-blue);
+}
+.camera-version[data-selected="true"] .camera-version-select {
+  color: var(--brand-blue);
+  border-bottom-color: var(--brand-blue);
+}
+.camera-version-grid:disabled .camera-version-select {
+  cursor: default;
+}
+.camera-version-placeholder {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 6px;
+  color: #59677a;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+.camera-version-placeholder svg {
+  width: 32px;
+  height: 32px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+}
+.camera-version-reason {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #b42332;
+  overflow-wrap: anywhere;
+}
+.camera-version-retry {
+  min-height: 44px;
+  padding: 8px 0;
+  background: transparent;
+  color: var(--brand-blue);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.camera-compare-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 48px;
+  margin: 12px 0 0;
+  padding: 8px;
+  color: #53637b;
+  background: transparent;
+  font-size: 13px;
+}
+.camera-compare-entry svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+.camera-dual-results button:focus-visible,
+.camera-version-select input:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 3px;
+}
+.camera-dual-results button:disabled {
+  opacity: 0.5;
+}
+.camera-dual-results .camera-version-retry:active,
+.camera-compare-entry:active {
+  background: #f5f7fb;
+}
+.camera-version-viewer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  padding: calc(var(--device-status-height, 62px) + 8px) 16px
+    max(28px, env(safe-area-inset-bottom, 0px));
+  background: #17191d;
+  color: #fff;
+  pointer-events: auto;
+}
+.camera-compare-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+}
+.camera-compare-header h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+}
+.camera-compare-header button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff14;
+  color: #fff;
+}
+.camera-compare-header svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+}
+.camera-compare-labels {
+  display: flex;
+  flex: none;
+  justify-content: space-between;
+  gap: 12px;
+  color: #e0e5ed;
+  font-size: 13px;
+}
+.camera-compare-stage {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  place-items: center;
+  overflow: hidden;
+}
+.camera-compare-frame {
+  position: relative;
+  width: min(
+    100%,
+    calc((var(--device-screen-height, 874px) - 330px) * var(--result-ratio))
+  );
+  aspect-ratio: var(--result-ratio);
+  overflow: hidden;
+  touch-action: none;
+  background: #e9edf3;
+}
+.camera-compare-frame > img,
+.camera-compare-reveal img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+  transform-origin: center;
+}
+.camera-compare-reveal {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.camera-compare-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #fff;
+  pointer-events: none;
+}
+.camera-compare-controls {
+  flex: none;
+  display: grid;
+  gap: 2px;
+}
+.camera-compare-controls label {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  color: #e0e5ed;
+  font-size: 13px;
+}
+.camera-compare-controls input {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  accent-color: #91b2ff;
+}
+.camera-compare-controls p {
+  margin: 4px 0 0;
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.camera-version-viewer :focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+.camera-version-viewer button:active {
+  background: #ffffff29;
+}
+.device-entry > .phone[data-camera-compare="true"] > .screen {
+  --native-chrome-ink: #fff;
+}

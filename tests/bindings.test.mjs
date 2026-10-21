@@ -12,12 +12,12 @@ Object.defineProperty(globalThis,'navigator',{value:{onLine:true},configurable:t
 globalThis.window=new EventTarget();globalThis.document={hidden:false,querySelector(){return null}};
 await import('../src/domain/index.js');
 const root=createController('phoneDemo').scope;
-const mapping={AppShell:'phoneDemo',ImageCarousel:'imageCarousel',CollectionCarousel:'imageCarousel',SearchPage:'searchPage',AlbumPage:'albumCenter',CameraPage:'cameraStudio',ScanPage:'collectionScanner',ToolsPage:'toolStudio',SupportPage:'supportCenter',PrintPage:'printStudio',MyPage:'myCenter',PhotoPicker:'photoChooser',AccountPage:'accountFlow',CollectionPage:'collectionFlow',LiquidTabs:'liquidTabs'};
+const mapping={AppShell:'phoneDemo',ImageCarousel:'imageCarousel',SearchPage:'searchPage',AlbumPage:'albumCenter',CameraPage:'cameraStudio',SpecificationsPage:'specificationPicker',ScanPage:'collectionScanner',ToolsPage:'toolStudio',SupportPage:'supportCenter',PrintPage:'printStudio',MyPage:'myCenter',PhotoPicker:'photoChooser',AccountPage:'accountFlow',CollectionPage:'collectionFlow',LiquidTabs:'liquidTabs'};
 const read=(node,s)=>new Function('s','args','return ('+generate(node).code+')')(s,[]);
 test('all initial JSX data bindings resolve against the migrated domain state',()=>{
  let count=0;const errors=[];
  for(const folder of ['components','pages'])for(const file of fs.readdirSync('src/'+folder).filter(n=>n.endsWith('.jsx'))){
-  const name=file.slice(0,-4),controller=mapping[name];const s=name==='AppShell'?root:controller?createController(controller,controller==='imageCarousel'?[name==='CollectionCarousel'?'collection':'hero']:[],root).scope:root;
+  const name=file.slice(0,-4),controller=mapping[name];const s=name==='AppShell'?root:controller?createController(controller,controller==='imageCarousel'?['hero']:[],root).scope:root;
   const ast=parse(fs.readFileSync(path.join('src',folder,file),'utf8'),{sourceType:'module',plugins:['jsx']});
   const evaluate=(node,scope)=>{try{count++;return read(node,scope);}catch(error){errors.push(file+': '+generate(node).code+' — '+error.message);return undefined;}};
   const walk=(node,scope)=>{
@@ -38,7 +38,9 @@ test('all initial JSX data bindings resolve against the migrated domain state',(
    if(node.type==='JSXExpressionContainer'){walk(node.expression,scope);return;}
    if(node.type==='ConditionalExpression'){walk(evaluate(node.test,scope)?node.consequent:node.alternate,scope);return;}
   };
-  const fn=ast.program.body.find(n=>n.type==='ExportDefaultDeclaration').declaration;
+  // Named React surfaces have dedicated presentation tests; this checker covers migrated View roots.
+  const fn=ast.program.body.find(n=>n.type==='ExportDefaultDeclaration')?.declaration;
+  if(!fn?.body?.body)continue;
   const returned=fn.body.body.find(n=>n.type==='ReturnStatement');walk(returned.argument,s);
  }
  assert.deepEqual(errors,[]);assert.ok(count>1000,'complete initial binding coverage');

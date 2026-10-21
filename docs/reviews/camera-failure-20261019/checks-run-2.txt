@@ -1,0 +1,23 @@
+$ node --test tests/camera-failure-presentation.test.mjs tests/bindings.test.mjs
+✔ all initial JSX data bindings resolve against the migrated domain state (43.066917ms)
+✔ failure keeps the original photo before the status, hides replacement, and has one retry action (4.161584ms)
+✔ failed settings start collapsed, keep current values, and retain exact custom pixel labels (1.939083ms)
+✔ new backup errors remain visible without repeating the production reason (0.733166ms)
+✔ normal confirmation and processing retain their controls and never render failure feedback (1.189417ms)
+✔ project-controlled specifications cannot be expanded into personal settings on failure (0.41725ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 166.625
+
+$ node scripts/test-flows.mjs camera-scan-flow.cjs
+PASS: camera/scan separation, confirmation before processing, watermark unlock gate, cancel/unknown/same-order query, no duplicate payment/save, refresh recovery, raw-file retention, caller preservation, stale processing isolation, QR fallback and unverified-code boundary.
+
+$ node scripts/test-flows.mjs photo-making.cjs
+PASS: prototype accepts original photo without model or portrait gate, contain/zoom/drag geometry, JPEG colour fill and PNG alpha export.
+
+$ git diff --check

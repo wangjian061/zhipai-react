@@ -62,6 +62,10 @@ export function observable(value, parent = null, special = null) {
       if (!Reflect.has(target, key))
         return parent && key in parent ? parent[key] : globals[key];
       const found = Reflect.get(target, key, receiver);
+      // Proxy invariants require locked data properties to retain exact identity.
+      const descriptor = Reflect.getOwnPropertyDescriptor(target, key);
+      if (descriptor?.configurable === false && descriptor.writable === false)
+        return found;
       if (typeof found === "function") {
         if (key === "constructor") return found;
         if (!methods.has(found)) methods.set(found, found.bind(proxy));

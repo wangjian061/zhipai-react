@@ -155,7 +155,7 @@ export function normalizeOrders({
     });
   for (const r of electronic.filter(own))
     add("electronic", r, {
-      title: "电子证件照解锁",
+      title: r.versionName ? r.versionName + "解锁" : "电子证件照解锁",
       amount: r.amount,
       state:
         r.status === "paid"
@@ -177,7 +177,10 @@ export function normalizeOrders({
       savedId: r.savedId,
       sessionId: r.sessionId,
       sessionAvailable: r.sessionAvailable !== false,
-      details: [["照片规格", r.specification || "未记录"]],
+      details: [
+        ...(r.versionName ? [["照片版本", r.versionName]] : []),
+        ["照片规格", r.specification || "未记录"],
+      ],
       action:
         r.status === "paid"
           ? "查看照片"

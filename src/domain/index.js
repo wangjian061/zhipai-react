@@ -4,6 +4,7 @@ import * as support from "./support.js";
 import * as album from "./album.js";
 import * as photo_making from "./photo-making.js";
 import * as camera from "./camera.js";
+import "./specifications.js";
 import * as scan from "./scan.js";
 import * as photo_choice from "./photo-choice.js";
 import * as my from "./my.js";

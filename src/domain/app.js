@@ -1,4 +1,5 @@
 import { openOrderCenter } from "./order-routing.js";
+import { HOME_HERO_SLIDES } from "./home-hero.js";
 import {
   registerController,
   registerStore,
@@ -6,51 +7,10 @@ import {
   storageValue,
 } from "../runtime/state.js";
 
-registerController("imageCarousel", (kind) => ({
-  slides:
-    kind === "hero"
-      ? [
-          {
-            title: "更换背景色",
-            subtitle: "蓝 / 红 / 白底色一键替换",
-            actionLabel: "更换背景",
-            image: "assets/hero-background.webp",
-          },
-          {
-            title: "个人证件照",
-            subtitle: "标准证照 · 轻松制作",
-            actionLabel: "开始制作",
-            image: "assets/hero-portrait.webp",
-          },
-          {
-            title: "照片处理",
-            subtitle: "裁剪 / 转换 / 调整体积",
-            actionLabel: "裁剪照片",
-            image: "assets/hero-tools.webp",
-          },
-        ]
-      : [
-          {
-            title: "毕业证照",
-            subtitle: "毕业图像 · 规范采集",
-            theme: "graduate",
-            image: "assets/collection-bear-graduate.webp",
-          },
-          {
-            title: "入学采集",
-            subtitle: "新生报到 · 入学证照",
-            theme: "enrollment",
-            image: "assets/collection-bear-enrollment.webp",
-          },
-          {
-            title: "会员证件",
-            subtitle: "会员证照 · 身份登记",
-            theme: "association",
-            image: "assets/collection-bear-association.webp",
-          },
-        ],
-  index: kind === "hero" ? 1 : 0,
-  loadedSlides: kind === "hero" ? [1] : [0, 1, 2],
+registerController("imageCarousel", () => ({
+  slides: HOME_HERO_SLIDES.map((slide) => ({ ...slide })),
+  index: 0,
+  loadedSlides: [0],
   changeRequest: 0,
   imageRequests: {},
   startX: null,
@@ -63,7 +23,7 @@ registerController("imageCarousel", (kind) => ({
   swiped: false,
   lastChange: Date.now(),
   init() {
-    const interval = kind === "hero" ? 7000 : 8000;
+    const interval = 7000;
     if ("IntersectionObserver" in window) {
       this.observer = new IntersectionObserver(
         ([entry]) => {
@@ -105,7 +65,9 @@ registerController("imageCarousel", (kind) => ({
       return;
     }
     this.swiped = false;
-    this.openPhotoTool(action);
+    if (action === "collection") this.go("collection");
+    else if (action === "camera") this.openCamera();
+    else if (action === "repair") this.openPhotoTool("repair");
   },
   async select(next) {
     const target = (next + this.slides.length) % this.slides.length;
@@ -280,6 +242,8 @@ registerController("phoneDemo", () => ({
   albumView: "library",
   albumManaging: false,
   albumModal: false,
+  albumPreview: false,
+  cameraCompare: false,
   cameraStep: "capture",
   myView: "overview",
   init() {
@@ -332,6 +296,7 @@ registerController("phoneDemo", () => ({
       "account",
       "collection",
       "orders",
+      "specifications",
     ].includes(requested)
       ? requested
       : "home";
@@ -359,13 +324,17 @@ registerController("phoneDemo", () => ({
       }
       const content = this.$refs.homeTools;
       const nav = this.$refs.bottomNav;
-      if (!content || !nav) return;
+      if (!content || !nav) {
+        this.homeNavScrim = 0;
+        return;
+      }
       const navRect = nav.getBoundingClientRect();
       const scale =
         nav.offsetWidth && navRect.width ? navRect.width / nav.offsetWidth : 1;
       const gap =
         (navRect.top - content.getBoundingClientRect().bottom) / scale;
-      this.homeNavScrim = Math.max(0, Math.min(1, (24 - gap) / 24));
+      // Show the backing only after content actually crosses the menu's top.
+      this.homeNavScrim = Math.max(0, Math.min(1, -gap / 24));
     });
   },
   notifyUnavailable() {
@@ -388,7 +357,10 @@ registerController("phoneDemo", () => ({
   },
   openPhotoTool(action, photo = null, kind = null) {
     if (action === "spec") {
-      this.notifyUnavailable();
+      const back = location.pathname + location.search;
+      const query = new URLSearchParams({ page: "specifications", back });
+      history.pushState({}, "", location.pathname + "?" + query);
+      window.dispatchEvent(new Event("zhipai-route"));
       return;
     }
     if (
@@ -457,7 +429,9 @@ registerController("phoneDemo", () => ({
       }),
     );
   },
-  openOrders() { openOrderCenter("all", "/?page=my"); },
+  openOrders() {
+    openOrderCenter("all", "/?page=my");
+  },
   go(next, cameraMode = "capture") {
     if (
       ![
@@ -472,7 +446,8 @@ registerController("phoneDemo", () => ({
         "tool",
         "account",
         "collection",
-      "orders",
+        "orders",
+        "specifications",
       ].includes(next)
     )
       return;

@@ -1,0 +1,237 @@
+.camera-task-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  background: #14213b50;
+  pointer-events: auto;
+}
+.camera-task-sheet.ui-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: calc(100% - var(--device-status-height, 62px) - 16px);
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 24px 24px 0 0;
+  color: var(--ui-heading);
+  animation: camera-task-enter 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.camera-task-sheet.ui-sheet > .ui-sheet-header {
+  border-bottom: 0;
+  padding-bottom: 8px;
+}
+.camera-task-sheet .ui-sheet-header svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+}
+.camera-task-sheet .ui-sheet-body {
+  padding: 12px 20px 24px;
+}
+.camera-task-overview {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.camera-task-thumbnail {
+  flex: none;
+  position: relative;
+  width: 80px;
+  height: 112px;
+  margin: 0;
+  overflow: hidden;
+  background: #e9edf3;
+}
+.camera-task-thumbnail > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.camera-task-overview > p {
+  margin: 0;
+  min-width: 0;
+  color: #53637b;
+  font-size: 15px;
+  line-height: 1.7;
+}
+.camera-check-items {
+  display: grid;
+  gap: 16px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.camera-check-items > li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.camera-check-status {
+  flex: none;
+  color: #53637b;
+}
+.camera-check-items > li > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.camera-check-items [data-status="passed"] .camera-check-status {
+  color: #23764f;
+}
+.camera-check-items [data-status="failed"] .camera-check-status {
+  color: #b42332;
+}
+.camera-task-reasons {
+  margin-top: 24px;
+}
+.camera-task-reasons h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.camera-task-reasons p {
+  margin: 0;
+  color: #53637b;
+  font-size: 15px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.camera-task-reasons p + p {
+  margin-top: 12px;
+}
+.camera-task-sheet[data-failure="true"] {
+  --camera-failure-ink: #b42332;
+  --camera-failure-surface: #fff1f2;
+}
+.camera-task-sheet[data-failure="true"] > .ui-sheet-header {
+  gap: 10px;
+  background: var(--camera-failure-surface);
+}
+.camera-task-sheet[data-failure="true"] > .ui-sheet-header h2 {
+  color: var(--camera-failure-ink);
+}
+.camera-task-sheet[data-failure="true"] .camera-task-status-icon {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  color: var(--camera-failure-ink);
+}
+.camera-task-sheet[data-failure="true"] > .ui-sheet-body {
+  padding: 0;
+}
+.camera-task-failure-result {
+  padding: 0 20px 24px;
+  background: var(--camera-failure-surface);
+}
+.camera-task-failure-result > p {
+  margin: 0 0 12px;
+  color: #93404b;
+  font-size: 15px;
+  line-height: 1.65;
+}
+.camera-task-failure-result > p:last-child {
+  margin-bottom: 0;
+}
+#camera-task-failure-reasons p {
+  margin: 0;
+  color: #402b32;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+#camera-task-failure-reasons p + p {
+  margin-top: 12px;
+}
+.camera-task-failure-support {
+  padding: 20px;
+  background: #fff;
+}
+.camera-task-failure-support .camera-task-overview {
+  gap: 12px;
+}
+.camera-task-failure-support .camera-task-thumbnail {
+  width: 56px;
+  height: 78.4px;
+}
+.camera-task-failure-support .camera-task-overview > div {
+  min-width: 0;
+}
+.camera-task-failure-support h3,
+.camera-task-failure-support p {
+  margin: 0;
+  color: #53637b;
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.camera-task-failure-support h3 {
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.camera-task-failure-checks {
+  margin-top: 20px;
+}
+.camera-task-failure-checks h3 {
+  margin-bottom: 12px;
+}
+.camera-task-failure-checks .camera-check-items {
+  gap: 12px;
+  margin-top: 0;
+  color: #53637b;
+}
+.camera-task-failure-checks [data-status="passed"] .camera-check-status {
+  color: #53637b;
+}
+.camera-task-failure-checks [data-status="failed"] {
+  color: var(--camera-failure-ink);
+  font-weight: 600;
+}
+.camera-task-sheet .camera-task-actions {
+  border-top: 0;
+}
+.camera-task-actions > button {
+  min-height: 48px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.camera-task-sheet .camera-task-actions > .primary-button {
+  background: var(--brand-blue);
+  color: #fff;
+}
+.camera-task-secondary {
+  background: #f0f3f7;
+  color: #53637b;
+}
+.camera-task-sheet button:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: -4px;
+}
+.camera-task-sheet button:active {
+  filter: brightness(0.96);
+}
+@keyframes camera-task-enter {
+  from {
+    transform: translateY(16px);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .camera-task-sheet {
+    animation: none;
+  }
+}

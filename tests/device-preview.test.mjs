@@ -92,7 +92,7 @@ test("floating menu indicator positions stay in logical pixels under whole-devic
       for (const k of Object.keys(expected)) close(actual[k], expected[k]);
     }
 });
-test("navigation acrylic threshold remains the same logical distance at every preview scale", () => {
+test("navigation backing stays transparent before overlap and ramps only on actual intrusion at every preview scale", () => {
   const old = globalThis.requestAnimationFrame;
   globalThis.requestAnimationFrame = (fn) => {
     queueMicrotask(fn);
@@ -103,9 +103,13 @@ test("navigation acrylic threshold remains the same logical distance at every pr
       for (const [gap, expected] of [
         [36, 0],
         [24, 0],
-        [12, 0.5],
-        [0, 1],
-        [-10, 1],
+        [12, 0],
+        [1, 0],
+        [0, 0],
+        [-1, 1 / 24],
+        [-12, 0.5],
+        [-24, 1],
+        [-56, 1],
       ]) {
         const instance = createController("phoneDemo"),
           s = instance.scope;
@@ -124,6 +128,53 @@ test("navigation acrylic threshold remains the same logical distance at every pr
   })().finally(() => {
     globalThis.requestAnimationFrame = old;
   });
+});
+test("navigation backing clears on reverse scroll, route exit and missing geometry; rapid scrolls share one frame", () => {
+  const old = globalThis.requestAnimationFrame;
+  const frames = [];
+  globalThis.requestAnimationFrame = (fn) => {
+    frames.push(fn);
+    return frames.length;
+  };
+  try {
+    const instance = createController("phoneDemo"),
+      s = instance.scope;
+    let bottom = 712;
+    instance.refs.bottomNav = {
+      offsetWidth: 370,
+      getBoundingClientRect: () => ({ top: 700, width: 370 }),
+    };
+    instance.refs.homeTools = {
+      getBoundingClientRect: () => ({ bottom }),
+    };
+    s.scheduleHomeNavScrim();
+    s.scheduleHomeNavScrim();
+    assert.equal(frames.length, 1);
+    frames.shift()();
+    close(s.homeNavScrim, 0.5);
+    bottom = 660;
+    s.scheduleHomeNavScrim();
+    frames.shift()();
+    close(s.homeNavScrim, 0);
+    bottom = 760;
+    s.scheduleHomeNavScrim();
+    frames.shift()();
+    close(s.homeNavScrim, 1);
+    s.page = "album";
+    s.scheduleHomeNavScrim();
+    frames.shift()();
+    close(s.homeNavScrim, 0);
+    s.page = "home";
+    s.scheduleHomeNavScrim();
+    frames.shift()();
+    close(s.homeNavScrim, 1);
+    delete instance.refs.homeTools;
+    s.scheduleHomeNavScrim();
+    frames.shift()();
+    close(s.homeNavScrim, 0);
+  } finally {
+    globalThis.requestAnimationFrame = old;
+  }
 });
 test("full-bleed page hosts use fixed transparent OS chrome with protected controls and drawers", () => {
   const shell = fs.readFileSync("src/components/AppShell.jsx", "utf8");

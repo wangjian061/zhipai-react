@@ -1,0 +1,77 @@
+.album-photo-viewer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: calc(var(--device-status-height, 62px) + 8px) 16px
+    max(36px, env(safe-area-inset-bottom, 0px));
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: #17191d;
+  color: #fff;
+  pointer-events: auto;
+}
+.album-photo-viewer-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  flex: none;
+}
+.album-photo-viewer-close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff14;
+  color: #fff;
+}
+.album-photo-viewer-close svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+}
+.album-photo-viewer-close:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+.album-photo-viewer-close:active {
+  background: #ffffff29;
+}
+.album-photo-viewer-close:disabled {
+  opacity: 0.5;
+}
+.album-photo-viewer-stage {
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  place-items: center;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+.album-photo-viewer-error {
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+}
+.album-photo-viewer-stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.album-page[data-preview="true"] .album-scroll {
+  overflow: hidden;
+}
+.device-entry > .phone[data-album-preview="true"] > .screen {
+  --native-chrome-ink: #fff;
+}

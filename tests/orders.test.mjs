@@ -141,6 +141,42 @@ test("orders exclude foreign, anonymous and fixture records; retries and immutab
     );
   }
 });
+test("personal order details identify the purchased version and preserve its captured price and photo", () => {
+  const d = data();
+  d.electronic = [
+    {
+      ...base,
+      id: "ordinary-order",
+      versionId: "ordinary",
+      versionName: "普通证件照",
+      amount: 198,
+      status: "paid",
+      savedId: "ordinary-photo",
+      specification: "295 × 413 px",
+    },
+    {
+      ...base,
+      id: "retouched-order",
+      versionId: "retouched",
+      versionName: "精修证件照",
+      amount: 980,
+      status: "paid",
+      savedId: "retouched-photo",
+      specification: "295 × 413 px",
+    },
+  ];
+  const orders = normalizeOrders(d).filter(
+    (order) => order.type === "electronic",
+  );
+  assert.equal(orders.length, 2);
+  const ordinary = orders.find((order) => order.amount === 198);
+  const refined = orders.find((order) => order.amount === 980);
+  assert.equal(ordinary.title, "普通证件照解锁");
+  assert.equal(refined.title, "精修证件照解锁");
+  assert.deepEqual(ordinary.details[0], ["照片版本", "普通证件照"]);
+  assert.equal(ordinary.photo, blob);
+  assert.equal(refined.savedId, "retouched-photo");
+});
 test("collection status grouping keeps review/CHSI progress and captured payment price", () => {
   for (const [status, state, tone] of [
     [22, "processing", "blue"],

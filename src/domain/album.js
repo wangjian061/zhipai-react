@@ -360,7 +360,9 @@ registerController("albumCenter", () => ({
   notice: "",
   working: false,
   downloading: false,
-  zoomed: false,
+  previewHistoryId: null,
+  previewClosing: false,
+  previewImageFailed: false,
   detailFrom: "library",
   operationEpoch: 0,
   scrollPositions: {},
@@ -405,6 +407,7 @@ registerController("albumCenter", () => ({
     });
     this.$watch("modal", (value) => {
       this.albumModal = !!value;
+      this.albumPreview = value === "preview";
     });
     this.$watch("$store.photoLibrary.finished", () => {
       this.selected = this.selected.filter((id) =>
@@ -412,7 +415,7 @@ registerController("albumCenter", () => ({
       );
       if (this.managing && !this.photos.length) this.endManage();
     });
-    this.routeHandler = () => this.syncLocation();
+    this.routeHandler = (event) => this.syncLocation(event);
     window.addEventListener("popstate", this.routeHandler);
     window.addEventListener("zhipai-route", this.routeHandler);
     this.syncLocation();
@@ -445,12 +448,6 @@ registerController("albumCenter", () => ({
       )
     );
   },
-  photoLabel(photo) {
-    const mm = String(photo.spec || "").match(
-      /(\d+(?:\.\d+)?)\s*[×x*]\s*(\d+(?:\.\d+)?)\s*mm/i,
-    );
-    return mm ? `${Number(mm[1])} × ${Number(mm[2])} mm` : "尺寸未设置";
-  },
   rememberScroll() {
     const surface =
       this.view === "library"
@@ -458,11 +455,17 @@ registerController("albumCenter", () => ({
         : this.$refs.albumScroll;
     if (surface) this.scrollPositions[this.view] = surface.scrollTop;
   },
-  syncLocation() {
+  syncLocation(event) {
+    const query = new URLSearchParams(location.search);
+    if (this.modal === "preview" && event?.type === "popstate") {
+      const samePhoto =
+        query.get("page") === "album" && query.get("photo") === this.photoId;
+      this.finishCloseModal(samePhoto);
+      if (samePhoto) return;
+    }
     this.clearNotice();
     this.rememberScroll();
     this.operationEpoch++;
-    const query = new URLSearchParams(location.search);
     this.library = "finished";
     this.photoId = query.get("photo");
     this.detailFrom = "library";
@@ -472,9 +475,12 @@ registerController("albumCenter", () => ({
     this.selected = [];
     this.modal = null;
     this.message = "";
-    this.zoomed = false;
+    this.previewHistoryId = null;
+    this.previewClosing = false;
+    this.previewImageFailed = false;
     this.albumManaging = false;
     this.albumModal = false;
+    this.albumPreview = false;
     this.$nextTick(() => {
       const surface =
         this.view === "library"
@@ -482,6 +488,15 @@ registerController("albumCenter", () => ({
           : this.$refs.albumScroll;
       if (surface) surface.scrollTop = this.scrollPositions[this.view] || 0;
     });
+    if (
+      event?.type === "popstate" &&
+      history.state?.albumPreview &&
+      this.view === "detail" &&
+      this.photo?.blob instanceof Blob
+    ) {
+      this.previewHistoryId = history.state.albumPreview;
+      this.showModal("preview");
+    }
   },
   route(view, kind = this.library, photoId = null) {
     this.rememberScroll();
@@ -590,17 +605,55 @@ registerController("albumCenter", () => ({
     this.message = "";
     this.modal = name;
     this.$nextTick(() => {
-      this.$refs.albumDialog.querySelector("button:not([disabled])")?.focus({
+      const dialog =
+        name === "preview" ? this.$refs.albumViewer : this.$refs.albumDialog;
+      dialog?.querySelector("button:not([disabled])")?.focus({
         preventScroll: true,
       });
     });
   },
+  openPreview() {
+    if (
+      this.page !== "album" ||
+      this.view !== "detail" ||
+      !(this.photo?.blob instanceof Blob) ||
+      this.disabled ||
+      this.downloading ||
+      this.modal
+    )
+      return;
+    this.previewHistoryId = crypto.randomUUID();
+    this.previewImageFailed = false;
+    history.pushState(
+      { ...history.state, albumPreview: this.previewHistoryId },
+      "",
+      location.href,
+    );
+    this.showModal("preview");
+  },
   closeModal() {
-    if (this.working || this.store.busy) return;
+    if (this.modal !== "preview" && (this.working || this.store.busy)) return;
+    if (
+      this.modal === "preview" &&
+      history.state?.albumPreview === this.previewHistoryId
+    ) {
+      if (!this.previewClosing) {
+        this.previewClosing = true;
+        history.back();
+      }
+      return;
+    }
+    this.finishCloseModal();
+  },
+  finishCloseModal(restoreFocus = true) {
     this.modal = null;
+    this.previewClosing = false;
+    this.previewHistoryId = null;
+    this.previewImageFailed = false;
     this.message = "";
     this.$nextTick(
       () =>
+        restoreFocus &&
         this.returnFocus?.isConnected &&
         this.returnFocus.focus({
           preventScroll: true,
@@ -615,9 +668,10 @@ registerController("albumCenter", () => ({
     }
     if (event.key !== "Tab") return;
     const controls = [
-      ...this.$refs.albumDialog.querySelectorAll(
-        "button:not([disabled]), a[href]",
-      ),
+      ...(this.modal === "preview"
+        ? this.$refs.albumViewer
+        : this.$refs.albumDialog
+      ).querySelectorAll("button:not([disabled]), a[href]"),
     ].filter((el) => el.getClientRects().length);
     if (!controls.length) {
       event.preventDefault();

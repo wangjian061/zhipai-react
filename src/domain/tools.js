@@ -53,7 +53,7 @@ const PHOTO_TOOLS = {
     subtitle: "按尺寸裁剪，也能手动调整",
     infoTitle: "按尺寸裁剪照片",
     description:
-      "从知拍相册或手机相册选图，支持预设尺寸、自定义像素尺寸和拖动调整构图。裁剪结果可保存至设备。",
+      "从知拍相册或手机相册选图，支持预设尺寸和拖动调整构图。裁剪结果可保存至设备。",
     headline: ["刚好尺寸", "刚好构图"],
     icon: "crop-frame",
     sources: ["finished", "phone"],
@@ -348,8 +348,6 @@ registerController("toolStudio", () => ({
   scale: 1,
   offsetX: 0,
   offsetY: 0,
-  customWidth: 413,
-  customHeight: 579,
   format: "jpeg",
   targetValue: 200,
   sizeUnit: "KB",
@@ -554,15 +552,7 @@ registerController("toolStudio", () => ({
     );
   },
   get spec() {
-    return this.specId === "custom"
-      ? {
-          id: "custom",
-          name: "自定义",
-          mm: this.customWidth + " × " + this.customHeight + " px",
-          width: this.customWidth,
-          height: this.customHeight,
-        }
-      : this.specs.find((s) => s.id === this.specId) || this.specs[1];
+    return this.specs.find((s) => s.id === this.specId) || this.specs[1];
   },
   get chosenColor() {
     return this.colors.find((c) => c.id === this.background) || this.colors[0];
@@ -783,8 +773,6 @@ registerController("toolStudio", () => ({
       needsPreview: false,
       selectionId: null,
       comparison: 50,
-      customWidth: 413,
-      customHeight: 579,
     });
     this.cropPointers = {};
     this.cropGesture = null;
@@ -818,6 +806,11 @@ registerController("toolStudio", () => ({
       this.panel = null;
       if (["processing", "standardizing", "checking"].includes(this.stage))
         this.restoreInterruptedStage();
+      return;
+    }
+    if (q.get("tool") === "spec") {
+      history.replaceState({}, "", "/?page=specifications");
+      window.dispatchEvent(new Event("zhipai-route"));
       return;
     }
     if (this.orderId && this.ordersStore.ready && !this.currentOrder)
@@ -1788,7 +1781,7 @@ registerController("toolStudio", () => ({
     await this.preview();
   },
   async chooseSpec(id) {
-    if (this.busy) return;
+    if (this.busy || !this.specs.some((spec) => spec.id === id)) return;
     this.specId = id;
     this.scale = 1;
     this.offsetX = 0;

@@ -52,10 +52,6 @@
   width: min(100%, calc(330px * 5 / 7));
   height: auto;
 }
-.detail-preview.zoomed {
-  width: min(100%, calc(510px * 5 / 7));
-  height: auto;
-}
 .tool-image-stage {
   width: min(100%, 250px);
   height: auto;

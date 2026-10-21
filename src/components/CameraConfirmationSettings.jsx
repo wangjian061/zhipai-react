@@ -16,12 +16,12 @@ export default function CameraConfirmationSettings({
 }) {
   if (locked)
     return <p className="camera-confirm-locked">采集规格由项目统一设置</p>;
-  return (
+  const settings = (
     <section className="camera-confirm-settings" aria-label="制作规格设置">
       <fieldset disabled={disabled}>
-        <legend className="sr-only">照片尺寸</legend>
+        <legend className="sr-only">照片规格</legend>
         <div className="camera-confirm-setting-heading">
-          <span aria-hidden="true">照片尺寸</span>
+          <span aria-hidden="true">照片规格</span>
           <span className="camera-confirm-current-size">{sizeLabel}</span>
         </div>
         <div className="camera-confirm-specs">
@@ -44,7 +44,7 @@ export default function CameraConfirmationSettings({
             }
             onClick={onMoreSpec}
           >
-            <span>更多尺寸</span>
+            <span>更多规格</span>
           </button>
         </div>
       </fieldset>
@@ -63,7 +63,14 @@ export default function CameraConfirmationSettings({
                   "camera-confirm-swatch" +
                   (color.value === "transparent" ? " transparent-frame" : "")
                 }
-                style={{ backgroundColor: color.value }}
+                style={{
+                  backgroundColor: color.value,
+                  color: ["#ffffff", "#d5d9e0", "transparent"].includes(
+                    color.value,
+                  )
+                    ? "var(--brand-blue)"
+                    : "#fff",
+                }}
               >
                 {background === color.value && (
                   <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -78,4 +85,5 @@ export default function CameraConfirmationSettings({
       </fieldset>
     </section>
   );
+  return settings;
 }
