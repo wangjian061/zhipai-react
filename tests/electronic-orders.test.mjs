@@ -6,68 +6,7 @@ import vm from "node:vm";
 import { parse } from "@babel/parser";
 import generateModule from "@babel/generator";
 const generate = generateModule.default || generateModule;
-function database() {
-  const stores = new Map();
-  const db = {
-    objectStoreNames: { contains: (n) => stores.has(n) },
-    createObjectStore(n) {
-      stores.set(n, new Map());
-    },
-    transaction(names, mode) {
-      const tx = { pending: 0 };
-      const snapshots = new Map(
-        (Array.isArray(names) ? names : [names]).map((n) => [
-          n,
-          new Map(stores.get(n)),
-        ]),
-      );
-      const request = (fn) => {
-        const r = {};
-        tx.pending++;
-        queueMicrotask(() => {
-          try {
-            r.result = fn();
-            r.onsuccess?.();
-          } catch (e) {
-            r.error = e;
-            tx.error = e;
-            r.onerror?.();
-            tx.onerror?.();
-          }
-          tx.pending--;
-          if (!tx.pending) {
-            if (mode === "readwrite" && !tx.error)
-              for (const [n, s] of snapshots) stores.set(n, s);
-            tx.oncomplete?.();
-          }
-        });
-        return r;
-      };
-      tx.objectStore = (n) => ({
-        get: (id) => request(() => structuredClone(snapshots.get(n).get(id))),
-        getAll: () =>
-          request(() => structuredClone([...snapshots.get(n).values()])),
-        put: (record) =>
-          request(() =>
-            snapshots.get(n).set(record.id, structuredClone(record)),
-          ),
-        delete: (id) => request(() => snapshots.get(n).delete(id)),
-      });
-      return tx;
-    },
-  };
-  return {
-    open() {
-      const r = { result: db };
-      queueMicrotask(() => {
-        r.onupgradeneeded?.();
-        r.onsuccess?.();
-      });
-      return r;
-    },
-    stores,
-  };
-}
+import { database } from "./helpers/memory-indexeddb.mjs";
 function setup() {
   const idb = database(),
     window = new EventTarget();
@@ -76,8 +15,14 @@ function setup() {
   const ast = parse(fs.readFileSync("src/domain/camera.js", "utf8"), {
     sourceType: "module",
   });
-  ast.program.body = ast.program.body.filter(
-    (n) => !["ImportDeclaration", "ExportNamedDeclaration"].includes(n.type),
+  ast.program.body = ast.program.body.flatMap((n) =>
+    n.type === "ImportDeclaration"
+      ? []
+      : n.type === "ExportNamedDeclaration"
+        ? n.declaration
+          ? [n.declaration]
+          : []
+        : [n],
   );
   const context = vm.createContext({
     indexedDB: idb,
@@ -217,4 +162,74 @@ test("returning from an unpaid result atomically retains the original, clears ou
       .photo.blob.text(),
     "new-result",
   );
+});
+
+test("order payment and recovery update both receipt and matching draft without changing the purchased output", async () => {
+  const { context: c } = setup(),
+    r = session("pending");
+  r.draft.order.versionId = "ordinary";
+  r.draft.order.amount = 198;
+  await c.writeCameraSession(r);
+  await c.updateElectronicReceipt(
+    r.draft.order.id,
+    r.draft.order.owner,
+    "pending",
+    { status: "verifying", method: "wechat" },
+  );
+  await c.updateElectronicReceipt(
+    r.draft.order.id,
+    r.draft.order.owner,
+    "verifying",
+    { status: "paid", paidAt: 123 },
+  );
+  await c.updateElectronicReceipt(
+    r.draft.order.id,
+    r.draft.order.owner,
+    "paid",
+    { savedId: "made-session" },
+  );
+  const receipt = (await c.readElectronicOrders())[0],
+    draft = await c.readCameraSession("session");
+  assert.equal(receipt.status, "paid");
+  assert.equal(draft.draft.order.status, "paid");
+  assert.equal(receipt.savedId, "made-session");
+  assert.equal(draft.draft.savedId, "made-session");
+  assert.equal(receipt.amount, 198);
+  assert.equal(receipt.versionId, "ordinary");
+  assert.equal(await receipt.photo.blob.text(), "result");
+  assert.equal(await draft.output.text(), "result");
+  await assert.rejects(
+    c.updateElectronicReceipt(receipt.id, "foreign", "paid", {
+      status: "pending",
+    }),
+    /状态已变化/,
+  );
+  await assert.rejects(
+    c.updateElectronicReceipt(receipt.id, receipt.owner, "pending", {
+      status: "paid",
+    }),
+    /状态已变化/,
+  );
+  await assert.rejects(
+    c.updateElectronicReceipt(receipt.id, receipt.owner, "paid", {
+      amount: 980,
+    }),
+    /更新内容无效/,
+  );
+  assert.equal((await c.readElectronicOrders())[0].amount, 198);
+});
+
+test("missing-session paid receipt remains recoverable and does not recreate a camera draft", async () => {
+  const { context: c } = setup(),
+    r = session("paid");
+  await c.writeCameraSession(r);
+  await c.deleteCameraSession(r.id);
+  await c.updateElectronicReceipt(
+    r.draft.order.id,
+    r.draft.order.owner,
+    "paid",
+    { savedId: "made-session" },
+  );
+  assert.equal((await c.readElectronicOrders())[0].savedId, "made-session");
+  assert.equal(await c.readCameraSession(r.id), undefined);
 });

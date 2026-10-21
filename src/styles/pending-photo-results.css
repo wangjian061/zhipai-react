@@ -1,0 +1,69 @@
+.pending-photo-results {
+  margin: 0 0 16px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 16px;
+  color: #203858;
+}
+.pending-photo-results h2 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.pending-photo-results p {
+  margin: 6px 0 12px;
+  color: #53637b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.pending-photo-results ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pending-photo-results li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+}
+.pending-photo-results li div {
+  min-width: 0;
+}
+.pending-photo-results strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+.pending-photo-results span {
+  display: block;
+  color: #53637b;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.pending-photo-results button {
+  flex: none;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: #edf2fc;
+  color: #0032ff;
+  font: inherit;
+  font-size: 13px;
+}
+.pending-photo-results button:active {
+  background: #dfe8fb;
+}
+.pending-photo-results button:disabled {
+  opacity: 0.45;
+}
+.pending-photo-results button:focus-visible {
+  outline: 2px solid #0032ff;
+  outline-offset: 2px;
+}
+.pending-photo-results .pending-photo-error {
+  color: #b32338;
+}

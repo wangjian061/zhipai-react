@@ -498,7 +498,6 @@ registerController("printStudio", () => ({
   addressReturn: "confirm",
   online: navigator.onLine,
   previousFocus: null,
-  layoutHistory: false,
   onRoute: null,
   onOpen: null,
   onPhoto: null,
@@ -705,8 +704,6 @@ registerController("printStudio", () => ({
         payment: "请选择支付方式",
         resolution: "查询支付结果",
         cancel: "取消这笔订单？",
-        advance: "更新订单状态",
-        layout: "排版预览",
       }[this.modal] || ""
     );
   },
@@ -781,17 +778,6 @@ registerController("printStudio", () => ({
           })
         : "",
       landscape,
-    );
-  },
-  orderSheet(order) {
-    return printSheetMarkup(
-      order.layoutSnapshot || order.layout,
-      order.photo?.blob
-        ? actualPhotoURL({
-            ...order.photo,
-            id: "order-" + order.id,
-          })
-        : "",
     );
   },
   releaseLayouts() {
@@ -1166,15 +1152,9 @@ registerController("printStudio", () => ({
       this.cropTask++;
       this.processing = false;
     }
-    const restoreFocus = this.layoutHistory;
-    this.layoutHistory = false;
     this.modal = null;
     this.moreOpen = false;
     this.$store.printUi.opened = false;
-    if (restoreFocus)
-      this.$nextTick(
-        () => this.previousFocus?.isConnected && this.previousFocus.focus(),
-      );
     this.message = "";
     this.error = "";
     if (q.get("page") === "orders" && q.get("id")?.startsWith("print:")) {
@@ -1528,27 +1508,12 @@ registerController("printStudio", () => ({
     this.message = "";
     this.error = "";
     this.$store.printUi.opened = true;
-    if (name === "layout") {
-      this.layoutHistory = true;
-      history.pushState(
-        { ...history.state, zhipaiPrintLayout: this.orderId },
-        "",
-        location.href,
-      );
-    }
     this.$nextTick(() =>
       this.$refs.printDialog.querySelector("button:not(:disabled)")?.focus(),
     );
   },
   closeModal() {
     if (this.processing) return;
-    if (
-      this.layoutHistory &&
-      history.state?.zhipaiPrintLayout === this.orderId
-    ) {
-      history.back();
-      return;
-    }
     this.modal = null;
     this.$store.printUi.opened = false;
     this.$nextTick(
@@ -1726,7 +1691,7 @@ registerController("printStudio", () => ({
         ) {
           this.modal = null;
           this.$store.printUi.opened = false;
-          this.message = "付款成功，可查看制作与配送进度。";
+          this.message = "付款成功。";
         } else if (query.get("page") === "print" && query.get("order") === id) {
           this.route(
             "order",
@@ -1735,7 +1700,7 @@ registerController("printStudio", () => ({
             },
             true,
           );
-          this.message = "付款成功，可查看制作与配送进度。";
+          this.message = "付款成功。";
         }
       } else {
         await this.store.commit((state) => {

@@ -1390,8 +1390,23 @@ registerController("toolStudio", () => ({
         return;
       }
     }
+    if (await this.restoreExistingPayment()) return;
     this.paymentOutcome = "success";
     this.openPanel("payment");
+  },
+  async restoreExistingPayment() {
+    const order = this.currentOrder;
+    if (!order || order.status === "pending") return false;
+    if (order.status === "paid") {
+      await this.resumeOrder(order);
+      return true;
+    }
+    this.panel = null;
+    this.error =
+      order.status === "verifying"
+        ? "付款结果待确认，请在「我的订单」查询后继续。"
+        : "当前订单已关闭，请重新选择照片。";
+    return true;
   },
   async pay() {
     const owner = requireOrderAccount();
@@ -1406,6 +1421,7 @@ registerController("toolStudio", () => ({
       (this.action === "outfit" && (!this.standardized || !this.chosenOutfit))
     )
       return;
+    if (await this.restoreExistingPayment()) return;
     const token = this.task,
       action = this.action,
       sourceKind = this.sourceKind,
@@ -1454,7 +1470,8 @@ registerController("toolStudio", () => ({
         return;
       }
       await orders.commit((items) => {
-        const o = items.find((o) => o.id === id);
+        const o = items.find((o) => o.id === id && o.owner === owner);
+        if (!o || o.status !== "pending") throw Error("payment changed");
         o.status = "paid";
         o.paidAt = Date.now();
         o.method = method;

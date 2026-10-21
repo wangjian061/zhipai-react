@@ -1,5 +1,6 @@
 import React from "react";
 import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
+import PendingPhotoResults from "../components/PendingPhotoResults.jsx";
 import AlbumPhotoViewer from "../components/AlbumPhotoViewer.jsx";
 export default function AlbumPage({ scope, args = [] }) {
   return (
@@ -171,6 +172,9 @@ export default function AlbumPage({ scope, args = [] }) {
                 role="alert"
                 text={s.message}
               ></View>
+              {s.page === "album" && s.view === "library" && !s.managing && (
+                <PendingPhotoResults />
+              )}
               <View
                 as="section"
                 scope={s}

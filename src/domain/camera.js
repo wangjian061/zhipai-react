@@ -138,6 +138,61 @@ async function readElectronicOrders() {
     r.onerror = () => reject(r.error);
   });
 }
+// Update the receipt and matching draft atomically. Orders never own photo processing.
+export async function updateElectronicReceipt(
+  id,
+  owner,
+  expectedStatus,
+  patch,
+) {
+  const db = await openCameraDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(["sessions", "orders"], "readwrite");
+    let updated, failure;
+    const fail = (message) => {
+      failure = Error(message);
+      tx.abort();
+    };
+    const request = tx.objectStore("orders").get(id);
+    request.onsuccess = () => {
+      const receipt = request.result;
+      if (
+        !owner ||
+        !receipt ||
+        receipt.owner !== owner ||
+        receipt.status !== expectedStatus
+      )
+        return fail("订单状态已变化，请刷新后重试。");
+      updated = { ...receipt, ...patch };
+      // Limit writes to payment / delivery bookkeeping, preserving the purchased version.
+      if (
+        Object.keys(patch).some(
+          (k) => !["status", "method", "paidAt", "savedId"].includes(k),
+        )
+      )
+        return fail("订单更新内容无效。");
+      tx.objectStore("orders").put(storageValue(updated));
+      if (!receipt.sessionId) return;
+      const sessionRequest = tx.objectStore("sessions").get(receipt.sessionId);
+      sessionRequest.onsuccess = () => {
+        const session = sessionRequest.result;
+        if (!session || session.draft?.order?.id !== id) return;
+        if (session.draft.order.owner !== owner)
+          return fail("订单归属不一致。");
+        const { savedId, ...payment } = patch;
+        session.draft.order = { ...session.draft.order, ...payment };
+        if (savedId) session.draft.savedId = savedId;
+        tx.objectStore("sessions").put(storageValue(session));
+      };
+    };
+    tx.oncomplete = () => {
+      window.dispatchEvent(new Event("zhipai-orders-updated"));
+      resolve(updated);
+    };
+    tx.onerror = tx.onabort = () =>
+      reject(failure || tx.error || Error("订单保存失败。"));
+  });
+}
 // Local payment adapter; a production adapter must replace both pay and query.
 async function cameraPaymentResult(order, outcome = "success") {
   await new Promise((resolve) => setTimeout(resolve, 450));
@@ -759,6 +814,13 @@ registerController("cameraStudio", () => ({
     if (
       id &&
       (id !== this.draft?.id ||
+        (this.draft?.order &&
+          getStore("orderCenter")?.electronic.some(
+            (receipt) =>
+              receipt.id === this.draft.order.id &&
+              (receipt.status !== this.draft.order.status ||
+                receipt.savedId !== (this.draft.savedId || null)),
+          )) ||
         (this.draft?.order &&
           this.draft.order.owner !== getStore("account")?.session?.phone))
     ) {

@@ -44,6 +44,7 @@ export default function AppShell({ scope, args = [] }) {
                   s.$store.photoChoice.opened ||
                   s.$store.myUi.opened ||
                   s.$store.printUi.opened ||
+                  s.$store.orderUi.opened ||
                   s.albumModal
                 }
               >
@@ -79,6 +80,7 @@ export default function AppShell({ scope, args = [] }) {
                   s.$store.photoChoice.opened ||
                   s.$store.myUi.opened ||
                   s.$store.printUi.opened ||
+                  s.$store.orderUi.opened ||
                   s.albumModal
                 }
                 show={
@@ -164,6 +166,7 @@ export default function AppShell({ scope, args = [] }) {
               <View as="div" scope={s} id="scan-modal-layer"></View>
               <View as="div" scope={s} id="my-modal-layer"></View>
               <View as="div" scope={s} id="print-modal-layer"></View>
+              <View as="div" scope={s} id="orders-modal-layer"></View>
               <View as="div" scope={s} id="tool-modal-layer"></View>
               <View as="div" scope={s} id="account-modal-layer"></View>
               <View as="div" scope={s} id="collection-modal-layer"></View>

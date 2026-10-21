@@ -8,6 +8,7 @@ import ToolResult from "../components/ToolResult.jsx";
 import ToolStepper from "../components/ToolStepper.jsx";
 import PhotoSelectionPreview from "../components/PhotoSelectionPreview.jsx";
 import ToolPhotoSelection from "../components/ToolPhotoSelection.jsx";
+import PendingPhotoResults from "../components/PendingPhotoResults.jsx";
 import PhotoSelectionEmpty from "../components/PhotoSelectionEmpty.jsx";
 import {
   PortraitCheckStatus,
@@ -52,6 +53,12 @@ export default function ToolsPage({ scope, args = [] }) {
             />
             <ToolStepper steps={s.config.steps} current={s.step} />
             <View as="div" scope={s} className="tool-work-scroll">
+              {s.page === "tool" && !s.photo && s.config.service && (
+                <PendingPhotoResults
+                  type={s.action}
+                  onResume={(order) => s.resumeOrder(order)}
+                />
+              )}
               {!s.photo && (
                 <PhotoSelectionEmpty
                   mascot={s.mascot}

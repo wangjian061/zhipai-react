@@ -1138,22 +1138,6 @@ export default function PrintPage({ scope: s }) {
                 onConfirm={() => s.preparePhoto()}
               />
             ) : null}
-            {s.modal === "layout" && s.order && (
-              <div className="ui-sheet-body order-layout-body">
-                {s.order.photo?.blob ? (
-                  <div
-                    className="order-layout-sheet"
-                    dangerouslySetInnerHTML={{ __html: s.orderSheet(s.order) }}
-                  />
-                ) : (
-                  <p role="status">排版照片暂时无法显示</p>
-                )}
-                <p>
-                  {s.order.layoutSnapshot?.name || s.layoutName(s.order.layout)}{" "}
-                  · {s.order.quantity || 1}版
-                </p>
-              </div>
-            )}
             <View
               as="div"
               scope={s}
@@ -1347,49 +1331,6 @@ export default function PrintPage({ scope: s }) {
                   ]}
                 >
                   {"保留订单"}
-                </View>
-              </View>
-            </View>
-            <View
-              as="div"
-              scope={s}
-              show={s.modal === "advance"}
-              className="ui-sheet-panel"
-            >
-              <View as="div" scope={s} className="ui-sheet-body">
-                <View
-                  as="p"
-                  scope={s}
-                  className="print-dialog-copy"
-                  text={
-                    s.order?.status === "producing"
-                      ? "将订单改为制作中。"
-                      : s.order?.status === "printing"
-                        ? "将订单改为已发货，并生成运单。"
-                        : "将订单改为已签收。"
-                  }
-                ></View>
-              </View>
-              <View as="footer" scope={s} className="ui-sheet-footer">
-                <View
-                  as="button"
-                  scope={s}
-                  className="print-primary"
-                  disabled={s.disabled}
-                  events={[
-                    {
-                      type: "click",
-                      prevent: false,
-                      stop: false,
-                      self: false,
-                      passive: false,
-                      run: function (scope, $event, $el) {
-                        scope.advanceOrder();
-                      },
-                    },
-                  ]}
-                >
-                  {"确认更新状态"}
                 </View>
               </View>
             </View>

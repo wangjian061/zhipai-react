@@ -90,6 +90,8 @@ const AlbumPage = await compile("src/pages/AlbumPage.jsx", "AlbumPage", {
   View,
   Repeat,
   AlbumPhotoViewer,
+  // This fixture has no paid unfinished results; recovery has separate domain tests.
+  PendingPhotoResults: () => null,
   Controller: ({ children }) => children(current),
   Portal: ({ target, children }) =>
     React.createElement("div", { "data-portal-target": target }, children),

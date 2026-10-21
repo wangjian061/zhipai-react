@@ -1,15 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Controller, View } from "../runtime/components.jsx";
 import ToolNavigation from "../components/ToolNavigation.jsx";
-import { downloadAlbumBlob } from "../domain/album.js";
-
-const icons = {
-  electronic: "camera",
-  print: "print",
-  repair: "repair",
-  outfit: "shirt",
-  collection: "document",
-};
+import OrderPaymentSheet from "../components/OrderPaymentSheet.jsx";
+import OrderThumbnail from "../components/OrderThumbnail.jsx";
 function Icon({ name }) {
   if (name === "chevron-right")
     return (
@@ -30,25 +23,50 @@ function Icon({ name }) {
     </svg>
   );
 }
-function Photo({ blob, type }) {
-  const [url, setUrl] = useState("");
+function CopyNumber({ value, label }) {
+  const [feedback, setFeedback] = useState("");
+  const attempt = useRef(0);
+  const timer = useRef(null);
   useEffect(() => {
-    if (!(blob instanceof Blob)) {
-      setUrl("");
-      return;
+    setFeedback("");
+    return () => {
+      attempt.current++;
+      clearTimeout(timer.current);
+    };
+  }, [value]);
+  const copy = async () => {
+    const token = ++attempt.current;
+    clearTimeout(timer.current);
+    try {
+      await navigator.clipboard.writeText(String(value));
+      if (token !== attempt.current) return;
+      setFeedback("copied");
+      timer.current = setTimeout(() => setFeedback(""), 2000);
+    } catch {
+      if (token === attempt.current) setFeedback("failed");
     }
-    const value = URL.createObjectURL(blob);
-    setUrl(value);
-    return () => URL.revokeObjectURL(value);
-  }, [blob]);
+  };
   return (
-    <span className="order-thumbnail">
-      {url ? (
-        <img src={url} alt="订单照片" />
-      ) : (
-        <Icon name={icons[type] || "document"} />
-      )}
-    </span>
+    <dd className="order-number">
+      <span className="order-number-text">
+        <span>{value}</span>
+        {feedback === "failed" && (
+          <span className="order-copy-error" role="alert">
+            请长按{label}复制
+          </span>
+        )}
+      </span>
+      <button type="button" onClick={copy} aria-label={`复制${label}`}>
+        {feedback === "copied" ? (
+          <span className="order-copy-done">已复制</span>
+        ) : (
+          <Icon name="copy" />
+        )}
+      </button>
+      <span className="order-copy-announcement" role="status">
+        {feedback === "copied" ? `${label}已复制` : ""}
+      </span>
+    </dd>
   );
 }
 function Empty({ title, children }) {
@@ -134,16 +152,8 @@ function Detail({ s, order: o, print: p }) {
   const printReady = isPrint && p?.order?.id === o.sourceId;
   const printDisabled = !printReady || p.disabled;
   const status = o.state === "closed" ? "已关闭" : o.payment;
-  const copyTracking = async () => {
-    try {
-      const number =
-        typeof o.tracking === "string" ? o.tracking : o.tracking.number;
-      await navigator.clipboard.writeText(number);
-      s.notice = "物流单号已复制";
-    } catch {
-      s.notice = "请长按物流单号复制";
-    }
-  };
+  const trackingNumber =
+    typeof o.tracking === "string" ? o.tracking : o.tracking?.number;
   return (
     <>
       <div className="orders-scroll order-detail-scroll">
@@ -158,38 +168,18 @@ function Detail({ s, order: o, print: p }) {
               <strong>{s.money(o.amount)}</strong>
             </div>
           </div>
-          {o.progress !== status && (
-            <p>
-              {isPrint ? "冲印进度" : "服务进度"} · {o.progress}
-            </p>
-          )}
         </section>
         <section className="order-detail-card">
           <div className="order-product">
-            <Photo blob={o.photo} type={o.type} />
+            <OrderThumbnail blob={o.thumbnailBlob} title={o.title} />
             <div>
               <h2>{o.title}</h2>
               <p>{o.description}</p>
             </div>
           </div>
-          {isPrint && (
-            <button
-              className="order-layout-link"
-              disabled={!printReady}
-              onClick={() => p.showModal("layout")}
-            >
-              <span>查看排版照片</span>
-              <Icon name="chevron-right" />
-            </button>
-          )}
           <dl>
             {o.details
-              .filter(
-                ([k, v]) =>
-                  v != null &&
-                  v !== "" &&
-                  (!isPrint || !["版式", "冲印数量"].includes(k)),
-              )
+              .filter(([k, v]) => v != null && v !== "")
               .map(([k, v]) => (
                 <div key={k}>
                   <dt>{k}</dt>
@@ -202,11 +192,7 @@ function Detail({ s, order: o, print: p }) {
           <section className="order-detail-card">
             <div className="order-section-heading">
               <h2>配送信息</h2>
-              <span>
-                {["pending", "verifying", "cancelled"].includes(o.sourceStatus)
-                  ? ""
-                  : o.progress}
-              </span>
+              <span>{o.delivery}</span>
             </div>
             {o.address ? (
               <>
@@ -233,31 +219,13 @@ function Detail({ s, order: o, print: p }) {
                 )}
                 <div>
                   <dt>物流单号</dt>
-                  <dd className="order-number">
-                    <span>
-                      {typeof o.tracking === "string"
-                        ? o.tracking
-                        : o.tracking.number || "待更新"}
-                    </span>
-                    <button onClick={copyTracking} aria-label="复制物流单号">
-                      <Icon name="copy" />
-                    </button>
-                  </dd>
+                  {trackingNumber ? (
+                    <CopyNumber value={trackingNumber} label="物流单号" />
+                  ) : (
+                    <dd>待更新</dd>
+                  )}
                 </div>
               </dl>
-            )}
-            {o.events.length > 0 && (
-              <details className="order-records">
-                <summary>订单记录</summary>
-                <ol>
-                  {[...o.events].reverse().map((event, i) => (
-                    <li key={i}>
-                      <span>{event.title}</span>
-                      <time>{s.orderTime(event.time)}</time>
-                    </li>
-                  ))}
-                </ol>
-              </details>
             )}
           </section>
         )}
@@ -266,12 +234,7 @@ function Detail({ s, order: o, print: p }) {
           <dl>
             <div>
               <dt>订单编号</dt>
-              <dd className="order-number">
-                <span>{o.number}</span>
-                <button onClick={() => s.copy()} aria-label="复制订单编号">
-                  <Icon name="copy" />
-                </button>
-              </dd>
+              <CopyNumber value={o.number} label="订单编号" />
             </div>
             <div>
               <dt>创建时间</dt>
@@ -294,19 +257,6 @@ function Detail({ s, order: o, print: p }) {
             )}
           </dl>
         </section>
-        {printReady &&
-          ["producing", "printing", "shipped"].includes(o.sourceStatus) && (
-            <details className="order-demo-controls">
-              <summary>原型演示</summary>
-              <button
-                className="orders-secondary"
-                disabled={printDisabled}
-                onClick={() => p.showModal("advance")}
-              >
-                更新制作与配送状态
-              </button>
-            </details>
-          )}
         {printReady && !p.online && (
           <p className="orders-notice" role="status">
             网络不可用，请恢复连接后再提交或查询付款。
@@ -354,55 +304,81 @@ function Detail({ s, order: o, print: p }) {
               )}
             </footer>
           )
-        : o.state !== "closed" && (
+        : o.action && (
             <footer className="orders-footer">
               <button
                 className="orders-primary"
-                onClick={() =>
-                  o.type === "electronic" && !o.sessionAvailable && o.photo
-                    ? downloadAlbumBlob(
-                        o.photo,
-                        o.photo.type === "image/png"
-                          ? "知拍电子照片.png"
-                          : "知拍电子照片.jpg",
-                      )
-                    : s.continue(o)
-                }
+                disabled={s.paymentBusy}
+                onClick={() => s.continue(o)}
               >
-                {o.type === "electronic" && !o.sessionAvailable && o.photo
-                  ? "下载照片"
-                  : o.action}
+                {o.action}
               </button>
             </footer>
           )}
     </>
   );
 }
+function OrderList({ s, positions }) {
+  const scroll = useRef(null);
+  const key = `${s.owner}:${s.type}:${s.status}`;
+  useLayoutEffect(() => {
+    if (scroll.current)
+      scroll.current.scrollTop = positions.current.get(key) || 0;
+  }, [key, positions]);
+  return (
+    <div
+      ref={scroll}
+      className="orders-scroll"
+      aria-label="订单列表"
+      onScroll={(event) =>
+        positions.current.set(key, event.currentTarget.scrollTop)
+      }
+    >
+      {s.list.map((o) => (
+        <button
+          className="order-list-card"
+          key={o.key}
+          onClick={() => s.open(o)}
+        >
+          <span className="order-product">
+            <OrderThumbnail blob={o.thumbnailBlob} title={o.title} />
+            <span className="order-product-summary">
+              <span className="order-card-heading">
+                <strong>{o.title}</strong>
+                <span className={`order-status-text is-${o.state}`}>
+                  {o.payment}
+                </span>
+              </span>
+              <span className="order-description">{o.description}</span>
+            </span>
+          </span>
+          <span className="order-card-meta">
+            <time>{s.orderTime(o.createdAt)}</time>
+            <strong>{s.money(o.amount)}</strong>
+          </span>
+        </button>
+      ))}
+      {!s.list.length && (
+        <Empty title={s.emptyTitle}>
+          {s.emptyDescription && <p>{s.emptyDescription}</p>}
+        </Empty>
+      )}
+    </div>
+  );
+}
+
 export function OrdersContent({ s, print }) {
+  const listPositions = useRef(new Map());
   return (
     <>
       <ToolNavigation
         title={s.selected ? "订单详情" : "我的订单"}
-        disabled={!!print?.processing}
+        disabled={!!print?.processing || s.paymentBusy}
         onBack={() => s.back()}
-        right={
-          !s.selected && s.owner ? (
-            <button
-              className="orders-circle"
-              onClick={() => {
-                s.searchOpen = !s.searchOpen;
-              }}
-              aria-label="搜索订单"
-              aria-expanded={s.searchOpen}
-            >
-              <Icon name="search" />
-            </button>
-          ) : null
-        }
       />
       {!s.owner ? (
         <Empty title="登录后查看订单">
-          <p>查看购买记录与服务进度</p>
+          <p>查看订单与付款记录</p>
           <button className="orders-primary" onClick={() => s.login()}>
             登录 / 注册
           </button>
@@ -417,7 +393,12 @@ export function OrdersContent({ s, print }) {
           )}
           {s.selected ? (
             s.current ? (
-              <Detail s={s} order={s.current} print={print} />
+              <Detail
+                key={s.current.key}
+                s={s}
+                order={s.current}
+                print={print}
+              />
             ) : (
               <Empty
                 title={
@@ -433,26 +414,6 @@ export function OrdersContent({ s, print }) {
             )
           ) : (
             <>
-              {s.searchOpen && (
-                <form
-                  className="orders-search"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    s.search();
-                  }}
-                >
-                  <Icon name="search" />
-                  <input
-                    aria-label="搜索订单"
-                    placeholder="搜索订单号、服务或项目"
-                    value={s.query}
-                    onChange={(e) => {
-                      s.query = e.target.value;
-                    }}
-                  />
-                  <button type="submit">搜索</button>
-                </form>
-              )}
               <nav className="orders-status-tabs" aria-label="订单状态">
                 {s.statuses.map((t) => (
                   <button
@@ -467,59 +428,11 @@ export function OrdersContent({ s, print }) {
                 ))}
               </nav>
               <TypeFilters s={s} />
-              <div className="orders-scroll" aria-label="订单列表">
-                {s.list.map((o) => (
-                  <button
-                    className="order-list-card"
-                    key={o.key}
-                    onClick={() => s.open(o)}
-                  >
-                    <span className="order-card-heading">
-                      <span>{s.typeName(o.type)}</span>
-                      <span className={`order-status-text is-${o.state}`}>
-                        {o.state === "closed" ? "已关闭" : o.payment}
-                      </span>
-                    </span>
-                    <span className="order-product">
-                      <Photo blob={o.photo} type={o.type} />
-                      <span>
-                        <strong>{o.title}</strong>
-                        <span className="order-description">
-                          {o.description}
-                        </span>
-                        {o.progress !== o.payment && o.state !== "closed" && (
-                          <span className="order-list-progress">
-                            {o.progress}
-                          </span>
-                        )}
-                      </span>
-                    </span>
-                    <span className="order-card-meta">
-                      <time>{s.orderTime(o.createdAt)}</time>
-                      <strong>{s.money(o.amount)}</strong>
-                    </span>
-                  </button>
-                ))}
-                {!s.list.length && (
-                  <Empty
-                    title={
-                      !s.hub.ready && !s.hub.errors.length
-                        ? "正在读取订单"
-                        : s.query
-                          ? "未找到匹配订单"
-                          : "暂无相关订单"
-                    }
-                  >
-                    <p>
-                      {s.hub.errors.length
-                        ? "请重试加载后查看完整订单"
-                        : s.hub.ready
-                          ? "购买的服务将在这里展示"
-                          : ""}
-                    </p>
-                  </Empty>
-                )}
-              </div>
+              <OrderList
+                key={`${s.owner}:${s.type}:${s.status}`}
+                s={s}
+                positions={listPositions}
+              />
             </>
           )}
         </>
@@ -531,17 +444,20 @@ export default function OrdersPage({ print }) {
   return (
     <Controller name="ordersFlow">
       {(s) => (
-        <View
-          as="section"
-          scope={s}
-          scopeRoot
-          show={s.page === "orders"}
-          className="page orders-page"
-          id="orders-page"
-          aria-label="订单中心"
-        >
-          <OrdersContent s={s} print={print} />
-        </View>
+        <>
+          <View
+            as="section"
+            scope={s}
+            scopeRoot
+            show={s.page === "orders"}
+            className="page orders-page"
+            id="orders-page"
+            aria-label="订单中心"
+          >
+            <OrdersContent s={s} print={print} />
+          </View>
+          <OrderPaymentSheet s={s} />
+        </>
       )}
     </Controller>
   );

@@ -372,17 +372,19 @@ registerStore("collectionRecords", {
     }
   },
 });
+function collectionProjectState(id) {
+  return id === "enrollment-postgraduate"
+    ? "not_started"
+    : id === "association-talent"
+      ? "ended"
+      : "ongoing";
+}
 registerController("collectionFlow", () => ({
   view: "home",
   projects: COLLECTION_PROJECTS.map((p) => ({
     ...p,
     price: COLLECTION_PRICES[p.id] ?? 1200,
-    status:
-      p.id === "enrollment-postgraduate"
-        ? "not_started"
-        : p.id === "association-talent"
-          ? "ended"
-          : "ongoing",
+    status: collectionProjectState(p.id),
     ...COLLECTION_PROJECT_MEDIA[p.id],
   })),
   config: createCollectionConfig(),
@@ -1666,6 +1668,7 @@ registerController("collectionFlow", () => ({
   },
 }));
 export {
+  collectionProjectState,
   COLLECTION_PROJECTS,
   COLLECTION_STATUSES,
   collectionDB,

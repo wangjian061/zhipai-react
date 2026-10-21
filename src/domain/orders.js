@@ -4,12 +4,8 @@ import {
   getStore,
 } from "../runtime/state.js";
 import { readElectronicOrders } from "./camera.js";
+import { transactOrder } from "./order-payment.js";
 import { COLLECTION_PROJECTS } from "./collection.js";
-import {
-  COLLECTION_STATUSES,
-  collectionStatusKey,
-  isCollectionFinished,
-} from "./collection-status.js";
 import { accountRoute } from "./account.js";
 import { orderNavigate, safeOrderPath } from "./order-routing.js";
 
@@ -24,18 +20,30 @@ export const ORDER_TYPES = [
 export const ORDER_STATES = [
   { id: "all", label: "全部" },
   { id: "pending", label: "待付款" },
-  { id: "processing", label: "处理中" },
-  { id: "complete", label: "已完成" },
+  { id: "verifying", label: "付款确认中" },
+  { id: "paid", label: "已支付" },
   { id: "closed", label: "已关闭" },
 ];
-const printProgress = {
-  pending: "待付款",
-  verifying: "付款确认中",
-  producing: "待制作",
-  printing: "制作中",
-  shipped: "已发货",
-  completed: "已签收",
-  cancelled: "已取消",
+const paymentState = (status) =>
+  ["paid", "producing", "printing", "shipped", "completed"].includes(status)
+    ? "paid"
+    : status === "cancelled"
+      ? "closed"
+      : status === "verifying"
+        ? "verifying"
+        : "pending";
+const paymentFields = (status) => {
+  const state = paymentState(status);
+  return {
+    state,
+    payment: ORDER_STATES.find((s) => s.id === state).label,
+    action:
+      state === "pending"
+        ? "继续付款"
+        : state === "verifying"
+          ? "查询付款结果"
+          : null,
+  };
 };
 const outfitName = (id) => {
   const [category, style] = (id || "").split("-");
@@ -48,14 +56,8 @@ const outfitName = (id) => {
       .join(" · ") || "未记录"
   );
 };
-const paymentText = (status) =>
-  status === "paid"
-    ? "已支付"
-    : status === "verifying"
-      ? "付款确认中"
-      : status === "cancelled"
-        ? "已关闭"
-        : "待付款";
+const thumbnail = (...blobs) =>
+  blobs.find((blob) => blob instanceof Blob && blob.size > 0) || null;
 export function normalizeOrders({
   owner,
   print = [],
@@ -78,115 +80,46 @@ export function normalizeOrders({
       method: r.method,
       ...fields,
     });
+  // Read-only purchase identification; no photo viewer or business result links.
   for (const r of print.filter(own))
     add("print", r, {
+      ...paymentFields(r.status),
       title: "证件照排版冲印",
+      thumbnailBlob: thumbnail(r.photo?.blob),
       amount: r.total,
-      state:
-        r.status === "pending"
-          ? "pending"
-          : r.status === "cancelled"
-            ? "closed"
-            : r.status === "completed"
-              ? "complete"
-              : "processing",
-      payment: paymentText(
-        ["producing", "printing", "shipped", "completed"].includes(r.status)
-          ? "paid"
-          : r.status,
-      ),
-      progress: printProgress[r.status] || "处理中",
       description: `${r.layoutSnapshot?.name || "排版照"} · ${r.quantity || 1}版`,
-      photo: r.photo?.blob,
       address: r.address,
       tracking: r.tracking,
-      events: r.events || [],
+      delivery:
+        { shipped: "已发货", completed: "已签收" }[r.status] ||
+        (["producing", "printing"].includes(r.status) ? "待发货" : ""),
       sourceStatus: r.status,
       details: [
-        ["版式", r.layoutSnapshot?.name || r.layout],
-        ["冲印数量", `${r.quantity || 1}版`],
         ["冲印费", money((r.base || 0) * (r.quantity || 1))],
         ...(r.addon ? [["历史附加套餐", money(r.addonPrice * r.addon)]] : []),
         ["配送费", money(r.shipping || 0)],
       ],
-      action:
-        r.status === "pending"
-          ? "继续付款"
-          : r.status === "verifying"
-            ? "查询付款结果"
-            : null,
     });
   for (const r of tools
     .filter(own)
     .filter((r) => ["repair", "outfit"].includes(r.action)))
     add(r.action, r, {
+      ...paymentFields(r.status),
       title: r.action === "repair" ? "照片精修" : "照片换装",
+      thumbnailBlob: thumbnail(r.output, r.photo?.blob),
       amount: r.amount,
-      state:
-        r.status === "paid"
-          ? r.output
-            ? "complete"
-            : "processing"
-          : r.status === "cancelled"
-            ? "closed"
-            : r.status === "verifying"
-              ? "processing"
-              : "pending",
-      payment: paymentText(r.status),
-      progress:
-        r.status === "paid"
-          ? r.savedId
-            ? "已保存到知拍相册"
-            : r.output
-              ? "处理完成"
-              : "待处理"
-          : paymentText(r.status),
       description: r.photo?.spec || "证件照服务",
-      photo: r.output || r.photo?.blob,
-      result: r.output,
-      original: r.photo?.blob,
-      savedId: r.savedId,
-      details: [
-        ["照片规格", r.photo?.spec || "未记录"],
-        ...(r.action === "outfit" ? [["所选服装", outfitName(r.outfit)]] : []),
-      ],
-      action:
-        r.status === "paid" ? (r.output ? "查看照片" : "继续处理") : "继续付款",
+      details:
+        r.action === "outfit" ? [["所选服装", outfitName(r.outfit)]] : [],
     });
   for (const r of electronic.filter(own))
     add("electronic", r, {
+      ...paymentFields(r.status),
       title: r.versionName ? r.versionName + "解锁" : "电子证件照解锁",
+      thumbnailBlob: thumbnail(r.photo?.blob),
       amount: r.amount,
-      state:
-        r.status === "paid"
-          ? "complete"
-          : r.status === "cancelled"
-            ? "closed"
-            : r.status === "verifying"
-              ? "processing"
-              : "pending",
-      payment: paymentText(r.status),
-      progress:
-        r.status === "paid"
-          ? r.savedId
-            ? "已保存到知拍相册"
-            : "电子照片已解锁"
-          : paymentText(r.status),
       description: r.specification || "无水印电子照片",
-      photo: r.photo?.blob,
-      savedId: r.savedId,
-      sessionId: r.sessionId,
-      sessionAvailable: r.sessionAvailable !== false,
-      details: [
-        ...(r.versionName ? [["照片版本", r.versionName]] : []),
-        ["照片规格", r.specification || "未记录"],
-      ],
-      action:
-        r.status === "paid"
-          ? "查看照片"
-          : r.status === "verifying"
-            ? "查询付款结果"
-            : "继续付款",
+      details: [],
     });
   for (const r of collection
     .filter(own)
@@ -204,36 +137,12 @@ export function normalizeOrders({
         method: payment.method,
       },
       {
-        recordId: r.id,
-        projectId: r.projectId,
+        ...paymentFields(payment.status),
         title: p?.name || "专项采集",
+        thumbnailBlob: thumbnail(r.photo?.blob),
         amount: payment.amount,
-        state:
-          payment.status === "paid"
-            ? isCollectionFinished(r.status) &&
-              collectionStatusKey(r.status) !== "upload_failed"
-              ? "complete"
-              : "processing"
-            : payment.status === "verifying"
-              ? "processing"
-              : "pending",
-        payment: paymentText(payment.status),
-        tone: COLLECTION_STATUSES[collectionStatusKey(r.status)]?.tone,
-        progress:
-          COLLECTION_STATUSES[collectionStatusKey(r.status)]?.label || "待拍摄",
-        description: `${r.name || "采集任务"} · ${p?.organization || ""}`,
-        photo: r.photo?.blob,
-        details: [
-          ["采集人", r.name],
-          ["采集机构", p?.organization],
-          ["客服号", r.customer],
-        ],
-        action:
-          payment.status === "paid"
-            ? "查看采集任务"
-            : payment.status === "verifying"
-              ? "查询付款结果"
-              : "继续付款",
+        description: p?.organization || "专项采集服务",
+        details: [["采集人", r.name]],
       },
     );
   }
@@ -328,12 +237,18 @@ registerStore("orderCenter", {
     ]);
   },
 });
+registerStore("orderUi", { opened: false });
 registerController("ordersFlow", () => ({
   onRoute: null,
+  paymentOpen: false,
+  paymentBusy: false,
+  paymentError: "",
+  paymentMethod: "wechat",
+  paymentOutcome: "success",
+  paymentReturn: "",
+  paymentFocus: null,
   type: "all",
   status: "all",
-  query: "",
-  searchOpen: false,
   selected: "",
   backTo: "/?page=my",
   notice: "",
@@ -359,16 +274,22 @@ registerController("ordersFlow", () => ({
       .length;
   },
   get list() {
-    const q = this.query.trim().toLocaleLowerCase();
     return this.typed.filter(
-      (o) =>
-        (this.status === "all" || o.state === this.status) &&
-        (!q ||
-          [o.number, o.title, o.description]
-            .join(" ")
-            .toLocaleLowerCase()
-            .includes(q)),
+      (o) => this.status === "all" || o.state === this.status,
     );
+  },
+  get emptyTitle() {
+    if (!this.hub.ready && !this.hub.errors.length) return "正在读取订单";
+    if (this.hub.errors.length) return "订单暂时无法加载";
+    if (this.status !== "all") return `暂无${this.stateName(this.status)}订单`;
+    if (this.type !== "all") return `暂无${this.typeName(this.type)}订单`;
+    return "暂无订单";
+  },
+  get emptyDescription() {
+    if (this.hub.errors.length) return "请重试加载后查看完整订单";
+    if (!this.hub.ready) return "";
+    if (!this.hub.count) return "购买的服务将在这里展示";
+    return "可切换订单状态或类型查看";
   },
   get current() {
     return this.hub.all.find((o) => o.key === this.selected) || null;
@@ -377,7 +298,7 @@ registerController("ordersFlow", () => ({
     return ORDER_TYPES.find((t) => t.id === type)?.label || "订单";
   },
   stateName(state) {
-    return ORDER_STATES.find((t) => t.id === state)?.label || "处理中";
+    return ORDER_STATES.find((t) => t.id === state)?.label || "待付款";
   },
   money,
   orderTime,
@@ -390,8 +311,15 @@ registerController("ordersFlow", () => ({
   destroy() {
     window.removeEventListener("zhipai-route", this.onRoute);
     window.removeEventListener("popstate", this.onRoute);
+    this.$store.orderUi.opened = false;
   },
   sync() {
+    if (this.paymentBusy) {
+      if (location.pathname + location.search !== this.paymentReturn)
+        orderNavigate(this.paymentReturn, true);
+      return;
+    }
+    if (this.paymentOpen) this.closePayment();
     const q = new URLSearchParams(location.search);
     if (q.get("page") !== "orders") return;
     this.type = ORDER_TYPES.some((t) => t.id === q.get("type"))
@@ -400,8 +328,6 @@ registerController("ordersFlow", () => ({
     this.status = ORDER_STATES.some((t) => t.id === q.get("status"))
       ? q.get("status")
       : "all";
-    this.query = q.get("q") || "";
-    this.searchOpen = !!this.query;
     this.selected = q.get("id") || "";
     this.backTo = safeOrderPath(q.get("back"), "/?page=my");
     if (
@@ -419,7 +345,6 @@ registerController("ordersFlow", () => ({
       status: this.status,
       back: this.backTo,
     });
-    if (this.query.trim()) q.set("q", this.query.trim());
     if (id) q.set("id", id);
     return "/?" + q;
   },
@@ -428,69 +353,63 @@ registerController("ordersFlow", () => ({
     this.status = status;
     orderNavigate(this.url(""), true);
   },
-  search() {
-    orderNavigate(this.url(""), true);
-  },
   open(order) {
     orderNavigate(this.url(order.key));
   },
   back() {
+    if (this.paymentBusy) return;
     orderNavigate(this.selected ? this.url("") : this.backTo);
   },
   login() {
     accountRoute("welcome", this.url());
   },
-  async copy() {
-    if (!this.current) return;
-    try {
-      await navigator.clipboard.writeText(this.current.number);
-      this.notice = "订单编号已复制";
-    } catch {
-      this.notice = "请长按订单编号复制";
-    }
-  },
   continue(order = this.current) {
-    if (!order || !this.hub.all.some((o) => o.key === order.key)) return;
-    let q;
-    if (order.type === "print") {
-      if (this.selected !== order.key) this.open(order);
-      return;
-    } else if (order.type === "collection")
-      q = new URLSearchParams({
-        page: "collection",
-        view: "detail",
-        record: order.recordId,
-        project: order.projectId,
+    if (!order || order.type === "print" || !order.action) return;
+    if (this.current?.key !== order.key) return;
+    this.paymentError = "";
+    this.paymentMethod = order.method || "wechat";
+    this.paymentOutcome = "success";
+    this.paymentReturn = this.url(order.key);
+    this.paymentFocus =
+      typeof document === "undefined" ? null : document.activeElement;
+    this.paymentOpen = true;
+    this.$store.orderUi.opened = true;
+  },
+  closePayment() {
+    if (this.paymentBusy) return;
+    this.paymentOpen = false;
+    this.$store.orderUi.opened = false;
+    const focus = this.paymentFocus;
+    this.paymentFocus = null;
+    setTimeout(() => focus?.isConnected && focus.focus(), 0);
+  },
+  async pay() {
+    const order = this.current;
+    if (!this.paymentOpen || this.paymentBusy || !order?.action) return;
+    this.paymentBusy = true;
+    this.paymentError = "";
+    this.notice = "";
+    try {
+      const status = await transactOrder(order, {
+        method: this.paymentMethod,
+        outcome: this.paymentOutcome,
+        query: order.state === "verifying",
       });
-    else if (order.type === "electronic") {
-      if (
-        order.savedId &&
-        this.$store.photoLibrary.finished.some((p) => p.id === order.savedId)
-      )
-        q = new URLSearchParams({
-          page: "album",
-          album: "finished",
-          photo: order.savedId,
-          from: "library",
-        });
-      else if (order.sessionAvailable)
-        q = new URLSearchParams({
-          page: "camera",
-          camera: "editor",
-          session: order.sessionId,
-        });
-      else {
-        this.open(order);
-        return;
-      }
-    } else
-      q = new URLSearchParams({
-        page: "tool",
-        tool: order.type,
-        view: "work",
-        resume: order.sourceId,
-      });
-    q.set("orderBack", this.url(order.key));
-    orderNavigate("/?" + q);
+      await this.hub.refresh();
+      if (status === "paid") {
+        this.paymentBusy = false;
+        this.closePayment();
+        this.notice = "付款成功";
+      } else
+        this.paymentError =
+          status === "verifying"
+            ? "付款结果待确认，请查询付款结果，勿重复付款。"
+            : "付款未完成，可重新发起付款。";
+    } catch (error) {
+      this.paymentError = error.message || "付款结果未能确认，请稍后查询。";
+      await this.hub.refresh();
+    } finally {
+      this.paymentBusy = false;
+    }
   },
 }));
