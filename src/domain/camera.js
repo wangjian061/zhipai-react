@@ -11,6 +11,7 @@ import {
   PHOTO_SPECIFICATIONS,
   PHOTO_BACKGROUNDS,
   specificationSelection,
+  specificationBackgroundState,
 } from "./photo-specifications.js";
 import {
   PHOTO_VERSIONS,
@@ -273,10 +274,7 @@ registerController("cameraStudio", () => ({
     this.openHandler = (e) => {
       this.reset();
       this.returnTo = cameraReturnPath(e.detail.returnTo);
-      const selection = specificationSelection(
-        e.detail.specification?.specId,
-        e.detail.specification?.background,
-      );
+      const selection = this.entrySpecification(e.detail.specification);
       if (selection)
         this.creationContext = { intent: "specification", ...selection };
       this.cameraAllowed = true;
@@ -371,7 +369,7 @@ registerController("cameraStudio", () => ({
       !!this.draft &&
       !!this.sourcePhoto?.blob &&
       !this.collectionCapture &&
-      !["paid", "verifying"].includes(this.draft.order?.status) &&
+      !versionIsProtected(this.draft) &&
       !this.busy
     );
   },
@@ -379,6 +377,33 @@ registerController("cameraStudio", () => ({
     return this.specs.filter((spec) =>
       ["one", "two", "small-two"].includes(spec.id),
     );
+  },
+  get confirmationBackgroundState() {
+    return specificationBackgroundState(
+      this.draft?.specId,
+      this.draft?.background,
+      this.specs,
+      this.colors,
+    );
+  },
+  get canStartCreation() {
+    return (
+      this.step === "confirm" &&
+      !!this.sourcePhoto?.blob &&
+      !this.busy &&
+      !versionIsProtected(this.draft) &&
+      (this.collectionCapture || !!this.confirmationBackgroundState.background)
+    );
+  },
+  entrySpecification(value) {
+    if (!this.specs.some((spec) => spec.id === value?.specId)) return null;
+    const state = specificationBackgroundState(
+      value.specId,
+      value.background,
+      this.specs,
+      this.colors,
+    );
+    return { specId: value.specId, background: state.background };
   },
   get confirmationSizeLabel() {
     const spec = this.spec;
@@ -437,6 +462,11 @@ registerController("cameraStudio", () => ({
   },
   get spec() {
     if (
+      (versionIsProtected(this.draft) || this.processing) &&
+      this.draft?.specificationSnapshot
+    )
+      return this.draft.specificationSnapshot;
+    if (
       this.outputBlob &&
       ["paid", "verifying"].includes(this.draft?.order?.status) &&
       !this.specs.some((spec) => spec.id === this.draft?.specId)
@@ -451,7 +481,24 @@ registerController("cameraStudio", () => ({
     return this.specFor(this.draft);
   },
   specFor(settings) {
-    return this.specs.find((s) => s.id === settings?.specId) || this.specs[1];
+    return (
+      this.specs.find((s) => s.id === settings?.specId) ||
+      (settings?.specId
+        ? {
+            id: settings.specId,
+            name: "规格不可用",
+            mm: "请选择其他规格",
+            width: settings.outputWidth,
+            height: settings.outputHeight,
+          }
+        : this.specs.find((s) => s.id === "two") || {
+            id: "two",
+            name: "规格不可用",
+            mm: "请选择其他规格",
+            width: null,
+            height: null,
+          })
+    );
   },
   get panelSpec() {
     return this.specFor(this.fields);
@@ -532,6 +579,8 @@ registerController("cameraStudio", () => ({
   },
   get backgroundLabel() {
     return (
+      this.draft?.backgroundSnapshot?.name ||
+      this.draft?.order?.purchaseSnapshot?.backgroundName ||
       this.colors.find((color) => color.value === this.draft?.background)
         ?.name ||
       this.colors.find((color) => color.value === this.draft?.background)
@@ -802,11 +851,10 @@ registerController("cameraStudio", () => ({
     }
     const requested = q.get("camera") || "capture";
     if (requested === "capture" && !this.draft) {
-      const selection = specificationSelection(
-        q.get("spec"),
-        q.get("background"),
-        false,
-      );
+      const selection = this.entrySpecification({
+        specId: q.get("spec"),
+        background: q.get("background"),
+      });
       if (selection) {
         this.creationContext = { intent: "specification", ...selection };
         this.returnTo = cameraReturnPath(
@@ -871,7 +919,7 @@ registerController("cameraStudio", () => ({
         throw Error("owner");
       this.releaseURLs();
       this.draft = {
-        background: "#438bc6",
+        background: null,
         ...record.draft,
         order: record.draft.order
           ? {
@@ -879,27 +927,51 @@ registerController("cameraStudio", () => ({
             }
           : null,
       };
-      const protectedResult =
-        record.output &&
-        ["paid", "verifying"].includes(this.draft.order?.status);
+      const protectedResult = versionIsProtected(this.draft);
+      let settingsChanged = false;
+      let retiredOrder = null;
       if (
         !protectedResult &&
-        !this.specs.some((spec) => spec.id === this.draft.specId)
+        record.creationContext?.intent !== "collectionCapture"
       ) {
-        const preset = this.specs[1];
-        this.draft.specId = preset.id;
-        this.draft.outputWidth = preset.width;
-        this.draft.outputHeight = preset.height;
-        this.draft.scale = 1;
-        this.draft.offsetX = this.draft.offsetY = 0;
-        this.draft.savedId = null;
-        if (this.draft.status !== "failed") this.draft.status = "queued";
-        record.output = null;
-        record.standard = null;
-        record.standardWidth = record.standardHeight = 0;
-        record.versions = {};
-        this.draft.resultMode = null;
-        this.draft.selectedVersionId = null;
+        const state = specificationBackgroundState(
+          this.draft.specId,
+          this.draft.background,
+          this.specs,
+          this.colors,
+        );
+        if (this.draft.background !== state.background || !state.background) {
+          if (this.draft.order?.owner) {
+            retiredOrder = {
+              ...this.draft.order,
+              status: "cancelled",
+              sessionAvailable: false,
+              sessionId: this.draft.id,
+              photo: { blob: record.output },
+            };
+            this.draft.order = null;
+          }
+          this.draft.background = state.background;
+          this.draft.format =
+            state.background === "transparent" ? "png" : "jpeg";
+          this.draft.status = "queued";
+          this.draft.failureReason = "";
+          this.draft.failureKind = this.draft.failureStage = null;
+          this.draft.detectionProof = this.draft.detectionResult = null;
+          this.draft.resultMode =
+            this.draft.selectedVersionId =
+            this.draft.retryVersionId =
+              null;
+          record.output = record.standard = null;
+          record.standardWidth = record.standardHeight = 0;
+          record.versions = {};
+          settingsChanged = true;
+        }
+        this.draft.specificationSnapshot = { ...this.specFor(this.draft) };
+        const color = state.colors.find(
+          (item) => item.value === state.background,
+        );
+        this.draft.backgroundSnapshot = color ? { ...color } : null;
       }
       for (const key of [
         "customWidth",
@@ -946,6 +1018,10 @@ registerController("cameraStudio", () => ({
       this.detection = this.draft.detectionResult || null;
       this.editingFrom = record.editingFrom;
       this.creationContext = record.creationContext;
+      if (settingsChanged) {
+        await this.persistConfirmationSettings(retiredOrder);
+        if (token !== this.task || !this.active) return;
+      }
       // Pair old unpaid previews without replacing their already rendered ordinary output.
       // Financially protected legacy records retain their original single-result contract.
       if (
@@ -1094,7 +1170,8 @@ registerController("cameraStudio", () => ({
     ) {
       const selected = this.draft || this.creationContext;
       u.searchParams.set("spec", selected.specId);
-      u.searchParams.set("background", selected.background);
+      if (selected.background)
+        u.searchParams.set("background", selected.background);
       u.searchParams.set("back", this.returnTo);
     }
     if (next !== "capture" && this.draft)
@@ -1416,8 +1493,15 @@ registerController("cameraStudio", () => ({
               background: this.creationContext.background,
             }
           : null;
-    const preset =
-      this.specs.find((item) => item.id === selected?.specId) || this.specs[1];
+    const preset = this.specFor(selected);
+    const background = this.collectionCapture
+      ? "#438bc6"
+      : specificationBackgroundState(
+          preset.id,
+          selected ? selected.background : "#438bc6",
+          this.specs,
+          this.colors,
+        ).background;
     this.replacingPhoto = false;
     this.detection = null;
     this.panel = null;
@@ -1440,8 +1524,14 @@ registerController("cameraStudio", () => ({
       specId: preset.id,
       outputWidth: preset.width,
       outputHeight: preset.height,
-      format: selected?.background === "transparent" ? "png" : "jpeg",
-      background: selected?.background || "#438bc6",
+      format: background === "transparent" ? "png" : "jpeg",
+      background,
+      backgroundSnapshot: this.colors.find(
+        (color) => color.value === background,
+      )
+        ? { ...this.colors.find((color) => color.value === background) }
+        : null,
+      specificationSnapshot: { ...preset },
       scale: 1,
       offsetX: 0,
       offsetY: 0,
@@ -1456,7 +1546,7 @@ registerController("cameraStudio", () => ({
       this.error = "照片暂未能备份，请保持当前页面并继续。";
     }
   },
-  async persistConfirmationSettings() {
+  async persistConfirmationSettings(retiredOrder = null) {
     const record = this.snapshot(),
       task = this.task,
       revision = ++this.confirmationRevision;
@@ -1464,7 +1554,7 @@ registerController("cameraStudio", () => ({
       .catch(() => {})
       .then(() => {
         if (task !== this.task || record.id !== this.draft?.id) return;
-        return cameraAwait(writeCameraSession(record), 15000);
+        return cameraAwait(writeCameraSession(record, retiredOrder), 15000);
       });
     this.confirmationWrite = write;
     try {
@@ -1476,6 +1566,34 @@ registerController("cameraStudio", () => ({
   },
   async commitConfirmationSettings(values) {
     if (!this.canConfigureConfirmation) return;
+    const specId = values.specId || this.draft.specId;
+    if (!this.specs.some((spec) => spec.id === specId)) return;
+    const specChanged = specId !== this.draft.specId;
+    // A spec change reconciles the previous color, including the more-spec drawer.
+    // A direct color update must be a permitted explicit choice.
+    if (
+      !specChanged &&
+      Object.hasOwn(values, "background") &&
+      values.background !== null &&
+      !specificationSelection(
+        specId,
+        values.background,
+        this.specs,
+        this.colors,
+      )
+    )
+      return;
+    const state = specificationBackgroundState(
+      specId,
+      specChanged
+        ? this.draft.background
+        : Object.hasOwn(values, "background")
+          ? values.background
+          : this.draft.background,
+      this.specs,
+      this.colors,
+    );
+    values = { ...values, background: state.background };
     const keys = ["specId", "scale", "offsetX", "offsetY", "background"];
     if (
       !keys.some(
@@ -1492,12 +1610,23 @@ registerController("cameraStudio", () => ({
     for (const key of keys)
       if (Object.hasOwn(values, key)) this.draft[key] = values[key];
     const spec = this.spec;
+    this.draft.specificationSnapshot = { ...spec };
+    this.draft.backgroundSnapshot = state.colors.find(
+      (color) => color.value === state.background,
+    )
+      ? { ...state.colors.find((color) => color.value === state.background) }
+      : null;
     this.draft.outputWidth = spec.width;
     this.draft.outputHeight = spec.height;
     this.draft.format =
       this.draft.background === "transparent" ? "png" : "jpeg";
     if (this.draft.status === "ready") this.draft.status = "queued";
     this.draft.savedId = null;
+    this.clearVersions();
+    this.draft.resultMode =
+      this.draft.selectedVersionId =
+      this.draft.retryVersionId =
+        null;
     this.outputBlob = null;
     this.standardBlob = null;
     this.standardWidth = 0;
@@ -1521,7 +1650,12 @@ registerController("cameraStudio", () => ({
   async setConfirmationBackground(value) {
     if (
       value === this.draft?.background ||
-      !this.colors.some((color) => color.value === value)
+      !specificationSelection(
+        this.draft?.specId,
+        value,
+        this.specs,
+        this.colors,
+      )
     )
       return;
     await this.commitConfirmationSettings({ background: value });
@@ -1550,6 +1684,7 @@ registerController("cameraStudio", () => ({
       this.error = "请先查看当前照片的解锁与保存结果。";
       return;
     }
+    if (!this.validateCreationSettings()) return;
     this.task++;
     this.previousFocus = document.activeElement;
     this.error = "";
@@ -1576,6 +1711,7 @@ registerController("cameraStudio", () => ({
       ["paid", "verifying"].includes(this.draft?.order?.status)
     )
       return;
+    if (!this.validateCreationSettings()) return;
     const token = ++this.task;
     this.error = "";
     this.draft.status = "checking";
@@ -1670,6 +1806,15 @@ registerController("cameraStudio", () => ({
       this.error = "请先查看当前照片的解锁与保存结果。";
       return;
     }
+    if (!this.validateCreationSettings()) return;
+    this.draft.specificationSnapshot = { ...this.specFor(this.draft) };
+    this.draft.backgroundSnapshot = this.colors.find(
+      (color) => color.value === this.draft.background,
+    )
+      ? {
+          ...this.colors.find((color) => color.value === this.draft.background),
+        }
+      : null;
     const token = ++this.task;
     this.renderTask++;
     this.draft.status = "processing";
@@ -1706,6 +1851,25 @@ registerController("cameraStudio", () => ({
     } catch (error) {
       await this.showMakingFailure(error, token);
     }
+  },
+  validateCreationSettings() {
+    if (this.collectionCapture) return true;
+    if (versionIsProtected(this.draft)) return false;
+    const state = this.confirmationBackgroundState;
+    const changed = state.background !== this.draft.background;
+    if (changed)
+      this.commitConfirmationSettings({ background: state.background });
+    if (!state.background) {
+      this.panel = null;
+      this.focusStageTitle();
+      return false;
+    }
+    return !!specificationSelection(
+      this.draft.specId,
+      this.draft.background,
+      this.specs,
+      this.colors,
+    );
   },
   async chooseMakingResult(outcome) {
     if (this.draft?.retryVersionId && this.step === "editor") {
@@ -2277,9 +2441,11 @@ registerController("cameraStudio", () => ({
             mm: this.spec.mm,
             pixels: `${session.draft.outputWidth} × ${session.draft.outputHeight} px`,
             backgroundName:
-              PHOTO_BACKGROUNDS.find(
+              session.draft.backgroundSnapshot?.name ||
+              this.colors.find(
                 (item) => item.value === session.draft.background,
-              )?.name || "未记录",
+              )?.name ||
+              "未记录",
           },
           ...(this.dualResults
             ? {

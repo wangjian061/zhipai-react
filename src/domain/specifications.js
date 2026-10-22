@@ -3,11 +3,13 @@ import {
   PHOTO_SPECIFICATIONS,
   PHOTO_BACKGROUNDS,
   specificationSelection,
+  specificationBackgroundState,
   specificationsReturnPath,
 } from "./photo-specifications.js";
 
 registerController("specificationPicker", () => ({
   specifications: PHOTO_SPECIFICATIONS,
+  colors: PHOTO_BACKGROUNDS,
   selectedId: null,
   backgroundId: "blue",
   opened: false,
@@ -18,8 +20,22 @@ registerController("specificationPicker", () => ({
     return this.specifications.find((item) => item.id === this.selectedId);
   },
   get backgrounds() {
-    return PHOTO_BACKGROUNDS.filter((item) =>
-      this.selected?.backgrounds.includes(item.id),
+    return this.backgroundState.colors;
+  },
+  get backgroundState() {
+    return specificationBackgroundState(
+      this.selectedId,
+      this.backgroundId,
+      this.specifications,
+      this.colors,
+    );
+  },
+  get selection() {
+    return specificationSelection(
+      this.selectedId,
+      this.backgroundState.background,
+      this.specifications,
+      this.colors,
     );
   },
   init() {
@@ -58,8 +74,7 @@ registerController("specificationPicker", () => ({
     const spec = this.specifications.find((item) => item.id === id);
     if (!spec) return;
     this.selectedId = id;
-    if (!spec.backgrounds.includes(this.backgroundId))
-      this.backgroundId = spec.backgrounds[0];
+    this.backgroundId = this.backgroundState.backgroundId;
     this.previousFocus = document.activeElement;
     history.pushState(
       { ...history.state, specificationPanel: true },
@@ -91,10 +106,7 @@ registerController("specificationPicker", () => ({
   },
   confirm() {
     if (!this.opened) return;
-    const selection = specificationSelection(
-      this.selectedId,
-      this.backgroundId,
-    );
+    const selection = this.selection;
     if (!selection) return;
     const returnTo = location.pathname + location.search;
     this.opened = false;
@@ -107,7 +119,7 @@ registerController("specificationPicker", () => ({
       page: "camera",
       camera: "capture",
       spec: selection.specId,
-      background: this.backgroundId,
+      background: selection.background,
       back: returnTo,
     });
     // Replace the drawer's history entry, so Back returns to the unchanged list.

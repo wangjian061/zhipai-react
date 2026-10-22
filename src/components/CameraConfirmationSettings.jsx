@@ -8,6 +8,7 @@ export default function CameraConfirmationSettings({
   selectedSpec,
   sizeLabel,
   background,
+  backgroundMessage,
   disabled,
   locked,
   onSpec,
@@ -82,6 +83,11 @@ export default function CameraConfirmationSettings({
             </button>
           ))}
         </div>
+        {backgroundMessage && (
+          <p className="camera-confirm-color-note" role="status">
+            {backgroundMessage}
+          </p>
+        )}
       </fieldset>
     </section>
   );

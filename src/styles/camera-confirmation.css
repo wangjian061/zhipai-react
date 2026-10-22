@@ -96,11 +96,18 @@
 }
 .camera-confirm-colors {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 12px;
   overflow-x: auto;
   padding: 4px 4px 5px;
   scrollbar-width: thin;
+}
+.camera-confirm-color-note {
+  margin: 8px 0 0;
+  color: var(--ui-body, #53637b);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 .camera-confirm-colors > button {
   display: flex;

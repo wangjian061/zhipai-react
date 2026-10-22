@@ -93,6 +93,12 @@ function state(extra = {}) {
     confirmationBackLabel: "返回拍摄",
     confirmationReplaceLabel: "重新拍摄",
     canConfigureConfirmation: true,
+    canStartCreation: true,
+    confirmationBackgroundState: {
+      colors: [{ name: "白色", value: "#ffffff" }],
+      background: "#ffffff",
+      message: "",
+    },
     spec: { name: "二寸", mm: "35 × 49 mm" },
     quickSpecs: [
       { id: "one", name: "一寸" },
@@ -140,6 +146,40 @@ test("project-controlled confirmation does not expose personal size and color co
   assert.ok(html.includes("采集规格由项目统一设置"));
   assert.ok(!html.includes("更多规格"));
   assert.ok(!html.includes("背景颜色"));
+});
+
+test("confirmation shows only configured swatches and explains why creation is disabled", () => {
+  const html = render(
+    "CameraConfirmationPage",
+    state({
+      canStartCreation: false,
+      confirmationBackgroundState: {
+        colors: [{ id: "red", name: "红色", value: "#d6383d" }],
+        background: null,
+        message: "请为当前规格选择背景颜色。",
+      },
+    }),
+  );
+  assert.ok(html.includes("红色"));
+  assert.ok(!html.includes("白色"));
+  assert.match(html, /class="primary-button" disabled=""/);
+  assert.ok(html.includes('class="camera-confirm-color-note" role="status"'));
+  assert.ok(
+    html.indexOf("请为当前规格选择") > html.indexOf("camera-confirm-colors"),
+  );
+  const empty = render(
+    "CameraConfirmationPage",
+    state({
+      canStartCreation: false,
+      confirmationBackgroundState: {
+        colors: [],
+        background: null,
+        message: "当前规格的背景颜色暂不可用，请选择其他规格或稍后再试。",
+      },
+    }),
+  );
+  assert.ok(empty.includes("暂不可用"));
+  assert.match(empty, /class="primary-button" disabled=""/);
 });
 test("detection scenarios are chosen in a cancellable modal before checking", () => {
   const choices = [];

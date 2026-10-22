@@ -136,16 +136,29 @@ export default function SpecificationsPage({ args = [] }) {
                         <button
                           type="button"
                           key={color.id}
-                          aria-pressed={s.backgroundId === color.id}
+                          aria-pressed={
+                            s.backgroundState.backgroundId === color.id
+                          }
                           onClick={() => s.selectBackground(color.id)}
                         >
                           <span
+                            className={
+                              color.value === "transparent"
+                                ? "transparent-frame"
+                                : undefined
+                            }
                             style={{
                               backgroundColor: color.value,
-                              color: color.id === "white" ? "#0032ff" : "#fff",
+                              color: [
+                                "#ffffff",
+                                "#d5d9e0",
+                                "transparent",
+                              ].includes(color.value)
+                                ? "#0032ff"
+                                : "#fff",
                             }}
                           >
-                            {s.backgroundId === color.id && (
+                            {s.backgroundState.backgroundId === color.id && (
                               <svg viewBox="0 0 20 20" aria-hidden="true">
                                 <path d="m5 10 3 3 7-7" />
                               </svg>
@@ -156,16 +169,16 @@ export default function SpecificationsPage({ args = [] }) {
                       ))}
                     </div>
                   </fieldset>
-                  <p className="specification-color-note">
-                    {s.backgrounds.length === 1
-                      ? "已按此规格预选底色，可在制作页调整。"
-                      : "拍摄后仍可在制作页调整规格与底色。"}
+                  <p className="specification-color-note" role="status">
+                    {s.backgroundState.message ||
+                      "拍摄后仍可在制作页调整规格与底色。"}
                   </p>
                 </div>
                 <footer className="ui-sheet-footer">
                   <button
                     type="button"
                     className="specifications-primary"
+                    disabled={!s.selection}
                     onClick={() => s.confirm()}
                   >
                     去拍照或选图

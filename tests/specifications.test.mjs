@@ -8,6 +8,9 @@ import { createServer } from "vite";
 import { createController } from "../src/runtime/state.js";
 import {
   PHOTO_SPECIFICATIONS,
+  PHOTO_BACKGROUNDS,
+  specificationBackgrounds,
+  specificationBackgroundState,
   specificationSelection,
   specificationDimensions,
   specificationsReturnPath,
@@ -96,6 +99,92 @@ test("nine named presets keep use-case identity, reject custom input and unknown
   );
 });
 
+test("color policy follows stable spec IDs and configurable order rather than dimensions or names", () => {
+  const specs = PHOTO_SPECIFICATIONS.map((s) => ({
+    ...s,
+    backgrounds: [...s.backgrounds],
+  }));
+  specs.find((s) => s.id === "job").backgrounds = [
+    "gray",
+    "transparent",
+    "gray",
+    "unknown",
+  ];
+  assert.deepEqual(
+    specificationBackgrounds("job", specs).map((c) => c.id),
+    ["gray", "transparent"],
+  );
+  assert.equal(specificationSelection("job", "blue", specs), null);
+  assert.equal(
+    specificationSelection("two", "blue", specs).background,
+    "#438bc6",
+  );
+  assert.equal(
+    specificationBackgroundState("job", "blue", specs).background,
+    null,
+  );
+  assert.equal(
+    specificationBackgroundState("job", "gray", specs).background,
+    "#d5d9e0",
+  );
+  specs.find((s) => s.id === "job").backgrounds = ["transparent"];
+  assert.equal(
+    specificationBackgroundState("job", "blue", specs).background,
+    "transparent",
+  );
+  specs.find((s) => s.id === "job").backgrounds = ["unknown"];
+  assert.equal(
+    specificationBackgroundState("job", "blue", specs).background,
+    null,
+  );
+  assert.match(
+    specificationBackgroundState("job", "blue", specs).message,
+    /暂不可用/,
+  );
+  const palette = PHOTO_BACKGROUNDS.map((c) => ({ ...c, enabled: false }));
+  assert.deepEqual(specificationBackgrounds("two", specs, palette), []);
+  assert.deepEqual(specificationBackgrounds("two", null), []);
+});
+
+test("picker clears invalid multiple choice, auto-selects a sole color and blocks absent configuration", () => {
+  const { picker: s } = environment();
+  s.specifications = s.specifications.map((spec) => ({
+    ...spec,
+    backgrounds: [...spec.backgrounds],
+  }));
+  s.choose("driver");
+  assert.equal(s.backgroundId, "white");
+  s.close();
+  s.specifications.find((spec) => spec.id === "two").backgrounds = [
+    "red",
+    "blue",
+  ];
+  s.choose("two");
+  assert.equal(s.backgroundId, null);
+  assert.equal(s.selection, null);
+  assert.match(s.backgroundState.message, /选择背景颜色/);
+  const calls = [];
+  window.addEventListener("zhipai-camera-open", (e) => calls.push(e.detail));
+  s.confirm();
+  assert.equal(s.opened, true);
+  assert.equal(calls.length, 0);
+  s.selectBackground("red");
+  assert.equal(s.selection.background, "#d6383d");
+  // A changed config is checked again at confirmation, not trusted from the open drawer.
+  s.specifications.find((spec) => spec.id === "two").backgrounds = [];
+  s.confirm();
+  assert.equal(s.opened, true);
+  assert.equal(calls.length, 0);
+  const tree = SpecificationsPage({}).props.children({
+    ...s,
+    page: "specifications",
+  });
+  const html = renderToStaticMarkup(tree);
+  assert.match(html, /class="specifications-primary" disabled=""/);
+  assert.ok(html.includes("背景颜色暂不可用"));
+  s.destroy();
+});
+
 test("grid exposes readable size or use-case scope, with complete pixels deferred to the drawer", () => {
   const html = renderToStaticMarkup(
     React.createElement(SpecificationGrid, {
@@ -169,7 +258,10 @@ test("confirm hands verified spec/color to camera once; back returns to list wit
     background: "#d6383d",
   });
   assert.equal(new URLSearchParams(location.search).get("spec"), "one");
-  assert.equal(new URLSearchParams(location.search).get("background"), "red");
+  assert.equal(
+    new URLSearchParams(location.search).get("background"),
+    "#d6383d",
+  );
   history.back();
   assert.equal(
     new URLSearchParams(location.search).get("page"),

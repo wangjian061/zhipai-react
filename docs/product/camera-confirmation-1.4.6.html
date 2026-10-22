@@ -222,7 +222,7 @@
                       <div class="wf-tags" id="tags"></div>
                     </section>
                     <section aria-label="背景颜色">
-                      <div class="wf-setting-title">背景颜色</div><div class="wf-colors" id="colors"></div>
+                      <div class="wf-setting-title">背景颜色</div><div class="wf-colors" id="colors"></div><p class="wf-note" id="color-policy-note" role="status"></p>
                     </section>
                   </div>
                 </section>
@@ -296,7 +296,7 @@
         <article class="doc-note">
           <h2>按页面阅读</h2>
           <h3>1. 制作前确认</h3>
-          <p>顶部返回退出制作，回到调用页面。原照片在5∶7浅灰区域完整居中，不裁剪或拉伸；灰底只界定展示范围，不写入照片。下方为12px核对说明，隔24px进入单个白色16px圆角参数区；规格与底色分组间隔20px。正文滚动，底部灰色文字、灰色描边重拍／重选约40%、蓝色主按钮约60%，至少48px高。快捷三项仍为一寸、二寸、小二寸；更多规格共用九项目录，依次为一寸、二寸、小二寸、大一寸、求职招聘、四六级考试、驾驶证、身份证、中国护照，不提供自定义、方形照或裁剪。</p>
+          <p>顶部返回退出制作，回到调用页面。原照片在5∶7浅灰区域完整居中，不裁剪或拉伸；灰底只界定展示范围，不写入照片。下方为12px核对说明，隔24px进入单个白色16px圆角参数区；规格与底色分组间隔20px。正文滚动，底部灰色文字、灰色描边重拍／重选约40%、蓝色主按钮约60%，至少48px高。快捷三项仍为一寸、二寸、小二寸；背景只显示当前规格配置的颜色；原色有效保留，单色自动，多色失效待重选，无有效配置禁止制作。颜色为本地示例，非固定用途规则。更多规格共用九项目录，依次为一寸、二寸、小二寸、大一寸、求职招聘、四六级考试、驾驶证、身份证、中国护照，不提供自定义、方形照或裁剪。</p>
           <h3>2. 演示场景、检测与失败抽屉</h3>
           <p>点击「开始制作」先打开「选择演示场景」，说明「原型演示，请选择本次照片检测情况。」；纵向显示「检测通过／无人像／多人照片／动物照片／检测异常」，无预选，选择后才开始检测。沿用300px宽、16px圆角居中弹窗，18px标题、15px说明及选项，选项至少44px高；正文独立滚动，底部灰色「取消」固定。取消、遮罩或Escape关闭后保留原图及参数，不运行检测；业务中浏览器返回同样关闭选择并恢复确认。</p>
           <p>检测项由后台配置，前端按配置及返回结果展示名称、启用项与结果，不按无人像／多人／动物场景拼接额外指导。当前原型仍是本地配置与场景模拟，默认启用有人像、单人、无动物；上方开关仅说明后台配置契约，不是场景入口，未接入后台或真实识别，也未扩展原型支持的检测项类型。检测通过自动开始制作；未通过在原抽屉仅显示统一说明「当前照片不符合制作要求，暂时无法开始制作。」、原图与保留说明及检测明细，不追加原因段或通用原因兜底，旧草稿保存的定向提示也不展示或加入可访问描述。「返回调整」保留原图与参数。服务异常显示「检测暂未完成」及实际原因，可「重新检测」或返回；重试重新打开场景选择，可选择不同情况。无启用项也视为异常。检测可取消，取消后的结果不能触发制作；每次重新开始都重新检测。</p>
@@ -333,20 +333,11 @@
         </article>
       </div>
     </main>
-    <script>
+    <script type="module">
+      import { PHOTO_SPECIFICATIONS, PHOTO_BACKGROUNDS, specificationBackgroundState } from "../../src/domain/photo-specifications.js";
       const $ = (id) => document.getElementById(id);
-      const sizes = [
-        { id: "one", name: "一寸", mm: "25 × 35 mm", w: 295, h: 413 },
-        { id: "two", name: "二寸", mm: "35 × 49 mm", w: 413, h: 579 },
-        { id: "small-two", name: "小二寸", mm: "35 × 45 mm", w: 413, h: 531 },
-        { id: "large-one", name: "大一寸", mm: "33 × 48 mm", w: 390, h: 567 },
-        { id: "job", name: "求职招聘", mm: "35 × 49 mm", w: 413, h: 579 },
-        { id: "cet", name: "四六级考试", mm: "报名电子照", w: 144, h: 192 },
-        { id: "driver", name: "驾驶证", mm: "22 × 32 mm", w: 260, h: 378 },
-        { id: "identity", name: "身份证", mm: "26 × 32 mm", w: 358, h: 441 },
-        { id: "passport", name: "中国护照", mm: "全程网办电子照", w: 600, h: 800 },
-      ];
-      const colors = [["蓝色", "#438bc6"], ["白色", "#ffffff"], ["红色", "#d6383d"], ["灰色", "#d5d9e0"], ["透明", "transparent"]];
+      const sizes = PHOTO_SPECIFICATIONS.map(s => ({...s, w:s.width, h:s.height}));
+      const colors = PHOTO_BACKGROUNDS.map(c => [c.name, c.value]);
       const checkLabels = { person: "照片中有人像", single_person: "仅包含一个人", no_animal: "照片中不含动物" };
       const scenarios = [{ id: "pass", label: "检测通过" }, { id: "no_person", label: "无人像" }, { id: "multiple", label: "多人照片" }, { id: "animal", label: "动物照片" }, { id: "error", label: "检测异常" }];
       const taskModes = ["checking", "checkFailed", "checkError", "makingFailure"];
@@ -368,6 +359,7 @@
       }
       function feedback(text) { $("feedback").textContent = text; }
       function render() {
+        if (stage === "confirm" && !protectedVersion()) background = specificationBackgroundState(selected.id, background).background;
         const result = stage === "result", capture = stage === "capture", entry = stage === "entry", saved = stage === "saved";
         $("confirm-view").hidden = stage !== "confirm";
         $("result-view").hidden = !result;
@@ -380,11 +372,12 @@
         $("replace").textContent = saved ? "查看照片" : $("source").value === "camera" ? "重新拍摄" : "重新选择";
         $("capture-description").textContent = retaking ? "临时重拍：顶部返回取消重拍，恢复原确认页。" : "初始拍摄：顶部返回退出到调用页面。";
         $("primary").textContent = entry ? "重新进入制作示意" : capture ? "拍摄并确认（示意）" : result ? $("protection").value === "paid" ? "保存到知拍相册" : $("protection").value === "verifying" ? "查询解锁状态" : selectedVersion ? "解锁" + versionInfo().short + " ¥" + versionInfo().price : "请选择一个照片版本" : saved ? "返回相册" : "开始制作";
-        $("primary").disabled = result && !selectedVersion;
+        $("primary").disabled = (result && !selectedVersion) || (stage === "confirm" && !specificationBackgroundState(selected.id, background).background);
         $("size-label").textContent = selected.name + " · " + selected.mm;
         $("tags").innerHTML = sizes.slice(0, 3).map((s) => `<button type="button" data-spec="${s.id}" aria-pressed="${selected.id === s.id}">${s.name}</button>`).join("") + `<button type="button" id="more-size" aria-haspopup="dialog" aria-pressed="${!sizes.slice(0, 3).some((s) => s.id === selected.id)}">更多规格</button>`;
-        $("colors").innerHTML = colors.map(([name, color]) => `<button type="button" data-color="${color}" aria-pressed="${background === color}"><span class="wf-swatch ${color === "transparent" ? "wf-transparent" : ""}" style="background-color:${color};color:${["#ffffff", "#d5d9e0", "transparent"].includes(color) ? "#0032ff" : "#fff"}">${background === color ? "✓" : ""}</span>${name}</button>`).join("");
-        $("result-spec").textContent = selected.name + " · " + selected.mm + " · " + colors.find((c) => c[1] === background)[0];
+        $("colors").innerHTML = specificationBackgroundState(selected.id, background).colors.map(c=>[c.name,c.value]).map(([name, color]) => `<button type="button" data-color="${color}" aria-pressed="${background === color}"><span class="wf-swatch ${color === "transparent" ? "wf-transparent" : ""}" style="background-color:${color};color:${["#ffffff", "#d5d9e0", "transparent"].includes(color) ? "#0032ff" : "#fff"}">${background === color ? "✓" : ""}</span>${name}</button>`).join("");
+        $("result-spec").textContent = selected.name + " · " + selected.mm + " · " + (colors.find((c) => c[1] === background)?.[0] || "未选择底色");
+        $("color-policy-note").textContent = specificationBackgroundState(selected.id, background).message;
         renderVersions();
         if (saved) { $("saved-photo").innerHTML = portrait(); $("saved-photo").style.backgroundColor = background; $("saved-version").textContent = versionInfo().name + " · " + selected.name; }
 
@@ -559,6 +552,7 @@
           if ($("save-fails").checked) { $("save-fails").checked = false; saveError = true; render(); return feedback("保存失败分支示意：已付款身份、版本、金额与文件保留，再次点击只重试保存。"); }
           saveError = false; stage = "saved"; render(); $("stage-title").focus(); return feedback("文档示意付款或查询成功后，自动保存所购一版并进入完成；没有发生真实支付或相册写入。");
         }
+        if (!specificationBackgroundState(selected.id, background).background) return;
         openScenario();
       };
       $("back").onclick = () => {

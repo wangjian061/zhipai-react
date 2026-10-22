@@ -54,10 +54,11 @@ export function CameraConfirmationPage({ scope: s }) {
         )}
         <CameraConfirmationSettings
           specs={s.quickSpecs}
-          colors={s.colors}
+          colors={s.confirmationBackgroundState.colors}
           selectedSpec={s.draft?.specId}
           sizeLabel={s.confirmationSizeLabel}
-          background={s.draft?.background}
+          background={s.confirmationBackgroundState.background}
+          backgroundMessage={s.confirmationBackgroundState.message}
           disabled={!s.canConfigureConfirmation}
           locked={s.collectionCapture}
           onSpec={(id) => s.setConfirmationSpec(id)}
@@ -77,7 +78,7 @@ export function CameraConfirmationPage({ scope: s }) {
         <button
           type="button"
           className="primary-button"
-          disabled={s.busy || !s.sourcePhoto?.blob}
+          disabled={!s.canStartCreation}
           onClick={() => s.processDraft()}
         >
           开始制作

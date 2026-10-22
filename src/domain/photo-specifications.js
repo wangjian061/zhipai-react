@@ -1,3 +1,5 @@
+// Replaceable local configuration for the prototype, shaped like a backend catalog.
+// Allowed colors belong to spec IDs, never to a hardcoded name or width/height rule.
 // Pixel dimensions are output presets, not a promise of acceptance by an agency.
 // Source scope and physical/digital distinctions: docs/product/photo-specifications-1.4.6.md.
 export const PHOTO_BACKGROUNDS = [
@@ -92,22 +94,73 @@ export const PHOTO_SPECIFICATIONS = [
   },
 ];
 
+export function specificationBackgrounds(
+  specId,
+  specifications = PHOTO_SPECIFICATIONS,
+  palette = PHOTO_BACKGROUNDS,
+) {
+  if (!Array.isArray(specifications) || !Array.isArray(palette)) return [];
+  const spec = specifications.find((item) => item?.id === specId);
+  if (!spec || spec.enabled === false || !Array.isArray(spec.backgrounds))
+    return [];
+  const seen = new Set();
+  return spec.backgrounds.flatMap((id) => {
+    if (typeof id !== "string" || !id.trim()) return [];
+    const color = palette.find((item) => item?.id === id);
+    if (
+      !color ||
+      color.enabled === false ||
+      typeof color.name !== "string" ||
+      !color.name.trim() ||
+      typeof color.value !== "string" ||
+      !/^(?:#[\da-f]{3}|#[\da-f]{6}|#[\da-f]{8}|transparent)$/i.test(
+        color.value,
+      ) ||
+      seen.has(color.value)
+    )
+      return [];
+    seen.add(color.value);
+    return [color];
+  });
+}
+
+// No arbitrary fallback: keep valid → choose sole option → require a choice.
+export function specificationBackgroundState(
+  specId,
+  background,
+  specifications = PHOTO_SPECIFICATIONS,
+  palette = PHOTO_BACKGROUNDS,
+) {
+  const colors = specificationBackgrounds(specId, specifications, palette);
+  const selected =
+    colors.find(
+      (color) => color.id === background || color.value === background,
+    ) || (colors.length === 1 ? colors[0] : null);
+  return {
+    colors,
+    background: selected?.value || null,
+    backgroundId: selected?.id || null,
+    message: !colors.length
+      ? "当前规格的背景颜色暂不可用，请选择其他规格或稍后再试。"
+      : colors.length === 1
+        ? `该规格仅支持${colors[0].name}背景，已自动选定。`
+        : !selected
+          ? "请为当前规格选择背景颜色。"
+          : "",
+  };
+}
+
+// Strict validation, including direct routes/calls. Reconciliation is explicit above.
 export function specificationSelection(
   specId,
   background,
-  restrictColors = true,
+  specifications = PHOTO_SPECIFICATIONS,
+  palette = PHOTO_BACKGROUNDS,
 ) {
-  const spec = PHOTO_SPECIFICATIONS.find((item) => item.id === specId);
-  const color = PHOTO_BACKGROUNDS.find(
+  const color = specificationBackgrounds(specId, specifications, palette).find(
     (item) => item.id === background || item.value === background,
   );
-  if (
-    !spec ||
-    !color ||
-    (restrictColors && !spec.backgrounds.includes(color.id))
-  )
-    return null;
-  return { specId: spec.id, background: color.value };
+  return color ? { specId, background: color.value } : null;
 }
 
 export function specificationDimensions(spec) {
