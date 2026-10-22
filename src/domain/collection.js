@@ -1,4 +1,5 @@
 import { returnToOrderCenter } from "./order-routing.js";
+import { paymentResult } from "./order-status.js";
 import {
   registerController,
   registerStore,
@@ -721,6 +722,7 @@ registerController("collectionFlow", () => ({
       payment = {
         ...payment,
         status: "verifying",
+        paymentResult: paymentResult("verifying"),
         method: query ? payment.method : this.paymentMethod,
       };
       await persist();
@@ -734,6 +736,7 @@ registerController("collectionFlow", () => ({
       payment = {
         ...payment,
         status,
+        paymentResult: paymentResult(status, this.paymentOutcome),
         ...(status === "paid" ? { paidAt: Date.now() } : {}),
       };
       await persist();

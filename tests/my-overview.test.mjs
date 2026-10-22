@@ -94,7 +94,8 @@ test("sharing stays a separate page and authenticated hub displays only the mask
     React.createElement(MyOverview, { scope: s }),
   );
   assert.ok(html.includes("138****8000"));
-  assert.ok(html.includes("2笔待付款"));
+  assert.ok(!html.includes("笔待付款"));
+  assert.ok(html.includes("笔订单"));
   assert.ok(html.includes("<b>5</b>"));
   assert.ok(html.includes("帮助与服务") && html.includes("偏好与设置"));
   s.myView = "share";

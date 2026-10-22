@@ -16,6 +16,8 @@ import {
   downloadAlbumBlob,
   photoCropBounds,
 } from "./album.js";
+import { paymentResult } from "./order-status.js";
+import { transactOrder } from "./order-payment.js";
 const PHOTO_TOOLS = {
   repair: {
     title: "照片精修",
@@ -640,6 +642,7 @@ registerController("toolStudio", () => ({
     return "重新处理";
   },
   get step() {
+    if (this.currentOrder?.status === "verifying" && this.photo) return 1;
     return this.view === "saved"
       ? 2
       : !this.photo ||
@@ -716,6 +719,7 @@ registerController("toolStudio", () => ({
           : this.stage === "standardizing"
             ? "标准化处理中…"
             : "正在处理…";
+    if (this.currentOrder?.status === "verifying") return "查询付款结果";
     if (this.choosingPhoto && this.photo) return "下一步";
     if (!this.photo) return "选取照片";
     if (this.flowCompleted) return "再处理一张";
@@ -734,6 +738,7 @@ registerController("toolStudio", () => ({
   },
   get primaryEnabled() {
     if (this.busy) return false;
+    if (this.currentOrder?.status === "verifying") return true;
     if (!this.portraitEligible && this.photo) return false;
     if (this.choosingPhoto) return true;
     if (this.action === "repair" && this.photo && !this.repairOptionsReady)
@@ -922,6 +927,25 @@ registerController("toolStudio", () => ({
         else this.error = "订单不存在或不属于当前账号";
       });
     } else if (!resume) this.resumeRequest = null;
+    if (!resume && !this.photo && this.config.service) {
+      const token = this.task;
+      Promise.resolve(this.ordersStore.loading).then(() => {
+        if (
+          token !== this.task ||
+          this.photo ||
+          new URLSearchParams(location.search).get("page") !== "tool"
+        )
+          return;
+        const pending = this.ordersStore.items.find(
+          (o) =>
+            o.owner === getStore("account")?.session?.phone &&
+            !o.fixture &&
+            o.action === this.action &&
+            o.status === "verifying",
+        );
+        if (pending) this.resumeOrder(pending);
+      });
+    }
   },
   restoreInterruptedStage() {
     const needsPreparation =
@@ -939,6 +963,20 @@ registerController("toolStudio", () => ({
   },
   async start() {
     if (this.busy || this.action === "spec") return;
+    if (!this.ordersStore.ready) await this.ordersStore.loading;
+    const pending =
+      this.config.service &&
+      this.ordersStore.items.find(
+        (o) =>
+          o.owner === getStore("account")?.session?.phone &&
+          !o.fixture &&
+          o.action === this.action &&
+          o.status === "verifying",
+      );
+    if (pending) {
+      await this.resumeOrder(pending);
+      return;
+    }
     const photo = this.entryPhoto,
       kind = this.entryKind,
       restarting = this.flowCompleted;
@@ -1375,6 +1413,8 @@ registerController("toolStudio", () => ({
   async primary() {
     if (!this.primaryEnabled) return;
     if (this.flowCompleted) return this.start();
+    if (this.currentOrder?.status === "verifying")
+      return this.restoreExistingPayment();
     if (this.error) return this.retry();
     if (this.choosingPhoto && this.photo) {
       this.choosingPhoto = false;
@@ -1437,6 +1477,10 @@ registerController("toolStudio", () => ({
     return this.start();
   },
   async openPayment() {
+    if (!this.busy && this.currentOrder?.status === "verifying") {
+      await this.restoreExistingPayment();
+      return;
+    }
     if (!this.photo || !this.portraitEligible || this.busy) return;
     if (this.action === "repair" && !this.repairOptionsReady) return;
     if (!requireOrderAccount()) return;
@@ -1463,11 +1507,32 @@ registerController("toolStudio", () => ({
       await this.resumeOrder(order);
       return true;
     }
+    if (order.status === "verifying") {
+      const token = this.task;
+      this.paying = true;
+      this.error = "";
+      try {
+        await transactOrder(
+          {
+            key: `${order.action}:${order.id}`,
+            type: order.action,
+            sourceId: order.id,
+            amount: order.amount,
+          },
+          { query: true },
+        );
+      } catch (error) {
+        if (token === this.task)
+          this.error = error.message || "付款结果尚未确认，请重试查询。";
+      } finally {
+        if (token === this.task) this.paying = false;
+      }
+      if (token === this.task && this.currentOrder?.status === "paid")
+        await this.resumeOrder(this.currentOrder);
+      return true;
+    }
     this.panel = null;
-    this.error =
-      order.status === "verifying"
-        ? "付款结果待确认，请在「我的订单」查询后继续。"
-        : "当前订单已关闭，请重新选择照片。";
+    this.error = "当前订单已关闭，请重新选择照片。";
     return true;
   },
   async pay() {
@@ -1550,6 +1615,12 @@ registerController("toolStudio", () => ({
         });
       }
       if (outcome !== "success") {
+        await orders.commit((items) => {
+          const order = items.find((o) => o.id === id && o.owner === owner);
+          if (!order || order.status !== "pending")
+            throw Error("payment changed");
+          order.paymentResult = paymentResult("pending", outcome);
+        });
         if (token === this.task)
           this.error =
             outcome === "cancel"
@@ -1561,6 +1632,7 @@ registerController("toolStudio", () => ({
         const o = items.find((o) => o.id === id && o.owner === owner);
         if (!o || o.status !== "pending") throw Error("payment changed");
         o.status = "paid";
+        o.paymentResult = paymentResult("paid", "success");
         o.paidAt = Date.now();
         o.method = method;
         if (action === "outfit") {
@@ -1751,6 +1823,11 @@ registerController("toolStudio", () => ({
     this.stage = "ready";
     this.saveId = order.id;
     this.route("work");
+    if (order.status === "verifying") {
+      this.choosingPhoto = false;
+      this.error = "付款结果尚未确认，请先查询原订单。";
+      return;
+    }
     if (this.config.requiresPortrait) {
       if (this.paid && order.output)
         this.portraitCheck = { status: "passed", reasons: [] };

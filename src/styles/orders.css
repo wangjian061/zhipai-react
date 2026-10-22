@@ -149,17 +149,17 @@
   background: transparent;
   color: var(--filter-ink);
 }
-.orders-status-tabs [data-status="pending"] {
+.orders-status-tabs [data-status="refunding"] {
   --filter-ink: #874b12;
   --filter-fill: #fff5e6;
   --filter-selected: #ffe7c2;
   --filter-stroke: #c8934f;
 }
-.orders-status-tabs [data-status="verifying"] {
-  --filter-ink: #2457a8;
-  --filter-fill: #edf3ff;
-  --filter-selected: #dce8ff;
-  --filter-stroke: #86a6da;
+.orders-status-tabs [data-status="failed"] {
+  --filter-ink: #b32338;
+  --filter-fill: #fceff1;
+  --filter-selected: #f8dce2;
+  --filter-stroke: #d99aa6;
 }
 .orders-status-tabs [data-status="paid"] {
   --filter-ink: #216449;
@@ -167,7 +167,7 @@
   --filter-selected: #d5ecdf;
   --filter-stroke: #80b397;
 }
-.orders-status-tabs [data-status="closed"] {
+.orders-status-tabs [data-status="refunded"] {
   --filter-ink: #536277;
   --filter-fill: #edf0f5;
   --filter-selected: #dde4ee;
@@ -348,19 +348,19 @@
   line-height: 1.6;
   color: var(--order-tone, #203858);
 }
-.orders-page .is-pending {
+.orders-page .is-refunding {
   --order-tone: #92510b;
   --order-tint: #fff1e2;
 }
-.orders-page .is-verifying {
-  --order-tone: #265bc0;
-  --order-tint: #eaf0ff;
+.orders-page .is-failed {
+  --order-tone: #b32338;
+  --order-tint: #fceff1;
 }
 .orders-page .is-paid {
   --order-tone: #207359;
   --order-tint: #e5f4ed;
 }
-.orders-page .is-closed {
+.orders-page .is-refunded {
   --order-tone: #53637b;
   --order-tint: #edf0f4;
 }
@@ -862,4 +862,55 @@
 .order-cancel-dialog button:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+/* Read-only fulfillment belongs to print details, outside transaction filters. */
+.order-fulfillment-status {
+  color: #0032ff;
+  font-size: 13px;
+  font-weight: 600;
+}
+.order-fulfillment-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 20px 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.order-fulfillment-steps li {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #53637b;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+.order-fulfillment-steps li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: calc(50% + 8px);
+  top: 4px;
+  width: calc(100% - 16px);
+  height: 1px;
+  background: #e1e6ee;
+}
+.order-fulfillment-steps li.is-reached:not([aria-current])::after {
+  background: #b8c7e1;
+}
+.order-fulfillment-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #dce3ed;
+}
+.order-fulfillment-steps .is-reached .order-fulfillment-dot {
+  background: #0032ff;
+}
+.order-fulfillment-steps [aria-current="step"] {
+  color: #0032ff;
+  font-weight: 600;
 }

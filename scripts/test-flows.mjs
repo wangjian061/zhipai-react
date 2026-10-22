@@ -136,6 +136,25 @@ const adaptedFs = {
           .filter(Boolean);
         code = generate(routing).code + "\n" + code;
       }
+      if (["camera", "tools", "print", "collection"].includes(match[1])) {
+        const contract = parse(
+          fs.readFileSync(
+            path.join(root, "src/domain/order-status.js"),
+            "utf8",
+          ),
+          { sourceType: "module" },
+        );
+        contract.program.body = contract.program.body
+          .map((n) => (n.type === "ExportNamedDeclaration" ? n.declaration : n))
+          .filter(Boolean);
+        // Shared closure, installed once when a legacy harness loads multiple domains.
+        const body = generate(contract).code;
+        code =
+          "var orderStatusContract = globalThis.__orderStatusContract ||= (function(){" +
+          body +
+          ";return {paymentResult, transactionState, printFulfillment};})();var paymentResult=orderStatusContract.paymentResult,transactionState=orderStatusContract.transactionState,printFulfillment=orderStatusContract.printFulfillment;\n" +
+          code;
+      }
       const shim =
         "var registerController=(...args)=>Alpine.data(...args),registerStore=(...args)=>Alpine.store(...args),getStore=(...args)=>Alpine.store(...args),storageValue=value=>value;\n";
       // Some original harnesses intentionally suppress framework init. Preserve that boundary.

@@ -2,13 +2,14 @@
 import React, { useEffect, useReducer, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { OrdersContent } from "../../src/pages/OrdersPage.jsx";
-import OrderPaymentSheet from "../../src/components/OrderPaymentSheet.jsx";
+import OrderReceiptDialog from "../../src/components/OrderReceiptDialog.jsx";
 import {
   ORDER_TYPES,
   ORDER_STATES,
   money,
   orderTime,
 } from "../../src/domain/orders.js";
+import { PRINT_FULFILLMENT_STEPS } from "../../src/domain/order-status.js";
 import "../../src/styles/orders.css";
 import "../../src/styles/ui-sheets.css";
 import "./orders-preview.css";
@@ -16,14 +17,16 @@ import "./orders-preview.css";
 const makeRows = () =>
   [
     {
-      key: "print:demo-pending",
+      key: "print:demo-delivered",
       type: "print",
-      sourceId: "demo-pending",
+      sourceId: "demo-delivered",
       number: "DEMO202610210001",
       title: "背胶模切证件照",
       description: "二寸4张＋一寸8张 · 1版",
       amount: 2980,
-      state: "pending",
+      state: "paid",
+      fulfillment: PRINT_FULFILLMENT_STEPS[2],
+      fulfillmentSteps: PRINT_FULFILLMENT_STEPS,
       details: [],
       fees: [
         ["冲印费", "¥19.80"],
@@ -37,13 +40,13 @@ const makeRows = () =>
       },
     },
     {
-      key: "repair:demo-query",
+      key: "repair:demo-failed",
       type: "repair",
       number: "DEMO202610210002",
       title: "照片精修",
       description: "二寸",
       amount: 200,
-      state: "verifying",
+      state: "failed",
       details: [["照片规格", "二寸"]],
     },
     {
@@ -63,17 +66,37 @@ const makeRows = () =>
       ],
     },
     {
-      key: "outfit:demo-closed",
+      key: "outfit:demo-refunding",
       type: "outfit",
       number: "DEMO202610210004",
       title: "照片换装",
       description: "二寸 · 男装衬衫",
       amount: 200,
-      state: "closed",
+      state: "refunding",
+      refund: { status: "refunding", amount: 200, requestedAt: 1792638000000 },
       details: [
         ["照片规格", "二寸"],
         ["所选服装", "男装衬衫"],
       ],
+    },
+    {
+      key: "repair:demo-refunded",
+      type: "repair",
+      number: "DEMO202610220005",
+      title: "照片精修",
+      description: "二寸 · 白底",
+      amount: 200,
+      state: "refunded",
+      details: [
+        ["照片规格", "二寸"],
+        ["背景颜色", "白色"],
+      ],
+      refund: {
+        status: "refunded",
+        amount: 200,
+        refundedAt: 1792639000000,
+        method: "original",
+      },
     },
     {
       key: "electronic:demo-missing",
@@ -128,12 +151,6 @@ function Preview() {
           ...row,
           thumbnailBlob: row.missing ? null : this.photo,
           payment: this.stateName(row.state),
-          action:
-            row.state === "pending"
-              ? "继续付款"
-              : row.state === "verifying"
-                ? "查询付款结果"
-                : null,
         }));
       },
       get typed() {
@@ -144,6 +161,12 @@ function Preview() {
       get list() {
         return this.typed.filter(
           (o) => this.status === "all" || o.state === this.status,
+        );
+      },
+      get canConfirmReceipt() {
+        return (
+          this.current?.state === "paid" &&
+          this.current?.fulfillment?.id === "delivered"
         );
       },
       get current() {
@@ -207,7 +230,13 @@ function Preview() {
         }
       },
       openSheet(kind) {
-        if (this.paymentBusy) return;
+        if (
+          this.paymentBusy ||
+          kind !== "receipt" ||
+          !this.canConfirmReceipt ||
+          !this.online
+        )
+          return;
         this.paymentFocus = document.activeElement;
         this.sheet = kind;
         this.paymentOpen = kind === "payment";
@@ -220,44 +249,22 @@ function Preview() {
         const focus = this.paymentFocus;
         setTimeout(() => focus?.isConnected && focus.focus(), 0);
       },
-      continue(o = this.current) {
-        if (!o?.action || !this.online) return;
-        this.queryMode = o.state === "verifying";
-        this.paymentOutcome = "success";
-        this.openSheet("payment");
-      },
-      async pay() {
-        if (this.paymentBusy || !this.current || !this.online) return;
+      async confirmReceipt() {
+        if (
+          this.paymentBusy ||
+          this.sheet !== "receipt" ||
+          !this.canConfirmReceipt ||
+          !this.online
+        )
+          return;
         this.paymentBusy = true;
-        this.paymentError = "";
-        const row = this.rows.find((r) => r.key === this.selected);
-        const outcome = this.paymentOutcome;
-        await new Promise((r) => setTimeout(r, 900));
-        row.state =
-          outcome === "success"
-            ? "paid"
-            : outcome === "failure"
-              ? "pending"
-              : "verifying";
-        this.queryMode = row.state === "verifying";
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        this.rows.find((r) => r.key === this.selected).fulfillment =
+          PRINT_FULFILLMENT_STEPS[3];
         this.paymentBusy = false;
-        if (row.state === "paid") {
-          row.paidAt = Date.now();
-          row.method = this.paymentMethod;
-          this.closePayment();
-          this.notice = "付款成功";
-        } else
-          this.paymentError =
-            row.state === "pending"
-              ? "付款未完成，订单已保留。"
-              : "付款结果仍待确认，请稍后再次查询。";
-        redraw();
-      },
-      async cancel() {
-        if (this.paymentBusy || !this.current || !this.online) return;
-        this.rows.find((r) => r.key === this.selected).state = "closed";
         this.closePayment();
-        this.notice = "订单已关闭";
+        this.notice = "已确认收货";
+        redraw();
       },
       reset() {
         this.closePayment();
@@ -281,14 +288,22 @@ function Preview() {
         }
         if (name === "offline") this.online = false;
         const keys = {
-          pending: "print:demo-pending",
-          verifying: "repair:demo-query",
+          delivered: "print:demo-delivered",
+          failed: "repair:demo-failed",
           paid: "electronic:demo-paid",
-          closed: "outfit:demo-closed",
+          refunding: "outfit:demo-refunding",
+          refunded: "repair:demo-refunded",
           missing: "electronic:demo-missing",
           long: "collection:demo-long",
         };
         if (keys[name]) this.selected = keys[name];
+        const progress = PRINT_FULFILLMENT_STEPS.find(
+          (item) => item.id === name,
+        );
+        if (progress) {
+          this.rows[0].fulfillment = progress;
+          this.selected = this.rows[0].key;
+        }
       },
     };
     ref.current = new Proxy(data, {
@@ -315,17 +330,18 @@ function Preview() {
       <aside>
         <h1>订单交互验收</h1>
         <p>
-          复用当前订单组件及样式。全部是隔离的内存样例，不读取或改动你的订单；模拟付款不会扣款，刷新复原。
+          复用当前订单组件及样式。全部是隔离的内存样例，不读取或改动你的订单；退款与物流均为演示，刷新复原。
         </p>
         <a href="./orders-1.4.6.md">产品执行规范</a>
         <h2>选择场景</h2>
         <div className="preview-options">
           {[
             ["all", "列表"],
-            ["pending", "待付款与取消"],
-            ["verifying", "付款确认中"],
-            ["paid", "已支付 · 长编号"],
-            ["closed", "已关闭"],
+            ...PRINT_FULFILLMENT_STEPS.map((item) => [item.id, item.label]),
+            ["failed", "支付失败"],
+            ["paid", "支付成功 · 长编号"],
+            ["refunding", "退款中"],
+            ["refunded", "已退款"],
             ["missing", "缺照片与历史参数"],
             ["long", "长项目名"],
             ["empty", "无购买记录"],
@@ -343,7 +359,7 @@ function Preview() {
           ))}
         </div>
         <p>
-          可操作类型筛选、状态筛选、整卡详情、编号展开、付款结果选择、查询、取消及返回。付款窗口展开「原型演示」切换结果。
+          可操作类型与状态单选、票据详情、编号展开、四段冲印进度、确认收货及返回；不提供申请退款入口。
         </p>
         <p>
           列表滚动、抽屉与底栏使用实际组件；本样例不验证持久化和真实支付接口。三端验收还需覆盖原生安全区、系统返回和动态字体。
@@ -390,7 +406,7 @@ function Preview() {
           <OrdersContent s={s} />
         </section>
         <div id="orders-modal-layer" />
-        <OrderPaymentSheet s={s} />
+        <OrderReceiptDialog s={s} />
         <div className="preview-home-indicator" aria-hidden="true" />
       </div>
     </main>

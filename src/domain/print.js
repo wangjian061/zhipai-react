@@ -18,6 +18,46 @@ import {
   renderPhotoBlob,
 } from "./album.js";
 import { openZhipaiShare } from "./my.js";
+import {
+  paymentResult,
+  printFulfillment,
+  transactionState,
+} from "./order-status.js";
+const receiptUpdates = new Set();
+export async function confirmPrintReceipt(id, owner) {
+  if (!owner || getStore("account")?.session?.phone !== owner)
+    throw Error("请重新登录后查看订单。");
+  if (typeof navigator !== "undefined" && navigator.onLine === false)
+    throw Error("网络不可用，请恢复连接后重试。");
+  if (receiptUpdates.has(id)) return;
+  receiptUpdates.add(id);
+  try {
+    await getStore("printLibrary").commit((state) => {
+      const order = state.orders.find(
+        (o) => o.id === id && o.owner === owner && !o.fixture,
+      );
+      if (
+        getStore("account")?.session?.phone !== owner ||
+        !order ||
+        transactionState(order, "print") !== "paid"
+      )
+        throw Error("订单状态已变化，请重新查看。");
+      if (printFulfillment(order)?.id === "received") return;
+      if (printFulfillment(order)?.id !== "delivered")
+        throw Error("照片尚未送达，暂不能确认收货。");
+      const now = new Date().toISOString();
+      order.fulfillment = {
+        ...order.fulfillment,
+        status: "received",
+        confirmedAt: now,
+      };
+      order.status = "completed";
+      (order.events ||= []).push({ title: "用户确认收货", time: now });
+    });
+  } finally {
+    receiptUpdates.delete(id);
+  }
+}
 function printId() {
   if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
   const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -182,6 +222,7 @@ export async function updatePrintTransaction(id, owner, expectedStatus, patch) {
       order.status = "producing";
       order.attempt = "success";
       order.paidAt = patch.paidAt || now;
+      order.fulfillment = { status: "producing" };
       (order.events ||= []).push({ title: "支付成功，等待制作", time: now });
       if (state.draft.orderId === id) {
         state.draft.completedOrderId = id;
@@ -295,9 +336,12 @@ function plainPrintState(state) {
       total: o.total,
       method: o.method || null,
       attempt: o.attempt || null,
+      paymentResult: o.paymentResult ? storageValue(o.paymentResult) : null,
+      refund: o.refund ? storageValue(o.refund) : null,
+      fulfillment: o.fulfillment ? storageValue(o.fulfillment) : null,
       createdAt: o.createdAt,
       paidAt: o.paidAt || null,
-      events: o.events.map((e) => ({
+      events: (o.events || []).map((e) => ({
         title: e.title,
         time: e.time,
       })),
@@ -652,9 +696,13 @@ registerController("printStudio", () => ({
       : "";
   },
   get fulfillmentIndex() {
-    return ["producing", "printing", "shipped", "completed"].indexOf(
-      this.order?.status,
-    );
+    return [
+      "producing",
+      "printing",
+      "shipped",
+      "delivered",
+      "completed",
+    ].indexOf(this.order?.status);
   },
   get disabled() {
     return (
@@ -751,7 +799,8 @@ registerController("printStudio", () => ({
         verifying: "付款确认中",
         producing: "待制作",
         printing: "制作中",
-        shipped: "已发货",
+        shipped: "邮寄中",
+        delivered: "待签收",
         completed: "已签收",
         cancelled: "已取消",
       }[status] || "状态未知"
@@ -765,6 +814,7 @@ registerController("printStudio", () => ({
         producing: "付款已确认，等待安排照片制作。",
         printing: "照片正在制作，发货后可在这里查看物流。",
         shipped: "照片已交由快递配送，可查看运单信息。",
+        delivered: "照片已送达，等待你确认收货。",
         completed: "照片已签收，本次冲印已完成。",
         cancelled: "订单已取消，你可以重新选择照片冲印。",
       }[status] || ""
@@ -948,9 +998,9 @@ registerController("printStudio", () => ({
         item.owner === getStore("account")?.session?.phone,
     );
     if (!order) return false;
-    this.route("order", {
-      order: order.id,
-    });
+    this.route("confirm", { order: order.id }, true);
+    this.orderId = order.id;
+    this.showModal("resolution");
     this.message = "请先确认原订单付款结果，再发起新的冲印。";
     return true;
   },
@@ -1254,7 +1304,13 @@ registerController("printStudio", () => ({
           o.id === this.draft.completedOrderId &&
           o.owner &&
           o.owner === getStore("account")?.session?.phone &&
-          ["producing", "printing", "shipped", "completed"].includes(o.status),
+          [
+            "producing",
+            "printing",
+            "shipped",
+            "delivered",
+            "completed",
+          ].includes(o.status),
       );
     if (this.view === "orders")
       this.orderListReturn = [
@@ -1702,6 +1758,7 @@ registerController("printStudio", () => ({
         o.status = "verifying";
         o.method = method;
         o.attempt = "processing";
+        o.paymentResult = paymentResult("verifying");
       });
       await new Promise((resolve) => setTimeout(resolve, 1000));
       if (outcome === "timeout") {
@@ -1741,6 +1798,7 @@ registerController("printStudio", () => ({
           const o = state.orders.find((o) => o.id === id);
           o.status = "pending";
           o.attempt = outcome;
+          o.paymentResult = paymentResult("pending", outcome);
         });
         this.message =
           outcome === "cancel"
@@ -1762,7 +1820,9 @@ registerController("printStudio", () => ({
       const now = new Date().toISOString();
       o.status = "producing";
       o.attempt = "success";
+      o.paymentResult = paymentResult("paid", "success");
       o.paidAt = now;
+      o.fulfillment = { status: "producing" };
       o.events.push({
         title: "支付成功，等待制作",
         time: now,
@@ -1794,6 +1854,7 @@ registerController("printStudio", () => ({
           const o = state.orders.find((o) => o.id === id);
           o.status = "pending";
           o.attempt = "unpaid";
+          o.paymentResult = paymentResult("pending", "unpaid");
         });
         this.modal = null;
         this.$store.printUi.opened = false;
@@ -1845,6 +1906,7 @@ registerController("printStudio", () => ({
           });
         } else if (o.status === "printing") {
           o.status = "shipped";
+          o.fulfillment = { status: "shipped", shippedAt: now };
           o.tracking = {
             carrier: "物流配送",
             number: "DEMO-" + o.number,
@@ -1854,9 +1916,14 @@ registerController("printStudio", () => ({
             time: now,
           });
         } else {
-          o.status = "completed";
+          o.status = "delivered";
+          o.fulfillment = {
+            ...o.fulfillment,
+            status: "delivered",
+            deliveredAt: now,
+          };
           o.events.push({
-            title: "签收，订单完成",
+            title: "已送达，等待用户确认收货",
             time: now,
           });
         }

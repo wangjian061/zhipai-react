@@ -110,13 +110,7 @@ export default function MyOverview({ scope: s }) {
                   ? s.$store.orderCenter.count
                   : "—"}
               </b>
-              <span>
-                {account.loggedIn
-                  ? s.$store.orderCenter.pendingCount
-                    ? `${s.$store.orderCenter.pendingCount}笔待付款`
-                    : "笔订单"
-                  : "登录后查看"}
-              </span>
+              <span>{account.loggedIn ? "笔订单" : "登录后查看"}</span>
             </span>
           </button>
         </div>

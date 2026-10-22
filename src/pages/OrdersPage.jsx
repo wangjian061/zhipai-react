@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Controller, View } from "../runtime/components.jsx";
 import ToolNavigation from "../components/ToolNavigation.jsx";
-import OrderPaymentSheet from "../components/OrderPaymentSheet.jsx";
+import OrderReceiptDialog from "../components/OrderReceiptDialog.jsx";
 import OrderThumbnail from "../components/OrderThumbnail.jsx";
 import {
   clampOrderTabScroll,
@@ -291,19 +291,14 @@ function Detail({ s, order: o }) {
             aria-label="交易概览"
           >
             <div className="order-transaction-heading">
-              <span>付款状态</span>
+              <span>交易状态</span>
               <strong>{o.payment}</strong>
             </div>
             <div className="order-transaction-amount">
-              <span>
-                {{ pending: "待付金额", paid: "实付金额" }[o.state] ||
-                  "订单金额"}
-              </span>
+              <span>{o.state === "failed" ? "订单金额" : "实付金额"}</span>
               <strong>{s.money(o.amount)}</strong>
             </div>
-            {o.state === "verifying" && (
-              <p>付款结果尚未确认，请先查询，勿重复付款。</p>
-            )}
+            {o.failureReason && <p>{o.failureReason}</p>}
           </section>
           <section className="order-receipt-section" aria-label="购买内容">
             <div className="order-product">
@@ -324,11 +319,83 @@ function Detail({ s, order: o }) {
               <Fields rows={o.fees} />
             </section>
           )}
+          {o.refund && (
+            <section
+              className={`order-receipt-section${o.fees?.length ? "" : " order-ticket-seam"}`}
+              aria-label="退款信息"
+            >
+              <h2>退款信息</h2>
+              <Fields
+                rows={[
+                  [
+                    o.state === "refunded" ? "已退金额" : "申请退款金额",
+                    s.money(
+                      Number.isInteger(o.refund.amount) && o.refund.amount >= 0
+                        ? o.refund.amount
+                        : undefined,
+                    ),
+                  ],
+                  [
+                    "申请时间",
+                    o.refund.requestedAt && s.orderTime(o.refund.requestedAt),
+                  ],
+                  [
+                    "退款时间",
+                    o.state === "refunded" && o.refund.refundedAt
+                      ? s.orderTime(o.refund.refundedAt)
+                      : "",
+                  ],
+                  [
+                    "退款方式",
+                    {
+                      original: "原路退回",
+                      wechat: "微信支付",
+                      alipay: "支付宝",
+                    }[o.refund.method] || "",
+                  ],
+                ]}
+              />
+            </section>
+          )}
+          {isPrint && o.fulfillment && (
+            <section className="order-receipt-section" aria-label="冲印进度">
+              <div className="order-section-heading">
+                <h2>冲印进度</h2>
+                <strong className="order-fulfillment-status">
+                  {o.fulfillment.label}
+                </strong>
+              </div>
+              <ol
+                className="order-fulfillment-steps"
+                aria-label={`当前进度：${o.fulfillment.label}`}
+              >
+                {o.fulfillmentSteps.map((step, index) => {
+                  const active = o.fulfillment.id === step.id;
+                  const current = o.fulfillmentSteps.findIndex(
+                    (s) => s.id === o.fulfillment.id,
+                  );
+                  return (
+                    <li
+                      key={step.id}
+                      className={index <= current ? "is-reached" : ""}
+                      aria-current={active ? "step" : undefined}
+                    >
+                      <span
+                        className="order-fulfillment-dot"
+                        aria-hidden="true"
+                      />
+                      <span>{step.label}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+              <p>{o.fulfillment.description}</p>
+            </section>
+          )}
           {isPrint && (
             <section className="order-receipt-section" aria-label="配送信息">
               <div className="order-section-heading">
                 <h2>配送信息</h2>
-                {o.delivery && <span>{o.delivery}</span>}
               </div>
               {o.address ? (
                 <>
@@ -366,7 +433,7 @@ function Detail({ s, order: o }) {
             </section>
           )}
           <section
-            className={`order-receipt-section${o.fees?.length ? "" : " order-ticket-seam"}`}
+            className={`order-receipt-section${o.fees?.length || o.refund ? "" : " order-ticket-seam"}`}
             aria-label="订单信息"
           >
             <h2>订单信息</h2>
@@ -408,30 +475,15 @@ function Detail({ s, order: o }) {
           </p>
         )}
       </div>
-      {o.action && (
+      {s.canConfirmReceipt && (
         <footer className="orders-footer">
-          <div
-            className={
-              isPrint && o.state === "pending" ? "orders-footer-actions" : ""
-            }
+          <button
+            className="orders-primary"
+            disabled={s.paymentBusy || !s.online}
+            onClick={() => s.openSheet("receipt")}
           >
-            {isPrint && o.state === "pending" && (
-              <button
-                className="orders-secondary"
-                disabled={s.paymentBusy || !s.online}
-                onClick={() => s.openSheet("cancel")}
-              >
-                取消订单
-              </button>
-            )}
-            <button
-              className="orders-primary"
-              disabled={s.paymentBusy || !s.online}
-              onClick={() => s.continue(o)}
-            >
-              {o.action}
-            </button>
-          </div>
+            确认收货
+          </button>
         </footer>
       )}
     </>
@@ -681,7 +733,7 @@ export default function OrdersPage() {
           >
             <OrdersContent s={s} />
           </View>
-          <OrderPaymentSheet s={s} />
+          <OrderReceiptDialog s={s} />
         </>
       )}
     </Controller>

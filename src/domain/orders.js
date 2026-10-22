@@ -4,7 +4,13 @@ import {
   getStore,
 } from "../runtime/state.js";
 import { readElectronicOrders } from "./camera.js";
-import { transactOrder, cancelPrintOrder } from "./order-payment.js";
+import { confirmPrintReceipt } from "./print.js";
+import {
+  TRANSACTION_STATES,
+  transactionState,
+  printFulfillment,
+  PRINT_FULFILLMENT_STEPS,
+} from "./order-status.js";
 import { COLLECTION_PROJECTS } from "./collection.js";
 import { accountRoute } from "./account.js";
 import { orderNavigate, safeOrderPath } from "./order-routing.js";
@@ -17,32 +23,14 @@ export const ORDER_TYPES = [
   { id: "outfit", label: "照片换装" },
   { id: "collection", label: "专项采集" },
 ];
-export const ORDER_STATES = [
-  { id: "all", label: "全部" },
-  { id: "pending", label: "待付款" },
-  { id: "verifying", label: "付款确认中" },
-  { id: "paid", label: "已支付" },
-  { id: "closed", label: "已关闭" },
-];
-const paymentState = (status) =>
-  ["paid", "producing", "printing", "shipped", "completed"].includes(status)
-    ? "paid"
-    : status === "cancelled"
-      ? "closed"
-      : status === "verifying"
-        ? "verifying"
-        : "pending";
-const paymentFields = (status) => {
-  const state = paymentState(status);
+export const ORDER_STATES = TRANSACTION_STATES;
+const paymentFields = (record, type) => {
+  const state = transactionState(record, type);
   return {
     state,
-    payment: ORDER_STATES.find((s) => s.id === state).label,
-    action:
-      state === "pending"
-        ? "继续付款"
-        : state === "verifying"
-          ? "查询付款结果"
-          : null,
+    payment: ORDER_STATES.find((s) => s.id === state)?.label || "",
+    refund: ["refunding", "refunded"].includes(state) ? record.refund : null,
+    failureReason: state === "failed" ? record.paymentResult?.reason || "" : "",
   };
 };
 const outfitName = (id) => {
@@ -108,7 +96,7 @@ export function normalizeOrders({
   // Read-only purchase identification; no photo viewer or business result links.
   for (const r of print.filter(own))
     add("print", r, {
-      ...paymentFields(r.status),
+      ...paymentFields(r, "print"),
       title: ["adhesive-mixed-4-8", "adhesive-two-8"].includes(
         r.layoutSnapshot?.id || r.layout,
       )
@@ -119,9 +107,8 @@ export function normalizeOrders({
       description: printDescription(r),
       address: r.address,
       tracking: r.tracking,
-      delivery:
-        { shipped: "已发货", completed: "已签收" }[r.status] ||
-        (["producing", "printing"].includes(r.status) ? "待发货" : ""),
+      fulfillment: printFulfillment(r),
+      fulfillmentSteps: PRINT_FULFILLMENT_STEPS,
       sourceStatus: r.status,
       details: [],
       fees: [
@@ -139,7 +126,7 @@ export function normalizeOrders({
     .filter(own)
     .filter((r) => ["repair", "outfit"].includes(r.action)))
     add(r.action, r, {
-      ...paymentFields(r.status),
+      ...paymentFields(r),
       title: r.action === "repair" ? "照片精修" : "照片换装",
       thumbnailBlob: thumbnail(r.output, r.photo?.blob),
       amount: r.amount,
@@ -174,7 +161,7 @@ export function normalizeOrders({
     });
   for (const r of electronic.filter(own))
     add("electronic", r, {
-      ...paymentFields(r.status),
+      ...paymentFields(r),
       title: [
         "证件照制作",
         { ordinary: "普通版", retouched: "精修版" }[r.versionId] ||
@@ -210,7 +197,7 @@ export function normalizeOrders({
         method: payment.method,
       },
       {
-        ...paymentFields(payment.status),
+        ...paymentFields(payment),
         title: p?.name || "专项采集",
         thumbnailBlob: thumbnail(r.photo?.blob),
         amount: payment.amount,
@@ -225,9 +212,9 @@ export function normalizeOrders({
       },
     );
   }
-  return [...new Map(entries.map((e) => [e.key, e])).values()].sort(
-    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
-  );
+  return [
+    ...new Map(entries.filter((e) => e.state).map((e) => [e.key, e])).values(),
+  ].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 }
 export function money(cents) {
   return Number.isFinite(cents) ? "¥" + (cents / 100).toFixed(2) : "金额待确认";
@@ -285,9 +272,6 @@ registerStore("orderCenter", {
   get count() {
     return this.all.length;
   },
-  get pendingCount() {
-    return this.all.filter((o) => o.state === "pending").length;
-  },
   get errors() {
     return [
       this.error,
@@ -322,16 +306,12 @@ registerStore("orderCenter", {
 registerStore("orderUi", { opened: false });
 registerController("ordersFlow", () => ({
   onRoute: null,
-  paymentOpen: false,
   paymentBusy: false,
   paymentError: "",
-  paymentMethod: "wechat",
-  paymentOutcome: "success",
   paymentReturn: "",
   paymentFocus: null,
   sheet: "",
   sheetReturn: "",
-  queryMode: false,
   scrollRevision: 0,
   online: typeof navigator === "undefined" || navigator.onLine !== false,
   type: "all",
@@ -385,7 +365,7 @@ registerController("ordersFlow", () => ({
     return ORDER_TYPES.find((t) => t.id === type)?.label || "订单";
   },
   stateName(state) {
-    return ORDER_STATES.find((t) => t.id === state)?.label || "待付款";
+    return ORDER_STATES.find((t) => t.id === state)?.label || "订单状态";
   },
   money,
   orderTime,
@@ -470,84 +450,62 @@ registerController("ordersFlow", () => ({
   login() {
     accountRoute("welcome", this.url());
   },
-  continue(order = this.current) {
-    if (!order || !order.action || !this.online) return;
-    if (this.current?.key !== order.key) return;
-    this.paymentError = "";
-    this.paymentMethod = order.method || "wechat";
-    this.paymentOutcome = "success";
-    this.paymentReturn = this.url(order.key);
-    this.paymentFocus =
-      typeof document === "undefined" ? null : document.activeElement;
-    this.queryMode = order.state === "verifying";
-    this.openSheet("payment");
+  get canConfirmReceipt() {
+    const order = this.current;
+    return (
+      order?.type === "print" &&
+      order.state === "paid" &&
+      order.fulfillment?.id === "delivered"
+    );
   },
   openSheet(kind) {
-    if (this.paymentBusy || !["payment", "cancel"].includes(kind)) return;
+    if (
+      this.paymentBusy ||
+      kind !== "receipt" ||
+      !this.canConfirmReceipt ||
+      !this.online
+    )
+      return;
     this.paymentError = "";
     this.sheetReturn = location.pathname + location.search;
     this.paymentReturn = this.sheetReturn;
     this.paymentFocus =
       typeof document === "undefined" ? null : document.activeElement;
     this.sheet = kind;
-    this.paymentOpen = kind === "payment";
     this.$store.orderUi.opened = true;
-  },
-  async cancel() {
-    if (this.sheet !== "cancel" || this.paymentBusy) return;
-    this.paymentBusy = true;
-    this.paymentError = "";
-    try {
-      await cancelPrintOrder(this.current);
-      this.paymentBusy = false;
-      this.closePayment();
-      this.notice = "订单已关闭";
-    } catch (error) {
-      this.paymentError = error.message || "取消未保存，请重试。";
-    } finally {
-      this.paymentBusy = false;
-    }
   },
   closePayment() {
     if (this.paymentBusy) return;
-    this.paymentOpen = false;
     this.sheet = "";
     this.$store.orderUi.opened = false;
     const focus = this.paymentFocus;
     this.paymentFocus = null;
-    setTimeout(() => focus?.isConnected && focus.focus(), 0);
+    setTimeout(() => {
+      if (focus?.isConnected) focus.focus({ preventScroll: true });
+      else if (typeof document !== "undefined") {
+        const heading = document.querySelector?.(
+          "#orders-page .tool-navigation-title",
+        );
+        if (heading) {
+          heading.tabIndex = -1;
+          heading.focus({ preventScroll: true });
+        }
+      }
+    }, 0);
   },
-  async pay() {
+  async confirmReceipt() {
     const order = this.current;
-    if (!this.paymentOpen || this.paymentBusy || !order?.action) return;
+    if (this.sheet !== "receipt" || this.paymentBusy || !order) return;
     this.paymentBusy = true;
     this.paymentError = "";
     this.notice = "";
     try {
-      const status = await transactOrder(order, {
-        method: this.paymentMethod,
-        outcome: this.paymentOutcome,
-        query: this.queryMode,
-      });
-      await this.hub.refresh();
-      if (status === "paid") {
-        this.paymentBusy = false;
-        this.closePayment();
-        this.notice = "付款成功";
-      } else {
-        const wasQuery = this.queryMode;
-        this.queryMode = status === "verifying";
-        this.paymentError =
-          status === "verifying"
-            ? wasQuery
-              ? "付款结果仍待确认，请稍后再次查询。"
-              : "付款结果待确认，请先查询，勿重复付款。"
-            : "付款未完成，订单已保留。";
-      }
+      await confirmPrintReceipt(order.sourceId, this.owner);
+      this.paymentBusy = false;
+      this.closePayment();
+      this.notice = "已确认收货";
     } catch (error) {
-      this.paymentError = error.message || "付款结果未能确认，请稍后查询。";
-      await this.hub.refresh();
-      this.queryMode = this.current?.state === "verifying";
+      this.paymentError = error.message || "确认收货未保存，请重试。";
     } finally {
       this.paymentBusy = false;
     }

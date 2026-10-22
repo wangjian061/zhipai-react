@@ -38,6 +38,7 @@ import {
   renderCameraPhoto,
 } from "./photo-making.js";
 // Personal photo production owns its stream and durable unlock session.
+import { paymentResult } from "./order-status.js";
 let liveCameraStream = null;
 let cameraDatabase;
 function openCameraDatabase() {
@@ -167,7 +168,14 @@ export async function updateElectronicReceipt(
       // Limit writes to payment / delivery bookkeeping, preserving the purchased version.
       if (
         Object.keys(patch).some(
-          (k) => !["status", "method", "paidAt", "savedId"].includes(k),
+          (k) =>
+            ![
+              "status",
+              "method",
+              "paidAt",
+              "savedId",
+              "paymentResult",
+            ].includes(k),
         )
       )
         return fail("订单更新内容无效。");
@@ -2292,6 +2300,7 @@ registerController("cameraStudio", () => ({
         throw Error("version mismatch");
       const order = session.draft.order;
       order.status = "verifying";
+      order.paymentResult = paymentResult("verifying");
       // Persist the same order before contacting payment; retries never create a second order.
       await writeCameraSession(session);
       if (token === this.task)
@@ -2300,6 +2309,7 @@ registerController("cameraStudio", () => ({
         };
       const status = await cameraPaymentResult(order, this.paymentOutcome);
       order.status = status;
+      order.paymentResult = paymentResult(status, this.paymentOutcome);
       order.method = this.paymentMethod;
       if (status === "paid") order.paidAt = Date.now();
       await writeCameraSession(session);
@@ -2347,6 +2357,7 @@ registerController("cameraStudio", () => ({
     try {
       const status = await cameraPaymentResult(session.draft.order, "success");
       session.draft.order.status = status;
+      session.draft.order.paymentResult = paymentResult(status, "success");
       session.draft.order.paidAt = Date.now();
       await writeCameraSession(session);
       if (

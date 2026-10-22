@@ -1,16 +1,21 @@
-// Domain and source-render tests only; no browser interaction.
+// Source-render and domain contracts only. No browser automation or real payment.
 import test, { after } from "node:test";
 import assert from "node:assert/strict";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "vite";
-import { getStore, createController } from "../src/runtime/state.js";
+import {
+  getStore,
+  createController,
+  storageValue,
+} from "../src/runtime/state.js";
 let locationValue = new URL("http://127.0.0.1:4180/?page=orders");
 Object.defineProperty(globalThis, "location", {
   configurable: true,
   get: () => locationValue,
 });
 globalThis.window = new EventTarget();
+globalThis.document = { activeElement: null };
 globalThis.history = {
   pushState(a, b, url) {
     locationValue = new URL(url, locationValue);
@@ -20,9 +25,19 @@ globalThis.history = {
   },
 };
 await import("../src/domain/index.js");
-const { normalizeOrders, money, shortenedOrderNumber, orderTime } =
-  await import("../src/domain/orders.js");
-const { openOrderCenter, returnToOrderCenter, safeOrderPath } =
+const {
+  normalizeOrders,
+  ORDER_STATES,
+  money,
+  shortenedOrderNumber,
+  orderTime,
+} = await import("../src/domain/orders.js");
+const { paymentResult, transactionState, printFulfillment } =
+  await import("../src/domain/order-status.js");
+const { confirmPrintReceipt, plainPrintState } =
+  await import("../src/domain/print.js");
+const { transactOrder } = await import("../src/domain/order-payment.js");
+const { openOrderCenter, printOrderPath, safeOrderPath } =
   await import("../src/domain/order-routing.js");
 const owner = "13800008000",
   other = "13900008000",
@@ -37,7 +52,18 @@ function data() {
   return {
     owner,
     print: [
-      { ...base, id: "same", status: "shipped", total: 2400, quantity: 2 },
+      {
+        ...base,
+        id: "same",
+        status: "shipped",
+        total: 2980,
+        base: 1980,
+        shipping: 1000,
+        quantity: 1,
+        addon: 0,
+        layout: "adhesive-mixed-4-8",
+        events: [],
+      },
     ],
     tools: [
       { ...base, id: "same", action: "repair", status: "paid" },
@@ -79,128 +105,6 @@ function data() {
     ],
   };
 }
-test("five sources retain identification thumbnails without exposing business actions", () => {
-  const list = normalizeOrders(data());
-  assert.equal(list.length, 5);
-  assert.equal(new Set(list.map((o) => o.key)).size, 5);
-  assert.ok(list.every((o) => o.state === "paid"));
-  assert.ok(list.every((o) => o.thumbnailBlob === blob));
-  assert.ok(
-    list.every(
-      (o) => !o.action && !o.photo && !o.progress && !o.result && !o.savedId,
-    ),
-  );
-  assert.equal(
-    list
-      .find((o) => o.type === "outfit")
-      .details.find(([k]) => k === "所选服装")[1],
-    "女装 · 衬衫",
-  );
-  const c = list.find((o) => o.type === "collection");
-  assert.equal(c.payment, "已支付");
-  assert.equal(c.number, "receipt");
-  assert.equal(c.amount, 1800);
-  assert.equal(money(980), "¥9.80");
-  assert.equal(money(undefined), "金额待确认");
-});
-test("orders exclude foreign, anonymous and fixture records; retries and immutable source ids do not duplicate", () => {
-  const d = data();
-  d.tools.push(
-    { ...base, id: "same", action: "repair", status: "paid" },
-    { ...base, id: "foreign", owner: other, action: "repair" },
-    { ...base, id: "old", owner: null, action: "repair" },
-  );
-  d.collection.push(
-    { ...d.collection[0], id: "example", fixture: true },
-    {
-      ...d.collection[0],
-      id: "legacy",
-      payment: { id: "legacy-receipt", status: "paid", legacyPrototype: true },
-    },
-  );
-  assert.equal(normalizeOrders(d).length, 5);
-  assert.equal(normalizeOrders({ ...d, owner: null }).length, 0);
-  assert.equal(normalizeOrders({ ...d, owner: other }).length, 1);
-  for (const status of [
-    "pending",
-    "verifying",
-    "producing",
-    "completed",
-    "cancelled",
-  ]) {
-    const p = normalizeOrders({
-      owner,
-      print: [{ ...base, id: "p", total: 400, status }],
-    })[0];
-    assert.equal(
-      p.state,
-      {
-        pending: "pending",
-        verifying: "verifying",
-        producing: "paid",
-        completed: "paid",
-        cancelled: "closed",
-      }[status],
-    );
-  }
-});
-test("personal orders identify the purchased version and price once with the matching thumbnail", () => {
-  const d = data();
-  d.electronic = [
-    {
-      ...base,
-      id: "ordinary-order",
-      versionId: "ordinary",
-      versionName: "普通证件照",
-      amount: 198,
-      status: "paid",
-      savedId: "ordinary-photo",
-      specification: "295 × 413 px",
-    },
-    {
-      ...base,
-      id: "retouched-order",
-      versionId: "retouched",
-      versionName: "精修证件照",
-      amount: 980,
-      status: "paid",
-      savedId: "retouched-photo",
-      specification: "295 × 413 px",
-    },
-  ];
-  const orders = normalizeOrders(d).filter(
-    (order) => order.type === "electronic",
-  );
-  assert.equal(orders.length, 2);
-  const ordinary = orders.find((order) => order.amount === 198);
-  const refined = orders.find((order) => order.amount === 980);
-  assert.equal(ordinary.title, "证件照制作 · 普通版");
-  assert.equal(refined.title, "证件照制作 · 精修版");
-  assert.deepEqual(ordinary.details, [["文件尺寸", "295 × 413 px"]]);
-  assert.equal(ordinary.description, "电子照片");
-  assert.equal(ordinary.thumbnailBlob, blob);
-  assert.equal(refined.savedId, undefined);
-});
-test("collection review states never change payment grouping or its captured price", () => {
-  for (const [status, state, tone] of [
-    [22, "processing", "blue"],
-    [23, "processing", "red"],
-    [24, "processing", "orange"],
-    [25, "processing", "orange"],
-    [26, "processing", "orange"],
-    [30, "complete", "green"],
-    ["uploaded", "complete", "green"],
-    ["upload_failed", "processing", "red"],
-  ]) {
-    const d = data();
-    d.collection[0].status = status;
-    const o = normalizeOrders(d).find((o) => o.type === "collection");
-    assert.equal(o.state, "paid", String(status));
-    assert.equal(o.tone, undefined);
-    assert.equal(o.progress, undefined);
-    assert.equal(o.amount, 1800);
-  }
-});
 function scope() {
   const d = data();
   getStore("account").session = { phone: owner };
@@ -212,6 +116,7 @@ function scope() {
     const st = getStore(key);
     st[listKey] = items;
     st.ready = true;
+    st.busy = false;
     st.error = "";
   }
   const hub = getStore("orderCenter");
@@ -224,87 +129,48 @@ function scope() {
   s.sync();
   return s;
 }
-test("hub counts, type/status filters and contextual navigation use one account-scoped source", () => {
-  const s = scope();
-  assert.equal(s.hub.count, 5);
-  assert.equal(s.count("paid"), 5);
-  s.filter("outfit", "all");
-  assert.equal(s.list.length, 1);
+function printScope(status = "delivered") {
+  const s = scope(),
+    store = getStore("printLibrary"),
+    commit = store.commit;
+  store.orders = [
+    {
+      ...data().print[0],
+      id: "checkout",
+      status,
+      paymentResult: paymentResult("paid"),
+      paidAt: 1001,
+      method: "wechat",
+      address: {
+        name: "测试",
+        phone: "13800000000",
+        region: "测试地区",
+        street: "测试地址",
+      },
+      tracking: { number: "REAL-NUMBER", carrier: "本单承运方" },
+      fulfillment: {
+        status: status === "completed" ? "received" : status,
+        deliveredAt: "2026-10-22T02:00:00Z",
+      },
+    },
+  ];
+  store.commit = async (mutate) => {
+    const next = plainPrintState(store);
+    mutate(next);
+    Object.assign(store, plainPrintState(next));
+  };
+  s.filter("print", "paid");
   s.open(s.list[0]);
   s.sync();
-  assert.equal(s.current.type, "outfit");
-  const back = s.url();
-  s.continue();
-  assert.equal(location.pathname + location.search, back);
-  assert.equal(s.paymentOpen, false);
-  s.sync();
-  assert.equal(s.current.type, "outfit");
-  s.back();
-  s.sync();
-  assert.equal(s.selected, "");
-  assert.equal(s.type, "outfit");
-  s.filter("all", "all");
-  assert.equal(s.list.length, 5);
-  s.open(s.list[0]);
-  getStore("account").session = { phone: other };
-  assert.equal(s.current, null);
-  assert.equal(s.hub.count, 0);
-  assert.equal(safeOrderPath("https://bad.test/?page=orders"), "/?page=my");
-  openOrderCenter("print", "/?page=print&print=preview");
-  assert.equal(location.searchParams.get("type"), "print");
-  assert.equal(location.searchParams.get("back"), "/?page=print&print=preview");
-});
-test("status capsules are single-choice, intersect type, and retain their selection after detail back", () => {
-  const s = scope();
-  getStore("toolOrders").items.push(
-    { ...base, id: "pending-repair", action: "repair", status: "pending" },
-    { ...base, id: "query-repair", action: "repair", status: "verifying" },
-  );
-  s.filter("repair", "pending");
-  assert.deepEqual(
-    s.list.map((o) => o.sourceId),
-    ["pending-repair"],
-  );
-  s.filter(s.type, "verifying");
-  assert.equal(s.status, "verifying");
-  assert.deepEqual(
-    s.list.map((o) => o.sourceId),
-    ["query-repair"],
-  );
-  s.filter("all", s.status);
-  const revision = s.scrollRevision;
-  s.open(s.list[0]);
-  s.sync();
-  s.back();
-  s.sync();
-  assert.equal(s.status, "verifying");
-  assert.equal(s.type, "all");
-  assert.equal(s.scrollRevision, revision);
-  s.filter("repair", "pending,paid");
-  assert.equal(s.status, "all");
-  assert.equal(s.list.length, 3);
-});
-test("business detail back actions return to their originating filtered order hub", () => {
-  scope();
-  const target =
-    "/?page=orders&type=collection&status=processing&id=collection%3Areceipt&back=%2F%3Fpage%3Dmy";
-  for (const [name, view] of [
-    ["collectionFlow", "detail"],
-    ["albumCenter", "detail"],
-    ["printStudio", "order"],
-    ["toolStudio", "work"],
-    ["cameraStudio", "editor"],
-  ]) {
-    locationValue = new URL(
-      "http://127.0.0.1:4180/?page=tool&orderBack=" +
-        encodeURIComponent(target),
-    );
-    const s = createController(name, [], {}).scope;
-    s.view = view;
-    s.back();
-    assert.equal(location.search, target.slice(1), name);
-  }
-});
+  return {
+    s,
+    store,
+    restore() {
+      store.commit = commit;
+      getStore("orderUi").opened = false;
+    },
+  };
+}
 const server = await createServer({
   server: { middlewareMode: true, hmr: false },
   appType: "custom",
@@ -313,418 +179,511 @@ after(() => server.close());
 const { OrdersContent } = await server.ssrLoadModule(
   "/src/pages/OrdersPage.jsx",
 );
-test("source rendering exposes transaction filters, paid details without business actions and signed-out states", () => {
-  const s = scope();
-  let html = renderToStaticMarkup(React.createElement(OrdersContent, { s }));
-  assert.match(html, /订单状态/);
-  assert.match(html, /订单类型/);
+const render = (s) =>
+  renderToStaticMarkup(React.createElement(OrdersContent, { s }));
+
+test("order center has exactly four transaction states plus the all filter", () => {
+  assert.deepEqual(
+    ORDER_STATES.map((s) => s.label),
+    ["全部", "支付成功", "支付失败", "退款中", "已退款"],
+  );
+  const s = scope(),
+    html = render(s);
   assert.match(html, /role="tablist"/);
   assert.match(html, /role="radiogroup"/);
   assert.equal((html.match(/aria-checked="true"/g) || []).length, 1);
-  assert.doesNotMatch(html, /共\d+笔|已加载\d+笔|orders-type-filter/);
-  assert.doesNotMatch(html, /搜索订单|orders-search|<form|order-service-icon/);
-  assert.match(html, /暂无订单照片/);
-  assert.match(html, /¥9.80/);
-  assert.match(html, /照片换装/);
-  s.open(s.list.find((o) => o.type === "collection"));
-  s.sync();
-  html = renderToStaticMarkup(React.createElement(OrdersContent, { s }));
-  assert.doesNotMatch(html, /审核未通过|查看采集任务|orders-footer/);
-  assert.match(html, /已支付/);
-  assert.match(html, /receipt/);
-  assert.doesNotMatch(html, /student-id/);
-  getStore("account").session = null;
-  html = renderToStaticMarkup(React.createElement(OrdersContent, { s }));
-  assert.match(html, /登录后查看订单/);
-  assert.doesNotMatch(html, /receipt|¥18.00/);
+  assert.doesNotMatch(
+    html,
+    /待付款|付款确认中|已关闭|搜索订单|共\d+笔|已加载\d+笔/,
+  );
 });
-
-test("print details share one canonical route including legacy result links and retained filters", async () => {
-  const s = scope();
-  const { printOrderPath } = await import("../src/domain/order-routing.js");
-  s.filter("print", "paid");
-  s.open(s.list[0]);
-  s.sync();
-  const canonical = location.pathname + location.search;
-  assert.equal(printOrderPath("same"), canonical);
-  s.continue();
-  assert.equal(location.pathname + location.search, canonical);
-  const p = createController("printStudio", [], {}).scope;
-  p.$nextTick = () => {};
-  p.$el = { querySelectorAll: () => [] };
-  const onRoute = () => p.syncLocation();
-  window.addEventListener("zhipai-route", onRoute);
-  try {
-    for (const view of ["order", "result"]) {
-      locationValue = new URL(
-        "http://127.0.0.1:4180/?page=print&print=" +
-          view +
-          "&order=same&orderBack=" +
-          encodeURIComponent(canonical),
-      );
-      p.syncLocation();
-      assert.equal(location.pathname + location.search, canonical);
-      assert.equal(p.order.id, "same");
-      assert.equal(p.view, "order");
-    }
-    p.route("order", { order: "same" }, true);
-    assert.equal(location.pathname + location.search, canonical);
-    s.sync();
-    s.back();
-    s.sync();
-    assert.equal(s.type, "print");
-    assert.equal(s.status, "paid");
-    assert.equal(location.searchParams.has("q"), false);
-    assert.equal(s.selected, "");
-    locationValue = new URL(
-      "http://127.0.0.1:4180/?page=print&print=order&order=same",
-    );
-    const fallback = new URL(
-      printOrderPath("same", "/?page=print&print=order&order=same"),
-      location.origin,
-    );
-    assert.equal(fallback.searchParams.get("back"), "/?page=my");
-  } finally {
-    window.removeEventListener("zhipai-route", onRoute);
-  }
+test("five sources retain their own identifiers, amounts and readonly thumbnails", () => {
+  const list = normalizeOrders(data());
+  assert.equal(list.length, 5);
+  assert.equal(new Set(list.map((o) => o.key)).size, 5);
+  assert.ok(
+    list.every(
+      (o) =>
+        o.state === "paid" &&
+        o.payment === "支付成功" &&
+        o.thumbnailBlob === blob &&
+        !o.action &&
+        !o.result &&
+        !o.savedId,
+    ),
+  );
+  const c = list.find((o) => o.type === "collection");
+  assert.equal(c.number, "receipt");
+  assert.equal(c.amount, 1800);
+  assert.equal(
+    list
+      .find((o) => o.type === "outfit")
+      .details.find(([k]) => k === "所选服装")[1],
+    "女装 · 衬衫",
+  );
+  assert.equal(money(980), "¥9.80");
+  assert.equal(money(undefined), "金额待确认");
 });
-
-function printScope() {
-  const s = scope(),
-    store = getStore("printLibrary");
-  store.busy = false;
-  store.orders = [
+test("hidden records remain unchanged; cancellation, timeouts and processing failures are not payment failures", () => {
+  const records = [
+    "pending",
+    "verifying",
+    "cancelled",
+    "closed",
+    "failed",
+    "processing",
+    "unknown",
+  ].map((status, i) => ({ ...base, id: String(i), status }));
+  records.push(
     {
       ...base,
-      id: "checkout",
+      id: "cancel",
       status: "pending",
-      total: 2980,
-      base: 1980,
-      shipping: 1000,
-      quantity: 1,
-      addon: 0,
-      layout: "adhesive-mixed-4-8",
-      layoutSnapshot: { id: "adhesive-mixed-4-8", name: "4大8小" },
-      address: {
-        name: "测试",
-        phone: "13800000000",
-        region: "测试省市",
-        street: "测试地址",
-      },
-      events: [],
+      paymentResult: paymentResult("pending", "cancel"),
     },
-  ];
-  store.draft.orderId = "checkout";
-  const commit = store.commit;
-  store.commit = async (mutate) => {
-    store.busy = true;
-    try {
-      mutate(store);
-    } finally {
-      store.busy = false;
-    }
+    {
+      ...base,
+      id: "unknown",
+      status: "verifying",
+      paymentResult: paymentResult("pending", "failure"),
+    },
+  );
+  const before = structuredClone(records);
+  assert.deepEqual(normalizeOrders({ owner, electronic: records }), []);
+  assert.deepEqual(records, before);
+  const failure = {
+    ...base,
+    id: "definite",
+    status: "pending",
+    paymentResult: {
+      ...paymentResult("pending", "failure"),
+      reason: "本次付款被拒绝",
+    },
   };
-  s.filter("print", "pending");
+  assert.equal(
+    normalizeOrders({ owner, electronic: [failure] })[0].state,
+    "failed",
+  );
+  failure.status = "paid";
+  assert.equal(
+    transactionState(failure),
+    "paid",
+    "a stale failed attempt cannot override confirmed payment",
+  );
+});
+test("foreign, anonymous, fixture and compatibility-only records never become current account transactions", () => {
+  const d = data();
+  d.tools.push(
+    { ...base, id: "same", action: "repair", status: "paid" },
+    { ...base, id: "foreign", owner: other, action: "repair", status: "paid" },
+    { ...base, id: "anon", owner: null, action: "repair", status: "paid" },
+  );
+  d.collection.push(
+    { ...d.collection[0], fixture: true },
+    {
+      ...d.collection[0],
+      id: "legacy",
+      payment: { id: "legacy", status: "paid", legacyPrototype: true },
+    },
+  );
+  assert.equal(normalizeOrders(d).length, 5);
+  assert.equal(normalizeOrders({ ...d, owner: null }).length, 0);
+  assert.equal(normalizeOrders({ ...d, owner: other }).length, 1);
+});
+test("refund facts have their own state and never rewrite actual print progress or other source data", () => {
+  const d = data();
+  for (const state of ["refunding", "refunded"]) {
+    d.print[0].refund = {
+      status: state,
+      amount: 1000,
+      requestedAt: 1002,
+      ...(state === "refunded" ? { refundedAt: 1003, method: "original" } : {}),
+    };
+    const before = structuredClone(d.print[0]);
+    const p = normalizeOrders(d).find((o) => o.type === "print");
+    assert.equal(p.state, state);
+    assert.equal(p.amount, 2980);
+    assert.equal(p.refund.amount, 1000);
+    assert.equal(p.fulfillment.id, "shipped");
+    assert.deepEqual(d.print[0], before);
+  }
+  assert.equal(
+    transactionState({
+      status: "pending",
+      refund: { status: "refunded", amount: 200 },
+    }),
+    null,
+    "invalid refund on an unpaid draft is not fabricated as a refund",
+  );
+});
+test("all five payment sources expose refund and definite failure consistently", () => {
+  for (const state of ["failed", "refunding", "refunded"]) {
+    const d = data();
+    const patch =
+      state === "failed"
+        ? {
+            status: "pending",
+            paymentResult: paymentResult("pending", "failure"),
+          }
+        : { status: "paid", refund: { status: state, amount: 100 } };
+    Object.assign(d.print[0], patch);
+    d.tools.forEach((r) => Object.assign(r, patch));
+    Object.assign(d.electronic[0], patch);
+    Object.assign(d.collection[0].payment, patch);
+    assert.ok(normalizeOrders(d).every((r) => r.state === state));
+  }
+});
+test("legacy print producing and printing share one stage; delivery and user receipt are distinct", () => {
+  for (const [status, id] of [
+    ["producing", "producing"],
+    ["printing", "producing"],
+    ["shipped", "shipped"],
+    ["delivered", "delivered"],
+    ["completed", "received"],
+  ]) {
+    const r = { status };
+    assert.equal(transactionState(r, "print"), "paid");
+    assert.equal(printFulfillment(r).id, id);
+    assert.equal(r.fulfillment, undefined);
+  }
+  assert.equal(printFulfillment({ status: "pending" }), null);
+  assert.equal(
+    printFulfillment({ status: "shipped", fulfillment: { status: "unknown" } }),
+    null,
+  );
+  assert.equal(
+    transactionState({ status: "pending", attempt: "failure" }, "print"),
+    "failed",
+  );
+  assert.equal(
+    transactionState({ status: "pending", attempt: "timeout" }, "print"),
+    null,
+  );
+});
+test("type and transaction filters are single-choice, intersect, and return retains filters", () => {
+  const s = scope();
+  getStore("toolOrders").items.push(
+    {
+      ...base,
+      id: "fail",
+      action: "repair",
+      status: "pending",
+      paymentResult: paymentResult("pending", "failure"),
+    },
+    {
+      ...base,
+      id: "refund",
+      action: "repair",
+      status: "paid",
+      refund: { status: "refunding", amount: 200 },
+    },
+  );
+  s.filter("repair", "failed");
+  assert.deepEqual(
+    s.list.map((o) => o.sourceId),
+    ["fail"],
+  );
+  s.filter(s.type, "refunding");
+  assert.deepEqual(
+    s.list.map((o) => o.sourceId),
+    ["refund"],
+  );
+  const revision = s.scrollRevision;
   s.open(s.list[0]);
   s.sync();
-  const p = createController("printStudio", [], {}).scope;
-  p.$nextTick = () => {};
-  p.online = true;
-  p.syncLocation();
-  return {
-    s,
-    p,
-    store,
-    restore() {
-      store.commit = commit;
-      getStore("printUi").opened = false;
-    },
-  };
-}
-
-test("unified print detail continues the original payment, resolves unknown results and never creates another order", async () => {
-  const { s, p, store, restore } = printScope();
-  globalThis.document = { activeElement: null };
-  const onRoute = () => p.syncLocation();
-  window.addEventListener("zhipai-route", onRoute);
-  try {
-    const path = location.pathname + location.search;
-    p.continuePayment();
-    assert.equal(p.modal, "payment");
-    assert.equal(p.checkoutPayment, false);
-    p.demoOutcome = "timeout";
-    await Promise.all([p.pay(), p.pay()]);
-    assert.equal(p.order.status, "verifying");
-    assert.equal(p.modal, null);
-    assert.equal(store.orders.length, 1);
-    assert.equal(p.order.total, 2980);
-    p.continuePayment();
-    assert.equal(p.modal, null);
-    p.showModal("resolution");
-    p.resolution = "unknown";
-    await p.resolvePayment();
-    assert.equal(p.order.status, "verifying");
-    assert.equal(p.modal, "resolution");
-    p.resolution = "paid";
-    await p.resolvePayment();
-    assert.equal(p.order.status, "producing");
-    assert.equal(p.modal, null);
-    assert.equal(location.pathname + location.search, path);
-    assert.equal(s.current.payment, "已支付");
-    assert.equal(s.current.state, "paid");
-    assert.equal(store.draft.completedOrderId, "checkout");
-    assert.equal(store.orders.length, 1);
-  } finally {
-    window.removeEventListener("zhipai-route", onRoute);
-    restore();
-  }
+  s.back();
+  s.sync();
+  assert.equal(s.type, "repair");
+  assert.equal(s.status, "refunding");
+  assert.equal(s.scrollRevision, revision);
+  s.filter("all", "pending");
+  assert.equal(s.status, "all");
+  assert.equal(s.list.length, 7);
+  s.filter("repair", "paid,failed");
+  assert.equal(s.status, "all");
+  assert.equal(s.list.length, 3);
 });
-
-test("detail payment success stays on the same detail; cancel only applies to pending orders", async () => {
-  const { p, store, restore } = printScope();
-  try {
-    const path = location.pathname + location.search;
-    p.continuePayment();
-    await p.pay();
-    assert.equal(p.order.status, "producing");
-    assert.equal(p.modal, null);
-    assert.equal(getStore("printUi").opened, false);
-    assert.equal(location.pathname + location.search, path);
-    await p.cancelOrder();
-    assert.equal(p.order.status, "producing");
-    p.order.status = "pending";
-    p.showModal("cancel");
-    await p.cancelOrder();
-    assert.equal(p.order.status, "cancelled");
-    assert.equal(p.modal, null);
-    assert.ok(p.order.photo.blob);
-    assert.ok(p.order.address);
-    assert.equal(store.draft.orderId, null);
-  } finally {
-    restore();
-  }
-});
-
-test("print detail shows transaction and delivery without layout previews or production controls", () => {
-  const { s, p, restore } = printScope();
-  try {
-    for (const status of [
-      "pending",
-      "verifying",
-      "producing",
-      "printing",
-      "shipped",
-      "completed",
-      "cancelled",
-    ]) {
-      p.order.status = status;
-      const html = renderToStaticMarkup(
-        React.createElement(OrdersContent, { s, print: p }),
-      );
-      assert.match(html, /配送信息/);
-      assert.doesNotMatch(html, /查看排版照片|原型演示|订单记录|<img/);
-      assert.match(html, /¥29.80/);
-      assert.doesNotMatch(html, /查看冲印详情|客服|背胶模切排版预览/);
-      assert.equal(
-        (html.match(/<h1[^>]*[^>]*title="订单详情"/g) || []).length,
-        1,
-      );
-      assert.equal(html.includes("继续付款"), status === "pending");
-      assert.equal(html.includes("取消订单"), status === "pending");
-      assert.equal(html.includes("查询付款结果"), status === "verifying");
-      if (["producing", "printing", "shipped", "completed"].includes(status))
-        assert.match(html, /实付金额/);
-    }
-  } finally {
-    restore();
-  }
-});
-
-test("nested order controller retains its own lifecycle route handler", () => {
-  const { p, restore } = printScope();
-  p.onRoute = () => p.syncLocation();
-  const printHandler = p.onRoute;
-  const orders = createController("ordersFlow", [], p);
-  try {
-    orders.start();
-    assert.equal(p.onRoute, printHandler);
-    assert.notEqual(orders.scope.onRoute, printHandler);
-  } finally {
-    orders.stop();
-    restore();
-  }
-});
-
-test("all paid service details use read-only thumbnails, unique specifications and no business entry", () => {
+test("hidden-state deep links never expose a pending detail or recreate payment actions", () => {
   const s = scope();
-  for (const order of s.hub.all) {
-    s.open(order);
+  getStore("toolOrders").items.push({
+    ...base,
+    id: "hidden",
+    action: "repair",
+    status: "verifying",
+  });
+  locationValue = new URL(
+    "http://127.0.0.1:4180/?page=orders&type=repair&status=verifying&id=repair:hidden",
+  );
+  s.sync();
+  assert.equal(s.status, "all");
+  assert.equal(s.current, null);
+  const html = render(s);
+  assert.match(html, /未找到该订单/);
+  assert.doesNotMatch(html, /继续付款|查询付款结果|确认付款|取消订单/);
+  assert.equal(getStore("toolOrders").items.at(-1).status, "verifying");
+});
+test("order center rejects obsolete payment/cancel/type dialogs and remains transaction-only", () => {
+  const s = scope();
+  s.open(s.list[0]);
+  s.sync();
+  for (const kind of ["payment", "cancel", "types", "receipt"]) {
+    s.openSheet(kind);
+    assert.equal(s.sheet, "");
+  }
+  for (const o of s.hub.all) {
+    s.open(o);
     s.sync();
-    const html = renderToStaticMarkup(
-      React.createElement(OrdersContent, { s }),
-    );
+    const html = render(s);
+    assert.match(html, /交易状态/);
     assert.match(html, /order-thumbnail/);
     assert.doesNotMatch(
       html,
-      /<img|查看照片|下载照片|查看排版|继续处理|查看采集任务|客服|服务进度|orders-footer/,
+      /查看照片|下载照片|查看排版|继续处理|查看采集任务|客服|服务进度|orders-footer|确认付款/,
     );
-    if (order.description && !order.details.length)
-      assert.equal(html.split(order.description).length - 1, 1);
-    for (const [label, value] of order.details) {
-      assert.ok(html.includes(label));
-      if (value) assert.ok(html.includes(String(value)));
-    }
   }
 });
-
-test("non-print payments stay in orders, reuse receipts, query uncertain responses and never process photos", async () => {
-  const { transactOrder } = await import("../src/domain/order-payment.js");
+test("print detail renders a readonly four-step progress and only delivered paid orders can confirm", () => {
+  const { s, store, restore } = printScope();
+  try {
+    for (const id of ["producing", "shipped", "delivered", "received"]) {
+      store.orders[0].fulfillment.status = id;
+      const html = render(s);
+      assert.match(html, /冲印进度/);
+      assert.match(html, /制作中/);
+      assert.match(html, /邮寄中/);
+      assert.match(html, /待签收/);
+      assert.match(html, /已签收/);
+      assert.equal(html.includes("orders-footer"), id === "delivered");
+      assert.doesNotMatch(html, /查看排版|客服|原型演示/);
+    }
+    store.orders[0].fulfillment.status = "delivered";
+    store.orders[0].refund = { status: "refunding", amount: 2980 };
+    assert.equal(s.canConfirmReceipt, false);
+    assert.doesNotMatch(render(s), /orders-footer/);
+  } finally {
+    restore();
+  }
+});
+test("confirmation cancel changes nothing; save is idempotent, preserves price/photo and persists received", async () => {
+  const { s, store, restore } = printScope();
+  try {
+    const before = structuredClone(storageValue(store.orders[0]));
+    s.openSheet("receipt");
+    assert.equal(s.sheet, "receipt");
+    s.back();
+    assert.equal(s.sheet, "");
+    assert.deepEqual(store.orders[0], before);
+    s.openSheet("receipt");
+    await Promise.all([s.confirmReceipt(), s.confirmReceipt()]);
+    const r = store.orders[0];
+    assert.equal(r.fulfillment.status, "received");
+    assert.ok(r.fulfillment.confirmedAt);
+    assert.equal(r.status, "completed");
+    assert.equal(s.current.state, "paid");
+    assert.equal(s.sheet, "");
+    assert.equal(s.notice, "已确认收货");
+    assert.equal(r.total, 2980);
+    assert.equal(await r.photo.blob.text(), "photo");
+    assert.equal(r.events.length, 1);
+    await confirmPrintReceipt(r.id, owner);
+    assert.equal(store.orders[0].events.length, 1);
+    assert.equal(s.canConfirmReceipt, false);
+    assert.doesNotMatch(render(s), /orders-footer/);
+    const snapshot = plainPrintState(store);
+    assert.deepEqual(
+      snapshot.orders[0].fulfillment,
+      store.orders[0].fulfillment,
+    );
+    assert.deepEqual(
+      snapshot.orders[0].paymentResult,
+      store.orders[0].paymentResult,
+    );
+  } finally {
+    restore();
+  }
+});
+test("confirmation guards identity, transit, refund, offline and failed storage", async () => {
+  const { s, store, restore } = printScope();
+  const commit = store.commit;
+  try {
+    await assert.rejects(confirmPrintReceipt("checkout", other), /登录/);
+    store.orders[0].fulfillment.status = "shipped";
+    await assert.rejects(confirmPrintReceipt("checkout", owner), /尚未送达/);
+    store.orders[0].fulfillment.status = "delivered";
+    store.orders[0].refund = { status: "refunded", amount: 2980 };
+    await assert.rejects(confirmPrintReceipt("checkout", owner), /状态已变化/);
+    delete store.orders[0].refund;
+    const originalNavigator = Object.getOwnPropertyDescriptor(
+      globalThis,
+      "navigator",
+    );
+    Object.defineProperty(globalThis, "navigator", {
+      configurable: true,
+      value: { onLine: false },
+    });
+    await assert.rejects(confirmPrintReceipt("checkout", owner), /网络/);
+    if (originalNavigator)
+      Object.defineProperty(globalThis, "navigator", originalNavigator);
+    else delete globalThis.navigator;
+    store.commit = async () => {
+      throw Error("storage failure");
+    };
+    s.openSheet("receipt");
+    await s.confirmReceipt();
+    assert.match(s.paymentError, /storage failure/);
+    assert.equal(s.sheet, "receipt");
+    assert.equal(s.paymentBusy, false);
+    assert.equal(store.orders[0].fulfillment.status, "delivered");
+    store.commit = commit;
+    await s.confirmReceipt();
+    assert.equal(store.orders[0].fulfillment.status, "received");
+  } finally {
+    restore();
+  }
+});
+test("browser back dismisses receipt confirmation before leaving its detail", () => {
+  const { s, restore } = printScope();
+  try {
+    const detail = location.pathname + location.search;
+    s.openSheet("receipt");
+    locationValue = new URL(s.url(""), location.origin);
+    s.sync();
+    assert.equal(s.sheet, "");
+    assert.equal(location.pathname + location.search, detail);
+    assert.ok(s.selected);
+  } finally {
+    restore();
+  }
+});
+test("refund detail displays only recorded facts, distinguishes refund amount from paid amount", () => {
+  const s = scope();
+  const r = getStore("toolOrders").items[0];
+  r.paidAt = 1001;
+  r.refund = {
+    status: "refunded",
+    amount: 100,
+    refundedAt: 2000,
+    method: "original",
+  };
+  s.open(s.hub.all.find((o) => o.sourceId === r.id && o.type === "repair"));
+  s.sync();
+  let html = render(s);
+  assert.match(html, /实付金额/);
+  assert.match(html, /已退金额/);
+  assert.match(html, /¥1.00/);
+  assert.match(html, /¥2.00/);
+  assert.match(html, /原路退回/);
+  assert.doesNotMatch(html, /申请退款|确认收货|orders-footer/);
+  r.refund = { status: "refunding" };
+  html = render(s);
+  assert.match(html, /申请退款金额/);
+  assert.match(html, /金额待确认/);
+  assert.doesNotMatch(html, /退款时间|原路退回|¥0.00/);
+});
+test("failed payments show order amount, not paid amount or invented failure reasons", () => {
+  const s = scope(),
+    r = getStore("toolOrders").items[0];
+  r.status = "pending";
+  r.paymentResult = paymentResult("pending", "failure");
+  s.open(s.hub.all.find((o) => o.type === "repair"));
+  s.sync();
+  const html = render(s);
+  assert.match(html, /支付失败/);
+  assert.match(html, /订单金额/);
+  assert.doesNotMatch(html, /实付金额|付款被拒|orders-footer/);
+});
+test("signed-out and account changes do not leak current order details", () => {
+  const s = scope();
+  s.open(s.list[0]);
+  s.sync();
+  getStore("account").session = { phone: other };
+  assert.equal(s.current, null);
+  assert.equal(s.hub.count, 0);
+  getStore("account").session = null;
+  assert.match(render(s), /登录后查看订单/);
+  assert.doesNotMatch(render(s), /receipt|¥18.00/);
+});
+test("original payment adapter still queries unknown results, reuses ids and does not process photos", async () => {
   const s = scope(),
     store = getStore("toolOrders"),
-    originalCommit = store.commit;
+    commit = store.commit;
   store.items = [
     { ...base, id: "pay-tool", action: "repair", status: "pending" },
   ];
   store.commit = async (mutate) => {
-    const items = store.items.map((r) => ({ ...r }));
-    mutate(items);
-    store.items = items;
+    const next = store.items.map((r) => ({ ...r }));
+    mutate(next);
+    store.items = next;
+  };
+  const descriptor = {
+    key: "repair:pay-tool",
+    type: "repair",
+    sourceId: "pay-tool",
+    amount: 200,
   };
   try {
-    s.open(s.hub.all.find((o) => o.sourceId === "pay-tool"));
-    s.sync();
-    const path = location.href;
-    s.continue();
-    assert.equal(s.paymentOpen, true);
-    assert.equal(getStore("orderUi").opened, true);
-    s.paymentOutcome = "unknown";
-    await Promise.all([s.pay(), s.pay()]);
-    assert.equal(store.items.length, 1);
+    await transactOrder(descriptor, { outcome: "failure" });
+    assert.equal(
+      s.hub.all.find((o) => o.key === descriptor.key).state,
+      "failed",
+    );
+    await transactOrder(descriptor, { outcome: "unknown" });
     assert.equal(store.items[0].status, "verifying");
-    assert.equal(s.current.state, "verifying");
-    await assert.rejects(transactOrder(s.current), /状态已变化/);
-    assert.equal(store.items[0].output, undefined);
-    s.paymentOutcome = "success";
-    await s.pay();
-    assert.equal(s.current.state, "paid");
-    assert.equal(store.items[0].amount, 200);
-    assert.equal(store.items[0].photo.blob, blob);
-    assert.equal(store.items[0].output, undefined);
-    assert.equal(s.paymentOpen, false);
-    assert.equal(location.href, path);
-    await assert.rejects(transactOrder(s.current), /状态已变化/);
-  } finally {
-    store.commit = originalCommit;
-  }
-});
-
-test("collection pay/query updates only its payment; closed projects can query an existing uncertain payment", async () => {
-  const { transactOrder } = await import("../src/domain/order-payment.js");
-  const s = scope(),
-    store = getStore("collectionRecords"),
-    originalCommit = store.commit;
-  const record = {
-    ...data().collection[0],
-    projectId: "enrollment",
-    payment: { id: "receipt", status: "pending", amount: 1800 },
-  };
-  store.items = [record];
-  store.commit = async (items) => {
-    store.items = items;
-  };
-  const order = () => s.hub.all.find((o) => o.type === "collection");
-  try {
-    const path = location.href;
-    await transactOrder(order(), { outcome: "failure" });
-    assert.equal(store.items[0].payment.status, "pending");
-    store.items[0].projectId = "association-talent";
-    await assert.rejects(transactOrder(order()), /不支持付款/);
-    store.items[0].payment.status = "verifying";
-    await transactOrder(order(), { query: true });
-    assert.equal(store.items[0].payment.status, "paid");
-    assert.equal(store.items[0].status, record.status);
-    assert.equal(store.items[0].payment.amount, 1800);
-    assert.equal(location.href, path);
-  } finally {
-    store.commit = originalCommit;
-  }
-});
-
-test("payment persistence failure and account mismatch never create or complete another transaction", async () => {
-  const { transactOrder } = await import("../src/domain/order-payment.js");
-  const s = scope(),
-    store = getStore("toolOrders"),
-    originalCommit = store.commit;
-  store.items = [{ ...base, id: "guard", action: "outfit", status: "pending" }];
-  const order = s.hub.all.find((o) => o.sourceId === "guard");
-  try {
-    store.commit = async () => {
-      throw Error("storage failure");
-    };
-    await assert.rejects(transactOrder(order), /storage failure/);
-    assert.equal(store.items[0].status, "pending");
-    getStore("account").session = { phone: other };
-    await assert.rejects(transactOrder(order), /状态已变化/);
+    assert.equal(
+      s.hub.all.find((o) => o.key === descriptor.key),
+      undefined,
+    );
+    await assert.rejects(transactOrder(descriptor), /状态已变化/);
+    await transactOrder(descriptor, { query: true });
+    assert.equal(store.items[0].status, "paid");
     assert.equal(store.items.length, 1);
+    assert.equal(store.items[0].output, undefined);
+    assert.equal(store.items[0].photo.blob, blob);
+    assert.equal(s.hub.all.find((o) => o.key === descriptor.key).state, "paid");
   } finally {
-    store.commit = originalCommit;
+    store.commit = commit;
   }
 });
-
-test("paid unfinished photo recovery stays in album and the original tool, outside orders", async () => {
-  const { pendingPurchasedResults } =
-    await import("../src/domain/pending-results.js");
-  const s = scope();
-  let pending = pendingPurchasedResults(owner);
-  assert.equal(pending.length, 2);
-  assert.equal(pendingPurchasedResults(other).length, 0);
-  assert.deepEqual(
-    pendingPurchasedResults(owner, "repair").map((r) => r.type),
-    ["repair"],
-  );
-  assert.equal(pendingPurchasedResults(owner, "outfit").length, 0);
-  getStore("toolOrders").items[0].savedId = "saved";
-  getStore("orderCenter").electronic[0].savedId = "saved-electronic";
-  assert.equal(pendingPurchasedResults(owner).length, 0);
-  assert.equal(s.hub.all.length, 5);
-});
-
-test("returning to a stale tool payment view cannot pay an already paid or uncertain order again", async () => {
+test("tool unknown payment is recovered in the original tool rather than hidden order-center UI", async () => {
   scope();
-  const store = getStore("toolOrders");
+  const store = getStore("toolOrders"),
+    commit = store.commit;
   store.items = [
-    { ...base, id: "guard-existing", action: "repair", status: "verifying" },
+    { ...base, id: "query", action: "repair", status: "verifying" },
   ];
+  store.commit = async (mutate) => {
+    const next = store.items.map((r) => ({ ...r }));
+    mutate(next);
+    store.items = next;
+  };
   const s = createController("toolStudio", [], {}).scope;
   s.action = "repair";
-  s.orderId = "guard-existing";
+  s.orderId = "query";
   let resumed = 0;
-  s.resumeOrder = async (order) => {
-    assert.equal(order.status, "paid");
+  s.resumeOrder = async (r) => {
+    assert.equal(r.status, "paid");
     resumed++;
   };
-  assert.equal(await s.restoreExistingPayment(), true);
-  assert.match(s.error, /我的订单/);
-  assert.equal(resumed, 0);
-  store.items[0].status = "paid";
-  assert.equal(await s.restoreExistingPayment(), true);
-  assert.equal(resumed, 1);
-  assert.equal(store.items[0].amount, 200);
+  try {
+    await s.restoreExistingPayment();
+    assert.equal(resumed, 1);
+    assert.equal(store.items.length, 1);
+    assert.equal(s.paying, false);
+    assert.doesNotMatch(s.error, /我的订单/);
+  } finally {
+    store.commit = commit;
+  }
 });
-
-test("electronic order payment locks the captured version and paid-photo recovery is idempotent", async () => {
+test("electronic original payment preserves the captured version, output, and idempotent paid recovery", async () => {
   const { database } = await import("./helpers/memory-indexeddb.mjs");
   globalThis.indexedDB = database();
+  scope();
   const { writeCameraSession, readCameraSession, readElectronicOrders } =
     await import("../src/domain/camera.js");
-  const { transactOrder } = await import("../src/domain/order-payment.js");
-  const { savePurchasedElectronic } =
-    await import("../src/domain/pending-results.js");
-  const s = scope();
   const record = {
-    id: "receipt-recovery",
+    id: "recovery",
     draft: {
-      id: "receipt-recovery",
+      id: "recovery",
       outputWidth: 295,
       outputHeight: 413,
       order: {
@@ -737,304 +696,227 @@ test("electronic order payment locks the captured version and paid-photo recover
         createdAt: 1,
       },
     },
-    photo: { blob: new Blob(["source"], { type: "image/jpeg" }) },
+    photo: { blob },
     output: new Blob(["ordinary-output"], { type: "image/jpeg" }),
   };
   await writeCameraSession(record);
-  const normalized = normalizeOrders({
-    owner,
-    electronic: await readElectronicOrders(),
-  })[0];
-  await transactOrder(normalized, { outcome: "unknown" });
+  const order = {
+    key: "electronic:electronic-recovery",
+    type: "electronic",
+    sourceId: "electronic-recovery",
+    amount: 198,
+  };
+  await transactOrder(order, { outcome: "failure" });
+  assert.equal(
+    normalizeOrders({ owner, electronic: await readElectronicOrders() })[0]
+      .state,
+    "failed",
+  );
+  await transactOrder(order, { outcome: "unknown" });
+  assert.equal(
+    normalizeOrders({ owner, electronic: await readElectronicOrders() }).length,
+    0,
+  );
   assert.equal(
     (await readCameraSession(record.id)).draft.order.status,
     "verifying",
   );
-  await transactOrder(normalized, { query: true });
-  let receipt = (await readElectronicOrders())[0];
+  await transactOrder(order, { query: true });
+  const receipt = (await readElectronicOrders())[0];
   assert.equal(receipt.status, "paid");
-  assert.equal(receipt.amount, 198);
   assert.equal(receipt.versionId, "ordinary");
+  assert.equal(receipt.amount, 198);
   assert.equal(await receipt.photo.blob.text(), "ordinary-output");
-  const library = getStore("photoLibrary"),
-    commit = library.commit;
-  library.ready = true;
-  library.busy = false;
-  library.finished = [];
-  library.commit = async (next) => {
-    library.finished = next.finished;
+  assert.equal((await readElectronicOrders()).length, 1);
+});
+test("collection failure/query only changes payment facts; review states never drive transaction state", async () => {
+  const s = scope(),
+    store = getStore("collectionRecords"),
+    commit = store.commit;
+  store.items[0].projectId = "enrollment";
+  store.items[0].payment.status = "pending";
+  store.commit = async (items) => {
+    store.items = items;
   };
-  const previousImage = globalThis.Image;
-  globalThis.Image = class {
-    naturalWidth = 295;
-    naturalHeight = 413;
-    async decode() {}
+  const order = {
+    key: "collection:receipt",
+    type: "collection",
+    sourceId: "receipt",
+    amount: 1800,
   };
   try {
-    await Promise.all([
-      savePurchasedElectronic(receipt.id),
-      savePurchasedElectronic(receipt.id),
-    ]);
-    await savePurchasedElectronic(receipt.id);
-    assert.equal(library.finished.length, 1);
-    assert.equal(await library.finished[0].blob.text(), "ordinary-output");
-    assert.equal(library.finished[0].versionId, "ordinary");
-    receipt = (await readElectronicOrders())[0];
-    assert.equal(receipt.savedId, library.finished[0].id);
+    await transactOrder(order, { outcome: "failure" });
     assert.equal(
-      (await readCameraSession(record.id)).draft.savedId,
-      receipt.savedId,
+      s.hub.all.find((o) => o.type === "collection").state,
+      "failed",
     );
-    assert.equal((await readElectronicOrders()).length, 1);
+    store.items[0].payment.status = "verifying";
+    store.items[0].projectId = "association-talent";
+    await transactOrder(order, { query: true });
+    assert.equal(store.items[0].payment.status, "paid");
+    assert.equal(store.items[0].status, 40);
+    assert.equal(store.items[0].payment.amount, 1800);
   } finally {
-    library.commit = commit;
-    globalThis.Image = previousImage;
+    store.commit = commit;
   }
 });
-
-test("thumbnails select the matching output, use own input before output and never another order", () => {
-  const output = new Blob(["retouched-output"], { type: "image/jpeg" });
-  const purchased = new Blob(["purchased-version"], { type: "image/jpeg" });
-  const d = data();
+test("original print checkout can retry or query its hidden draft without another order", async () => {
+  const s = scope(),
+    store = getStore("printLibrary"),
+    commit = store.commit;
+  store.orders = [
+    { ...data().print[0], id: "pending-print", status: "pending" },
+  ];
+  store.draft.orderId = "pending-print";
+  store.commit = async (mutate) => {
+    const next = plainPrintState(store);
+    mutate(next);
+    Object.assign(store, plainPrintState(next));
+  };
+  const p = createController("printStudio", [], {}).scope;
+  p.$nextTick = () => {};
+  p.orderId = "pending-print";
+  p.view = "confirm";
+  p.online = true;
+  p.checkoutPayment = true;
+  try {
+    assert.equal(
+      s.hub.all.some((o) => o.type === "print"),
+      false,
+    );
+    p.demoOutcome = "failure";
+    await p.pay();
+    assert.equal(
+      normalizeOrders({ owner, print: store.orders })[0].state,
+      "failed",
+    );
+    p.demoOutcome = "timeout";
+    await p.pay();
+    assert.equal(store.orders[0].status, "verifying");
+    assert.equal(
+      s.hub.all.some((o) => o.type === "print"),
+      false,
+    );
+    assert.equal(p.guardPendingPayment(), true);
+    assert.equal(p.modal, "resolution");
+    assert.equal(p.view, "confirm");
+    p.resolution = "unpaid";
+    await p.resolvePayment();
+    assert.equal(store.orders[0].status, "pending");
+    p.demoOutcome = "success";
+    await p.pay();
+    assert.equal(store.orders.length, 1);
+    assert.equal(store.orders[0].status, "producing");
+    assert.equal(store.orders[0].fulfillment.status, "producing");
+    assert.equal(s.hub.all.find((o) => o.type === "print").state, "paid");
+  } finally {
+    store.commit = commit;
+  }
+});
+test("thumbnails never borrow another order and old prices/pixels never infer a size or version", () => {
+  const d = data(),
+    output = new Blob(["output"]);
   d.tools[0].output = output;
   d.tools[1].photo = null;
   d.tools[1].output = null;
-  d.electronic[0].photo = { blob: purchased };
   d.print[0].photo = { blob: new Blob([]) };
-  d.collection[0].photo = null;
-  const items = normalizeOrders(d);
-  assert.equal(items.find((o) => o.type === "repair").thumbnailBlob, output);
+  d.electronic[0].specification = "413 × 579 px";
+  const list = normalizeOrders(d);
+  assert.equal(list.find((o) => o.type === "repair").thumbnailBlob, output);
+  assert.equal(list.find((o) => o.type === "outfit").thumbnailBlob, null);
+  assert.equal(list.find((o) => o.type === "print").thumbnailBlob, null);
+  const e = list.find((o) => o.type === "electronic");
+  assert.equal(e.title, "证件照制作");
+  assert.equal(e.description, "电子照片");
+  assert.deepEqual(e.details, [["文件尺寸", "413 × 579 px"]]);
   assert.equal(
-    items.find((o) => o.type === "electronic").thumbnailBlob,
-    purchased,
+    shortenedOrderNumber("electronic-1234567890-abcdefgh"),
+    "electron…abcdefgh",
   );
-  for (const type of ["print", "outfit", "collection"])
-    assert.equal(items.find((o) => o.type === type).thumbnailBlob, null);
-  d.tools[0].output = null;
-  assert.equal(
-    normalizeOrders(d).find((o) => o.type === "repair").thumbnailBlob,
-    blob,
-  );
+  assert.equal(orderTime("bad"), "未记录");
+  assert.match(orderTime(Date.now()), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
 });
-
-test("obsolete q links cannot hide orders or propagate search on navigation", () => {
+test("legacy routes and obsolete search params preserve valid filters, back target and security", () => {
   const s = scope();
+  s.filter("print", "paid");
+  s.open(s.list[0]);
+  s.sync();
+  assert.equal(printOrderPath("same"), location.pathname + location.search);
+  s.back();
+  s.sync();
+  assert.equal(s.status, "paid");
+  assert.equal(s.type, "print");
+  assert.equal(s.selected, "");
   locationValue = new URL(
     "http://127.0.0.1:4180/?page=orders&type=repair&status=paid&q=no-match",
   );
   s.sync();
   assert.equal(s.list.length, 1);
-  assert.equal(s.list[0].type, "repair");
-  assert.equal(s.query, undefined);
-  assert.equal(s.searchOpen, undefined);
   s.open(s.list[0]);
-  s.sync();
   assert.equal(location.searchParams.has("q"), false);
-  assert.equal(s.current.type, "repair");
-  s.back();
-  s.sync();
-  assert.equal(s.status, "paid");
-  assert.equal(s.type, "repair");
-  assert.equal(s.list.length, 1);
+  assert.equal(safeOrderPath("https://bad.test/?page=orders"), "/?page=my");
+  openOrderCenter("print", "/?page=my");
+  assert.equal(location.searchParams.get("type"), "print");
 });
-
-test("empty copy distinguishes selected filters, first purchase, loading and unavailable data", () => {
+test("empty-state copy reflects the four statuses, loading and read failures", () => {
   const s = scope();
-  s.filter("all", "pending");
-  assert.equal(s.emptyTitle, "暂无待付款订单");
-  assert.equal(s.emptyDescription, "可切换订单状态或类型查看");
-  s.filter("repair", "closed");
-  assert.equal(s.emptyTitle, "暂无已关闭订单");
+  s.filter("all", "failed");
+  assert.equal(s.emptyTitle, "暂无支付失败订单");
+  s.filter("repair", "refunded");
+  assert.equal(s.emptyTitle, "暂无已退款订单");
   for (const key of ["printLibrary", "toolOrders", "collectionRecords"])
     getStore(key)[key === "printLibrary" ? "orders" : "items"] = [];
   s.hub.electronic = [];
   s.filter("all", "all");
   assert.equal(s.emptyTitle, "暂无订单");
-  assert.equal(s.emptyDescription, "购买的服务将在这里展示");
   s.hub.electronicReady = false;
   assert.equal(s.emptyTitle, "正在读取订单");
-  assert.equal(s.emptyDescription, "");
   s.hub.error = "读取失败";
   assert.equal(s.emptyTitle, "订单暂时无法加载");
-  assert.equal(s.emptyDescription, "请重试加载后查看完整订单");
 });
 
-test("type tabs preserve status selections and reset scroll only for explicit filter changes", () => {
-  const s = scope();
-  s.filter("all", "paid");
-  const revision = s.scrollRevision;
-  s.openSheet("types"); // removed UI cannot reopen an obsolete type dialog
-  assert.equal(s.sheet, "");
-  assert.equal(s.status, "paid");
-  assert.equal(s.scrollRevision, revision);
-  s.filter("outfit", s.status);
-  s.sync();
-  assert.equal(s.status, "paid");
-  assert.equal(s.type, "outfit");
-  assert.equal(s.scrollRevision, revision + 1);
-  assert.equal(s.$store.orderUi.opened, false);
-  s.open(s.list[0]);
-  s.sync();
-  s.back();
-  s.sync();
-  assert.equal(s.scrollRevision, revision + 1);
-  assert.equal(s.type, "outfit");
-});
-test("browser back dismisses an open sheet before leaving its original detail", () => {
-  const s = scope();
-  s.open(s.list[0]);
-  s.sync();
-  const detail = location.pathname + location.search;
-  s.openSheet("payment");
-  locationValue = new URL(s.url(""), location.origin);
-  s.sync();
-  assert.equal(s.sheet, "");
-  assert.equal(location.pathname + location.search, detail);
-  assert.ok(s.selected);
-});
-test("new purchase metadata displays its captured specification; old pixels and prices never infer a size or version", () => {
-  const newOrder = {
-    ...base,
-    id: "captured",
-    status: "paid",
-    versionId: "ordinary",
-    purchaseSnapshot: {
-      specName: "二寸",
-      mm: "35 × 49 mm",
-      pixels: "413 × 579 px",
-      backgroundName: "蓝色",
-    },
-  };
-  const oldOrder = {
-    ...base,
-    id: "old",
-    status: "paid",
-    amount: 198,
-    specification: "413 × 579 px",
-  };
-  const rows = normalizeOrders({ owner, electronic: [newOrder, oldOrder] });
-  assert.equal(rows[0].description, "二寸 · 蓝底");
-  assert.deepEqual(rows[0].details, [
-    ["照片规格", "二寸 · 35 × 49 mm"],
-    ["文件尺寸", "413 × 579 px"],
-    ["背景颜色", "蓝色"],
-  ]);
-  assert.equal(rows[1].title, "证件照制作");
-  assert.equal(rows[1].description, "电子照片");
-  assert.deepEqual(rows[1].details, [["文件尺寸", "413 × 579 px"]]);
-  assert.equal(oldOrder.versionId, undefined);
-  assert.equal(oldOrder.purchaseSnapshot, undefined);
-  assert.equal(
-    shortenedOrderNumber("electronic-1234567890-abcdefgh"),
-    "electron…abcdefgh",
-  );
-  assert.equal(shortenedOrderNumber("short-123"), "short-123");
-  assert.equal(orderTime("bad"), "未记录");
-  assert.match(orderTime(Date.now()), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
-});
-test("shared print payment handles unknown, query-only recovery and same-detail cancellation without a new order", async () => {
-  const { s, store, restore } = printScope();
-  try {
-    const originalId = s.current.key;
-    s.continue();
-    assert.equal(s.sheet, "payment");
-    assert.equal(s.queryMode, false);
-    s.paymentOutcome = "unknown";
-    const payment = s.pay();
-    s.closePayment();
-    assert.equal(s.paymentOpen, true);
-    await payment;
-    assert.equal(s.current.state, "verifying");
-    assert.equal(s.queryMode, true);
-    assert.match(s.paymentError, /勿重复付款/);
-    s.paymentOutcome = "failure";
-    await s.pay();
-    assert.equal(s.current.state, "pending");
-    assert.equal(s.queryMode, false);
-    assert.equal(s.paymentError, "付款未完成，订单已保留。");
-    s.closePayment();
-    s.openSheet("cancel");
-    await s.cancel();
-    assert.equal(s.current.state, "closed");
-    assert.equal(s.current.key, originalId);
-    assert.equal(store.orders.length, 1);
-    assert.equal(store.draft.orderId, null);
-    assert.equal(s.sheet, "");
-  } finally {
-    restore();
-  }
-});
-test("shared print payment success updates the original paid receipt and pending-filter counts only", async () => {
-  const { s, store, restore } = printScope();
-  try {
-    const key = s.current.key;
-    s.continue();
-    await s.pay();
-    assert.equal(s.current.key, key);
-    assert.equal(s.current.state, "paid");
-    assert.equal(s.sheet, "");
-    assert.equal(store.orders[0].status, "producing");
-    assert.equal(store.orders.length, 1);
-    assert.equal(store.draft.completedOrderId, "checkout");
-    s.back();
-    s.sync();
-    assert.equal(s.status, "pending");
-    assert.equal(s.list.length, 0);
-    assert.equal(s.count("paid"), 1);
-  } finally {
-    restore();
-  }
-});
-test("print historical prices remain visible and cannot silently become a new-price payment", async () => {
-  const { s, store, restore } = printScope();
-  try {
-    store.orders[0].base = 1500;
-    store.orders[0].shipping = 500;
-    store.orders[0].total = 2000;
-    const order = s.current;
-    assert.deepEqual(order.fees, [
-      ["冲印费", "¥15.00"],
-      ["配送费", "¥5.00"],
-    ]);
-    s.continue();
-    await s.pay();
-    assert.match(s.paymentError, /旧冲印规格或价格/);
-    assert.equal(s.current.state, "pending");
-    assert.equal(store.orders[0].total, 2000);
-  } finally {
-    restore();
-  }
-});
-
-test("repair receipts show only their captured background and never infer it for old orders", () => {
-  const tools = [
+test("fresh tool entry retains an unresolved original payment and exposes query before image checks", async () => {
+  scope();
+  const store = getStore("toolOrders");
+  store.items = [
     {
       ...base,
-      id: "repair-color",
+      id: "uncertain-original",
       action: "repair",
-      status: "paid",
-      repairBackground: { id: "white", name: "白色", value: "#ffffff" },
-      purchaseSnapshot: {
-        specName: "二寸",
-        specification: "二寸 · 35 × 49 mm",
-        backgroundName: "白色",
-      },
+      status: "verifying",
     },
-    { ...base, id: "old-repair", action: "repair", status: "paid" },
   ];
-  const list = normalizeOrders({ owner, tools });
-  const current = list.find((o) => o.sourceId === "repair-color");
-  assert.match(current.description, /白色背景/);
-  assert.equal(
-    current.details.filter(([label]) => label === "背景颜色").length,
-    1,
-  );
-  assert.equal(
-    current.details.find(([label]) => label === "背景颜色")[1],
-    "白色",
-  );
-  const old = list.find((o) => o.sourceId === "old-repair");
-  assert.ok(old.details.every(([label]) => label !== "背景颜色"));
-  assert.doesNotMatch(old.description, /蓝色|白色/);
-  assert.equal(tools[0].repairBackground.value, "#ffffff");
+  store.loading = Promise.resolve();
+  const tool = createController("toolStudio", [], {}).scope;
+  tool.action = "repair";
+  tool.route = () => {};
+  await tool.start();
+  assert.equal(tool.orderId, "uncertain-original");
+  assert.equal(tool.step, 1);
+  assert.equal(tool.primaryLabel, "查询付款结果");
+  assert.equal(tool.primaryEnabled, true);
+  assert.equal(tool.repairSettingsLocked, true);
+  assert.equal(store.items.length, 1);
+  assert.equal(tool.photo.blob, blob);
+  assert.match(tool.error, /先查询原订单/);
+});
+
+test("non-print processing, delivery and completion labels never imply a successful payment", () => {
+  for (const status of [
+    "producing",
+    "printing",
+    "shipped",
+    "delivered",
+    "completed",
+  ]) {
+    const d = data();
+    d.electronic[0].status = status;
+    d.tools.forEach((r) => {
+      r.status = status;
+    });
+    d.collection[0].payment.status = status;
+    const rows = normalizeOrders(d);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].type, "print");
+  }
 });

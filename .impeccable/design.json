@@ -216,7 +216,7 @@
       },
       "paid-filter-ink": {
         "role": "neutral",
-        "displayName": "已支付筛选文字",
+        "displayName": "支付成功筛选文字",
         "tonalRamp": [
           "oklch(15% 0.08103 163.09)",
           "oklch(26% 0.08103 163.09)",
@@ -230,7 +230,7 @@
       },
       "paid-filter-fill": {
         "role": "neutral",
-        "displayName": "已支付筛选浅底",
+        "displayName": "支付成功筛选浅底",
         "tonalRamp": [
           "oklch(15% 0.01484 158.25)",
           "oklch(26% 0.01484 158.25)",
@@ -244,7 +244,7 @@
       },
       "paid-filter-selected": {
         "role": "neutral",
-        "displayName": "已支付筛选选中底",
+        "displayName": "支付成功筛选选中底",
         "tonalRamp": [
           "oklch(15% 0.02989 161.07)",
           "oklch(26% 0.02989 161.07)",
@@ -258,7 +258,7 @@
       },
       "paid-filter-stroke": {
         "role": "neutral",
-        "displayName": "已支付筛选描边",
+        "displayName": "支付成功筛选描边",
         "tonalRamp": [
           "oklch(15% 0.06773 160.08)",
           "oklch(26% 0.06773 160.08)",
@@ -408,11 +408,11 @@
       "css": ".ds-task-nav{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-task-nav{display:grid;grid-template-columns:44px minmax(0, 1fr) 44px;align-items:center;gap:8px;flex:none;height:52px;padding:0 12px;background:transparent;color:var(--ui-heading, #203858);}.ds-task-nav .ds-nav-back{transition:none;}.ds-nav-back svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;}.ds-task-nav .ds-nav-back:not(:disabled):active{transform:scale(0.96);}.ds-task-nav .ds-nav-back:disabled{opacity:0.45;cursor:default;transform:none;}.ds-task-nav .ds-nav-back:focus-visible{outline:2px solid var(--brand-blue, #0032ff);outline-offset:2px;}.ds-nav-title{min-width:0;margin:0;overflow:hidden;color:var(--ui-heading, #203858);font-size:17px;font-weight:650;line-height:1.4;text-align:center;text-overflow:ellipsis;white-space:nowrap;}.ds-nav-right{display:flex;align-items:center;justify-content:center;width:44px;min-width:0;}.ds-nav-back svg{stroke-linecap:round;stroke-linejoin:round;}@media(prefers-reduced-motion:reduce){.ds-task-nav .ds-nav-back{transition:none;}}"
     },
     {
-      "name": "已支付状态胶囊",
+      "name": "支付成功状态胶囊",
       "kind": "chip",
       "refersTo": "paid-filter",
       "description": "订单状态单选胶囊的选中样式；可见24px、触控至少44px，文案与描边共同表达选中。示例不承担真实筛选。",
-      "html": "<div class=\"ds-status-tabs\"><button type=\"button\" data-status=\"paid\" class=\"ds-active\" aria-pressed=\"true\"><span>已支付</span></button></div>",
+      "html": "<div class=\"ds-status-tabs\"><button type=\"button\" data-status=\"paid\" class=\"ds-active\" aria-pressed=\"true\"><span>支付成功</span></button></div>",
       "css": ".ds-status-tabs{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-status-tabs button{--filter-ink:#425878;--filter-fill:#edf2fa;--filter-selected:#dbe6f8;--filter-stroke:#91a8ca;display:grid;place-items:center;min-height:44px;min-width:44px;padding:10px 0;border:0;background:transparent;color:var(--filter-ink);}.ds-status-tabs [data-status=\"paid\"]{--filter-ink:#216449;--filter-fill:#ebf6ef;--filter-selected:#d5ecdf;--filter-stroke:#80b397;}.ds-status-tabs span{display:block;padding:2px 10px;border:1px solid transparent;border-radius:16px;background:var(--filter-fill);font-size:12px;line-height:18px;white-space:nowrap;font-weight:500;}.ds-status-tabs .ds-active span{border-color:var(--filter-stroke);background:var(--filter-selected);color:var(--filter-ink);font-weight:600;}.ds-status-tabs button:active span{background:var(--filter-selected);}.ds-status-tabs button{font-family:inherit;cursor:pointer;}.ds-status-tabs button:focus-visible{outline:2px solid var(--brand-blue,#0032ff);outline-offset:2px;}"
     },
     {
@@ -452,7 +452,7 @@
       "kind": "card",
       "refersTo": "order-ticket",
       "description": "实际订单票据的无照片占位示例，非用图标替代已有照片。真实页面优先本单照片；整卡进入交易详情，缩略图不打开照片，没有点击缩放或展开。示例金额、日期为静态演示。",
-      "html": "<button type=\"button\" class=\"ds-ticket\"><span class=\"ds-ticket-heading\"><strong>证件照制作</strong><span class=\"ds-status-text\">已支付</span></span><span class=\"ds-ticket-body\"><span class=\"ds-thumbnail\" role=\"img\" aria-label=\"暂无订单照片\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><rect x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2\"/><circle cx=\"9\" cy=\"8\" r=\"1.5\"/><path d=\"m4 17 5-5 4 4 3-3 4 4\"/></svg></span><span class=\"ds-ticket-description\">普通证件照</span><span class=\"ds-ticket-amount\">¥1.98</span><span class=\"ds-ticket-dimensions\">一寸 · 25 × 35 mm</span><time class=\"ds-ticket-time\" datetime=\"2026-10-22T10:00:00+08:00\">2026-10-22 10:00</time></span></button>",
+      "html": "<button type=\"button\" class=\"ds-ticket\"><span class=\"ds-ticket-heading\"><strong>证件照制作</strong><span class=\"ds-status-text\">支付成功</span></span><span class=\"ds-ticket-body\"><span class=\"ds-thumbnail\" role=\"img\" aria-label=\"暂无订单照片\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><rect x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2\"/><circle cx=\"9\" cy=\"8\" r=\"1.5\"/><path d=\"m4 17 5-5 4 4 3-3 4 4\"/></svg></span><span class=\"ds-ticket-description\">普通证件照</span><span class=\"ds-ticket-amount\">¥1.98</span><span class=\"ds-ticket-dimensions\">一寸 · 25 × 35 mm</span><time class=\"ds-ticket-time\" datetime=\"2026-10-22T10:00:00+08:00\">2026-10-22 10:00</time></span></button>",
       "css": ".ds-ticket{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-ticket{transition:none;position:relative;display:block;width:100%;margin:0 0 12px;padding:16px;border:0;text-align:left;background:#fff;border-radius:16px;color:inherit;}.ds-ticket:active{transform:none;background:#fff;}.ds-ticket-heading{position:relative;display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px dashed #d6dfec;}.ds-ticket-heading > strong{display:-webkit-box;flex:1;min-width:0;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;font-size:15px;font-weight:600;line-height:1.45;color:#203858;}.ds-ticket-body{display:grid;grid-template-columns:56px minmax(0, 1fr) auto;grid-template-rows:auto minmax(0, 1fr) auto;column-gap:12px;row-gap:6px;align-items:start;min-height:78px;margin-top:12px;}.ds-ticket-body > .ds-thumbnail{grid-column:1;grid-row:1 / 4;}.ds-ticket-description{grid-column:2;grid-row:1;min-width:0;font-size:13px;line-height:1.6;color:#32496b;overflow-wrap:anywhere;}.ds-ticket-amount{grid-column:3;grid-row:1;justify-self:end;font-size:17px;font-weight:600;line-height:1.3;font-variant-numeric:tabular-nums;color:#203858;white-space:nowrap;}.ds-ticket-dimensions{grid-column:2 / 4;grid-row:2;font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums;color:#53637b;overflow-wrap:anywhere;}.ds-ticket-time{grid-column:2 / 4;grid-row:3;align-self:end;font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums;color:#53637b;}.ds-status-text{text-align:right;font-weight:600;flex-shrink:0;white-space:nowrap;font-size:12px;line-height:1.6;color:var(--order-tone, #203858);}.ds-thumbnail{display:grid;place-items:center;flex:none;width:56px;height:78px;overflow:hidden;border-radius:6px;background:#f1f5fb;color:#8a9bb1;}.ds-ticket-heading::before,.ds-ticket-heading::after{content:\"\";position:absolute;width:12px;height:12px;border-radius:50%;background:#f3f5fc;pointer-events:none;}.ds-ticket-heading::before{left:-22px;bottom:-6px;}.ds-ticket-heading::after{right:-22px;bottom:-6px;}.ds-thumbnail{height:auto;aspect-ratio:var(--portrait-preview-ratio, 5/7);background:var(--portrait-preview-ground, #f1f2f4);}.ds-ticket{font-size:14px;color:#203858;cursor:pointer;box-shadow:none;}.ds-ticket:focus-visible{outline:3px solid var(--brand-blue,#0032ff);outline-offset:3px;}.ds-thumbnail svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}.ds-status-text{--order-tone:#207359;}"
     }
   ],

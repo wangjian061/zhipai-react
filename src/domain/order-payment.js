@@ -7,6 +7,7 @@ import {
 import { COLLECTION_PROJECTS, collectionProjectState } from "./collection.js";
 
 import { isCurrentPrintOrder, updatePrintTransaction } from "./print.js";
+import { paymentResult } from "./order-status.js";
 
 const activePayments = new Set();
 const account = () => getStore("account")?.session?.phone;
@@ -106,6 +107,7 @@ export async function transactOrder(
     if (account() !== owner) throw Error("登录状态已变化，请重新查看订单。");
     await update(expected, {
       status: "verifying",
+      paymentResult: paymentResult("verifying"),
       method: query ? current.method : method,
     });
     let status;
@@ -131,6 +133,7 @@ export async function transactOrder(
       status = "verifying";
     await update("verifying", {
       status,
+      paymentResult: paymentResult(status, outcome),
       ...(status === "paid" ? { paidAt: Date.now() } : {}),
     });
     return status;
