@@ -20,7 +20,8 @@ globalThis.history = {
   },
 };
 await import("../src/domain/index.js");
-const { normalizeOrders, money } = await import("../src/domain/orders.js");
+const { normalizeOrders, money, shortenedOrderNumber, orderTime } =
+  await import("../src/domain/orders.js");
 const { openOrderCenter, returnToOrderCenter, safeOrderPath } =
   await import("../src/domain/order-routing.js");
 const owner = "13800008000",
@@ -90,7 +91,9 @@ test("five sources retain identification thumbnails without exposing business ac
     ),
   );
   assert.equal(
-    list.find((o) => o.type === "outfit").details[0][1],
+    list
+      .find((o) => o.type === "outfit")
+      .details.find(([k]) => k === "所选服装")[1],
     "女装 · 衬衫",
   );
   const c = list.find((o) => o.type === "collection");
@@ -171,10 +174,10 @@ test("personal orders identify the purchased version and price once with the mat
   assert.equal(orders.length, 2);
   const ordinary = orders.find((order) => order.amount === 198);
   const refined = orders.find((order) => order.amount === 980);
-  assert.equal(ordinary.title, "普通证件照解锁");
-  assert.equal(refined.title, "精修证件照解锁");
-  assert.deepEqual(ordinary.details, []);
-  assert.equal(ordinary.description, "295 × 413 px");
+  assert.equal(ordinary.title, "证件照制作 · 普通版");
+  assert.equal(refined.title, "证件照制作 · 精修版");
+  assert.deepEqual(ordinary.details, [["文件尺寸", "295 × 413 px"]]);
+  assert.equal(ordinary.description, "电子照片");
   assert.equal(ordinary.thumbnailBlob, blob);
   assert.equal(refined.savedId, undefined);
 });
@@ -251,6 +254,36 @@ test("hub counts, type/status filters and contextual navigation use one account-
   assert.equal(location.searchParams.get("type"), "print");
   assert.equal(location.searchParams.get("back"), "/?page=print&print=preview");
 });
+test("status capsules are single-choice, intersect type, and retain their selection after detail back", () => {
+  const s = scope();
+  getStore("toolOrders").items.push(
+    { ...base, id: "pending-repair", action: "repair", status: "pending" },
+    { ...base, id: "query-repair", action: "repair", status: "verifying" },
+  );
+  s.filter("repair", "pending");
+  assert.deepEqual(
+    s.list.map((o) => o.sourceId),
+    ["pending-repair"],
+  );
+  s.filter(s.type, "verifying");
+  assert.equal(s.status, "verifying");
+  assert.deepEqual(
+    s.list.map((o) => o.sourceId),
+    ["query-repair"],
+  );
+  s.filter("all", s.status);
+  const revision = s.scrollRevision;
+  s.open(s.list[0]);
+  s.sync();
+  s.back();
+  s.sync();
+  assert.equal(s.status, "verifying");
+  assert.equal(s.type, "all");
+  assert.equal(s.scrollRevision, revision);
+  s.filter("repair", "pending,paid");
+  assert.equal(s.status, "all");
+  assert.equal(s.list.length, 3);
+});
 test("business detail back actions return to their originating filtered order hub", () => {
   scope();
   const target =
@@ -285,6 +318,10 @@ test("source rendering exposes transaction filters, paid details without busines
   let html = renderToStaticMarkup(React.createElement(OrdersContent, { s }));
   assert.match(html, /订单状态/);
   assert.match(html, /订单类型/);
+  assert.match(html, /role="tablist"/);
+  assert.match(html, /role="radiogroup"/);
+  assert.equal((html.match(/aria-checked="true"/g) || []).length, 1);
+  assert.doesNotMatch(html, /共\d+笔|已加载\d+笔|orders-type-filter/);
   assert.doesNotMatch(html, /搜索订单|orders-search|<form|order-service-icon/);
   assert.match(html, /暂无订单照片/);
   assert.match(html, /¥9.80/);
@@ -531,8 +568,12 @@ test("all paid service details use read-only thumbnails, unique specifications a
       html,
       /<img|查看照片|下载照片|查看排版|继续处理|查看采集任务|客服|服务进度|orders-footer/,
     );
-    if (order.description)
+    if (order.description && !order.details.length)
       assert.equal(html.split(order.description).length - 1, 1);
+    for (const [label, value] of order.details) {
+      assert.ok(html.includes(label));
+      if (value) assert.ok(html.includes(String(value)));
+    }
   }
 });
 
@@ -816,4 +857,184 @@ test("empty copy distinguishes selected filters, first purchase, loading and una
   s.hub.error = "读取失败";
   assert.equal(s.emptyTitle, "订单暂时无法加载");
   assert.equal(s.emptyDescription, "请重试加载后查看完整订单");
+});
+
+test("type tabs preserve status selections and reset scroll only for explicit filter changes", () => {
+  const s = scope();
+  s.filter("all", "paid");
+  const revision = s.scrollRevision;
+  s.openSheet("types"); // removed UI cannot reopen an obsolete type dialog
+  assert.equal(s.sheet, "");
+  assert.equal(s.status, "paid");
+  assert.equal(s.scrollRevision, revision);
+  s.filter("outfit", s.status);
+  s.sync();
+  assert.equal(s.status, "paid");
+  assert.equal(s.type, "outfit");
+  assert.equal(s.scrollRevision, revision + 1);
+  assert.equal(s.$store.orderUi.opened, false);
+  s.open(s.list[0]);
+  s.sync();
+  s.back();
+  s.sync();
+  assert.equal(s.scrollRevision, revision + 1);
+  assert.equal(s.type, "outfit");
+});
+test("browser back dismisses an open sheet before leaving its original detail", () => {
+  const s = scope();
+  s.open(s.list[0]);
+  s.sync();
+  const detail = location.pathname + location.search;
+  s.openSheet("payment");
+  locationValue = new URL(s.url(""), location.origin);
+  s.sync();
+  assert.equal(s.sheet, "");
+  assert.equal(location.pathname + location.search, detail);
+  assert.ok(s.selected);
+});
+test("new purchase metadata displays its captured specification; old pixels and prices never infer a size or version", () => {
+  const newOrder = {
+    ...base,
+    id: "captured",
+    status: "paid",
+    versionId: "ordinary",
+    purchaseSnapshot: {
+      specName: "二寸",
+      mm: "35 × 49 mm",
+      pixels: "413 × 579 px",
+      backgroundName: "蓝色",
+    },
+  };
+  const oldOrder = {
+    ...base,
+    id: "old",
+    status: "paid",
+    amount: 198,
+    specification: "413 × 579 px",
+  };
+  const rows = normalizeOrders({ owner, electronic: [newOrder, oldOrder] });
+  assert.equal(rows[0].description, "二寸 · 蓝底");
+  assert.deepEqual(rows[0].details, [
+    ["照片规格", "二寸 · 35 × 49 mm"],
+    ["文件尺寸", "413 × 579 px"],
+    ["背景颜色", "蓝色"],
+  ]);
+  assert.equal(rows[1].title, "证件照制作");
+  assert.equal(rows[1].description, "电子照片");
+  assert.deepEqual(rows[1].details, [["文件尺寸", "413 × 579 px"]]);
+  assert.equal(oldOrder.versionId, undefined);
+  assert.equal(oldOrder.purchaseSnapshot, undefined);
+  assert.equal(
+    shortenedOrderNumber("electronic-1234567890-abcdefgh"),
+    "electron…abcdefgh",
+  );
+  assert.equal(shortenedOrderNumber("short-123"), "short-123");
+  assert.equal(orderTime("bad"), "未记录");
+  assert.match(orderTime(Date.now()), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+});
+test("shared print payment handles unknown, query-only recovery and same-detail cancellation without a new order", async () => {
+  const { s, store, restore } = printScope();
+  try {
+    const originalId = s.current.key;
+    s.continue();
+    assert.equal(s.sheet, "payment");
+    assert.equal(s.queryMode, false);
+    s.paymentOutcome = "unknown";
+    const payment = s.pay();
+    s.closePayment();
+    assert.equal(s.paymentOpen, true);
+    await payment;
+    assert.equal(s.current.state, "verifying");
+    assert.equal(s.queryMode, true);
+    assert.match(s.paymentError, /勿重复付款/);
+    s.paymentOutcome = "failure";
+    await s.pay();
+    assert.equal(s.current.state, "pending");
+    assert.equal(s.queryMode, false);
+    assert.equal(s.paymentError, "付款未完成，订单已保留。");
+    s.closePayment();
+    s.openSheet("cancel");
+    await s.cancel();
+    assert.equal(s.current.state, "closed");
+    assert.equal(s.current.key, originalId);
+    assert.equal(store.orders.length, 1);
+    assert.equal(store.draft.orderId, null);
+    assert.equal(s.sheet, "");
+  } finally {
+    restore();
+  }
+});
+test("shared print payment success updates the original paid receipt and pending-filter counts only", async () => {
+  const { s, store, restore } = printScope();
+  try {
+    const key = s.current.key;
+    s.continue();
+    await s.pay();
+    assert.equal(s.current.key, key);
+    assert.equal(s.current.state, "paid");
+    assert.equal(s.sheet, "");
+    assert.equal(store.orders[0].status, "producing");
+    assert.equal(store.orders.length, 1);
+    assert.equal(store.draft.completedOrderId, "checkout");
+    s.back();
+    s.sync();
+    assert.equal(s.status, "pending");
+    assert.equal(s.list.length, 0);
+    assert.equal(s.count("paid"), 1);
+  } finally {
+    restore();
+  }
+});
+test("print historical prices remain visible and cannot silently become a new-price payment", async () => {
+  const { s, store, restore } = printScope();
+  try {
+    store.orders[0].base = 1500;
+    store.orders[0].shipping = 500;
+    store.orders[0].total = 2000;
+    const order = s.current;
+    assert.deepEqual(order.fees, [
+      ["冲印费", "¥15.00"],
+      ["配送费", "¥5.00"],
+    ]);
+    s.continue();
+    await s.pay();
+    assert.match(s.paymentError, /旧冲印规格或价格/);
+    assert.equal(s.current.state, "pending");
+    assert.equal(store.orders[0].total, 2000);
+  } finally {
+    restore();
+  }
+});
+
+test("repair receipts show only their captured background and never infer it for old orders", () => {
+  const tools = [
+    {
+      ...base,
+      id: "repair-color",
+      action: "repair",
+      status: "paid",
+      repairBackground: { id: "white", name: "白色", value: "#ffffff" },
+      purchaseSnapshot: {
+        specName: "二寸",
+        specification: "二寸 · 35 × 49 mm",
+        backgroundName: "白色",
+      },
+    },
+    { ...base, id: "old-repair", action: "repair", status: "paid" },
+  ];
+  const list = normalizeOrders({ owner, tools });
+  const current = list.find((o) => o.sourceId === "repair-color");
+  assert.match(current.description, /白色背景/);
+  assert.equal(
+    current.details.filter(([label]) => label === "背景颜色").length,
+    1,
+  );
+  assert.equal(
+    current.details.find(([label]) => label === "背景颜色")[1],
+    "白色",
+  );
+  const old = list.find((o) => o.sourceId === "old-repair");
+  assert.ok(old.details.every(([label]) => label !== "背景颜色"));
+  assert.doesNotMatch(old.description, /蓝色|白色/);
+  assert.equal(tools[0].repairBackground.value, "#ffffff");
 });

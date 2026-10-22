@@ -153,7 +153,7 @@ async function requestPrintLayouts(photo) {
 }
 const PRINT_PRICES = { base: 1980, shipping: 1000 };
 // Fixed product contract shared by quoting and payment validation.
-function isCurrentPrintOrder(order) {
+export function isCurrentPrintOrder(order) {
   return (
     PRINT_LAYOUTS.some((l) => l.id === order?.layout) &&
     order.quantity === 1 &&
@@ -162,6 +162,40 @@ function isCurrentPrintOrder(order) {
     order.shipping === PRINT_PRICES.shipping &&
     order.total === PRINT_PRICES.base + PRINT_PRICES.shipping
   );
+}
+// Transaction-only writes retain the checkout fulfillment and draft semantics.
+export async function updatePrintTransaction(id, owner, expectedStatus, patch) {
+  const store = getStore("printLibrary");
+  await store.commit((state) => {
+    const order = state.orders.find(
+      (r) => r.id === id && r.owner === owner && !r.fixture,
+    );
+    if (
+      getStore("account")?.session?.phone !== owner ||
+      !order ||
+      order.status !== expectedStatus
+    )
+      throw Error("订单状态已变化，请刷新后重试。");
+    const now = new Date().toISOString();
+    Object.assign(order, patch);
+    if (patch.status === "paid") {
+      order.status = "producing";
+      order.attempt = "success";
+      order.paidAt = patch.paidAt || now;
+      (order.events ||= []).push({ title: "支付成功，等待制作", time: now });
+      if (state.draft.orderId === id) {
+        state.draft.completedOrderId = id;
+        state.draft.orderId = null;
+        state.draft.token = printId();
+      }
+    } else if (patch.status === "cancelled") {
+      (order.events ||= []).push({ title: "订单已取消", time: now });
+      if (state.draft.orderId === id) {
+        state.draft.orderId = null;
+        state.draft.token = printId();
+      }
+    }
+  });
 }
 async function requestPrintQuote(layout, quantity, address) {
   if (!PRINT_LAYOUTS.some((l) => l.id === layout?.id) || quantity !== 1)

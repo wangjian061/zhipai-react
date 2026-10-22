@@ -60,6 +60,7 @@ npm run dev
 - [首页产品契约](docs/product/home-1.4.6.md)：完整图片轮播、图内系统安静区、保留专项主卡、工具与导航入口；[实施复核](docs/reviews/home-mature-carousel-tools-20261020/review.md)、[独立收尾评审](docs/reviews/home-mature-carousel-tools-20261020/finish-review.md)及[资产来源](docs/assets/home-hero-mature-20261020.md)记录源码与出货资产检查。实际页面和三端设备效果仍待验收；此前专项主卡与布局评审保留为历史。
 - [照片确认页与来源适配](docs/product/camera-confirmation-1.4.6.md)：流程内场景选择、制作前检测与统一失败抽屉、同页制作、只读结果、返回及付款保存保护；附交互式结构说明。
 - [证照规格产品契约](docs/product/photo-specifications-1.4.6.md)与[交互线框](docs/product/photo-specifications-1.4.6.html)：九项目录、选色、现有相机与制作参数交接；[头图来源](docs/assets/specifications-hero-20261020.md)、[实施记录](docs/reviews/photo-specifications-20261020/review.md)、[独立收尾评审](docs/reviews/photo-specifications-20261020/finish-review.md)及[文档收尾](docs/reviews/photo-specifications-20261020/documentation.md)。首页与规格页共用[宫格样式](src/styles/utility-grid.css)。
+- [订单产品与交互规范](docs/product/orders-1.4.6.md)：类型横滑Tab、状态单选胶囊、票据列表与详情、付款与返回规则；[隔离交互样例](http://127.0.0.1:4180/docs/product/orders-1.4.6.html)复用实际组件、只使用内存样例，不读取用户订单。
 - [常用工具产品需求与验收](docs/product/common-tools-1.4.6.md)：冲印及六项工具的最新规则、逐页功能和前后步关系。
 - [逐页交互式结构说明](docs/product/common-tools-1.4.6.html)：23个页面与抽屉的结构示意，可切换状态；不是实际页面截图或视觉定稿。本地服务运行时可访问 [结构说明页面](http://127.0.0.1:4180/docs/product/common-tools-1.4.6.html)。
 - [六项工具完成页统一与交付校验](docs/reviews/tool-results-20261021/review.md)：2026-10-21更换背景设备交付、共用完成页、保存重试及待验收边界；[2026-10-19历史审查](docs/reviews/common-tools-20261019/review.md)保留早期检查证据。

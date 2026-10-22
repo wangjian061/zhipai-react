@@ -693,6 +693,28 @@
       .wf-order-card strong {
         font-size: 13px;
       }
+      .wf-order-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #eef2f7;
+        margin-bottom: 12px;
+      }
+      .wf-order-header span {
+        color: #207359;
+        white-space: nowrap;
+      }
+      .wf-order-receipt {
+        background: #fff;
+        padding: 16px;
+        border-radius: 16px;
+      }
+      .wf-order-receipt > section + section {
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid #eef2f7;
+      }
       .wf-chip {
         color: var(--blue);
         background: #edf3ff;
@@ -767,9 +789,24 @@
           font-size: 19px;
         }
       }
-      .wf-order-product { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
-      .wf-order-product > div { min-width:0; flex:1; }
-      .wf-order-thumb { width:56px; height:78px; flex:none; object-fit:contain; border-radius:6px; background:#f1f5fb; }
+      .wf-order-product {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .wf-order-product > div {
+        min-width: 0;
+        flex: 1;
+      }
+      .wf-order-thumb {
+        width: 56px;
+        height: 78px;
+        flex: none;
+        object-fit: contain;
+        border-radius: 6px;
+        background: #f1f5fb;
+      }
     </style>
   </head>
   <body>
@@ -853,16 +890,16 @@
           id: "p05",
           name: "照片精修操作页",
           notes: [
-            "顶部“照片精修”，当前步骤为“AI精修”；主体是当前照片和必要文件信息。",
+            "顶部和第二步均为“照片精修”；主体依次为当前照片及文件信息、背景颜色。蓝、白、红、浅灰默认均未选，必须主动选一项才可付款；选后回显名称，保留原图直至处理完成。",
             "处理动效限制在实际照片内，处理文字置于照片下方；不覆盖整个预览容器。底部左“上一步”回到选图；右“付款并开始精修”打开付款抽屉。已有已付款订单且尚无结果时使用“开始精修”，不得重复收费。",
-            "付款后进入处理；失败保留照片及付款状态，“重试”重做处理。新照片必须重新检查。",
+            "底色写入本单快照，付款、处理、重试和完成摘要使用同一值。取消付款及未换图回退保留；换另一张照片清空底色并重新检查。待确认或已付锁定底色，失败重试原单不再收费，保存失败只重试保存。",
           ],
         },
         {
           id: "p06",
           name: "精修与换装付款抽屉",
           notes: [
-            "标题按场景为“开始AI精修”或“确认换装订单”，展示照片、服务、¥2.00及支付方式。",
+            "标题按场景为“开始照片精修”或“确认换装订单”，展示照片、服务、¥2.00及支付方式，精修额外回显所选背景色。",
             "支持原型付款成功、取消、失败；取消文案“已取消付款，照片与设置已保留”，失败文案“付款未完成，可重试”。",
             "确认后成功记录付款并开始对应处理；同一订单重试不重复创建交易。付款前不能生成付费结果。",
             "订单只记录交易与服务快照，照片结果保留在工具及相册，不把交易字段塞入图片编辑区。",
@@ -874,7 +911,7 @@
           notes: [
             "自动保存成功后进入六工具共用的“处理完成”页，不再停留原效果工作页；完成页不展示步骤条。",
             "上方简短显示“已保存到知拍相册”“原照片仍然保留”，56px主题白熊仅辅助状态。主体保留前后滑杆；“精修前／精修后”在照片下方左右两侧，不遮挡照片。",
-            "下方显示照片精修摘要、实际像素／格式／文件体积。底部固定左侧次按钮“再处理一张”、右侧主按钮“查看照片”；查看直达本次成片详情，再处理回选图。无上一步，历史照片与订单保留。",
+            "下方显示照片精修及本单底色摘要、实际像素／格式／文件体积。底部固定左侧次按钮“再处理一张”、右侧主按钮“查看照片”；查看直达本次成片详情，再处理回选图。无上一步，历史照片与订单保留。",
             "自动保存失败仍留处理页，显示“保存未完成，已付款的照片已保留。重试保存不会再次收费。”；固定主按钮唯一提供“重试保存”，复用本次产物，不重新处理、不再次收费、不重复新增相册项。",
           ],
         },
@@ -1021,8 +1058,9 @@
           id: "p22",
           name: "我的订单入口",
           notes: [
+            "本轮完整交互以orders-1.4.6.html为准，点击示意的全部类型可打开；本页保留流程概览。",
             "从个人中心统一查看五类交易；工具顶部不放订单入口。状态为“全部／待付款／付款确认中／已支付／已关闭”，与业务处理结果无关。",
-            "保留两层筛选和类型横滑提示；标签12px、计数下置弱化，44px触控区。卡片显示56×78px本单真实照片、服务名、一次规格摘要、付款状态、创建时间及金额；缺图或加载失败使用默认照片占位。照片仅用于识别，不能独立打开。服务名15px、规格13px、日期与状态12px、金额17px。删除订单查找及旧q过滤，保留付款查询。",
+            "保留五等分状态筛选，标签13px、计数11px、至少44px触控区；其下单行类型入口打开三列两行选择抽屉，右侧显示当前结果数，数据不全标记已加载。卡片显示56×78px本单真实照片、服务名、一次规格摘要、付款状态、创建时间及金额；缺图或加载失败使用默认照片占位。照片仅用于识别，不能独立打开。服务名15px、规格13px、日期与状态12px、金额17px。删除订单查找及旧q过滤，保留付款查询。",
             "订单只提供交易操作，不放大查看照片、排版照，不下载、不继续处理、不进入采集任务、不提供客服入口。所有已付款状态均归已支付，不因制作、保存、审核或配送状态改变。",
             "已购未完成照片从原工具或相册的“待完成的照片”恢复；工具恢复不重复收费，电子照片保存使用原已购文件。已保存后主动删除照片不重新出现恢复项。",
             "当前账号只展示有归属的交易，排除样例及旧兼容支付字段；保留原订单ID、金额、版本与规格快照。",
@@ -1032,8 +1070,8 @@
           id: "p23",
           name: "冲印订单详情页",
           notes: [
-            "单层详情依次为交易状态与金额、服务与费用、必要配送信息、订单凭据。服务摘要使用同款真实照片缩略图，版式与数量只出现一次；不提供照片放大、排版预览、制作记录或制作／配送演示操作。",
-            "配送信息保留收货人、地址、待发货／已发货／已签收及运单，不改变付款状态。订单号及运单支持复制，按钮就地显示“已复制”约2秒；失败就地显示长按复制说明。",
+            "单层详情依次为交易状态与金额、购买内容、独立费用明细、必要配送信息、订单凭据。服务摘要使用同款真实照片缩略图，版式与数量只出现一次；不提供照片放大、排版预览、制作记录或制作／配送演示操作。",
+            "配送信息保留收货人、地址、待发货／已发货／已签收及运单，不改变付款状态。长订单号／运单默认前8位…后8位，可在原卡展开全文，复制始终取完整值，按钮就地显示“已复制”约2秒；失败就地显示长按复制说明。",
             "待付款底部“取消订单／继续付款”；付款确认中仅查询同一订单；已支付和已关闭均无底部业务按钮。所有付款、查款、取消在当前详情完成。",
             "旧详情／结果URL兼容统一详情；返回保留筛选和列表位置，旧q参数不影响结果，旧处理中／已完成筛选回退全部。交易快照不因相册删除或地址更新而覆盖。",
             "其他四类详情采用同一结构，省略配送区；在订单内继续付款／查询，不跳转业务页，也不启动处理或保存。当前没有真实支付或退款。",
@@ -1066,7 +1104,8 @@
         `<button class="wf-button ${secondary ? "secondary" : ""}" ${disabled ? "disabled" : ""} ${targetState ? `data-target-state="${targetState}"` : ""} ${to ? `data-go="${to}"` : ""}>${label}</button>`;
       const text = (label, to) =>
         `<button class="wf-text-button" data-go="${to}">${label}</button>`;
-      const orderThumb = () => `<img class="wf-order-thumb" src="${photo}" alt="虚构订单照片示例">`;
+      const orderThumb = () =>
+        `<img class="wf-order-thumb" src="${photo}" alt="虚构订单照片示例">`;
       const portrait = () =>
         `<img class="wf-photo" src="${photo}" alt="虚构示例证件照">`;
       const spec = () =>
@@ -1084,7 +1123,7 @@
       const view = {
         p01: {
           title: "照片精修",
-          step: steps(["选照片", "AI精修", "看效果"], 0),
+          step: steps(["选照片", "照片精修", "看效果"], 0),
           body: () =>
             `<div class="wf-empty"><img class="wf-bear" src="${bear}" alt="白熊主题示例"><h3>选取一张照片</h3><p>知拍相册 / 手机相册</p></div>`,
           footer: () => btn("选取照片", "p02"),
@@ -1106,7 +1145,7 @@
         },
         p03: {
           title: "照片精修",
-          step: steps(["选照片", "AI精修", "看效果"], 0),
+          step: steps(["选照片", "照片精修", "看效果"], 0),
           body: () =>
             `<div class="wf-photo-box"><img src="${photo}" alt="当前照片"></div>${spec()}<button class="wf-text-button wf-change" data-go="p02">↻ 更换照片</button><div class="wf-notice error">照片不符合证件照要求<br>${text("查看原因", "p04")}</div>`,
           footer: () => btn("下一步", "", false, true),
@@ -1127,11 +1166,22 @@
         },
         p05: {
           title: "照片精修",
-          step: steps(["选照片", "AI精修", "看效果"], 1),
+          step: steps(["选照片", "照片精修", "看效果"], 1),
           body: () =>
-            `${portrait()}${spec()}<p class="wf-center">精修处理保留原照片</p>`,
+            `${portrait()}${spec()}<div class="wf-block"><h3>背景颜色 <small>${repairColor || "请选择一种"}</small></h3><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${[
+              ["蓝色", "#438bc6"],
+              ["白色", "#fff"],
+              ["红色", "#d6383d"],
+              ["浅灰", "#d9e0e8"],
+            ]
+              .map(
+                ([name, color]) =>
+                  `<button data-repair-color="${name}" aria-pressed="${repairColor === name}" style="min-height:76px;border:0;background:transparent;color:#53637b;font-size:12px"><i style="display:block;margin:4px auto 10px;width:32px;height:32px;border:1px solid #bdc8d9;border-radius:50%;background:${color};outline:${repairColor === name ? "2px solid #0032ff" : "none"};outline-offset:3px"></i>${name}</button>`,
+              )
+              .join("")}</div></div>`,
           footer: () =>
-            btn("上一步", "p01", true) + btn("付款并开始精修", "p06"),
+            btn("上一步", "p01", true) +
+            btn("付款并开始精修", "p06", false, !repairColor),
         },
         p06: {
           title: "照片精修",
@@ -1139,9 +1189,9 @@
           body: () => portrait(),
           overlay: () =>
             sheet(
-              "开始AI精修",
+              "开始照片精修",
               "原型付款演示，不发起真实支付",
-              `<div class="wf-row"><strong>照片精修</strong><strong class="wf-price">¥2.00</strong></div><div class="wf-row">微信支付<span>已选</span></div><div class="wf-notice">取消、失败保留照片与设置；成功才开始处理。</div>`,
+              `<div class="wf-row"><strong>照片精修${repairColor ? " · " + repairColor + "背景" : ""}</strong><strong class="wf-price">¥2.00</strong></div><div class="wf-row">微信支付<span>已选</span></div><div class="wf-notice">取消、失败保留照片与设置；成功才开始处理。</div>`,
               btn("模拟付款成功并处理", "p07"),
               "",
               "p05",
@@ -1280,23 +1330,31 @@
         p22: {
           title: "我的订单",
           body: () =>
-            `<div class="wf-choice"><span class="selected">全部</span><span>待付款</span><span>付款确认中</span><span>已支付</span><span>已关闭</span></div><div class="wf-choice" style="flex-wrap:nowrap;overflow-x:auto"><span class="selected">全部类型</span><span>电子照片</span><span>照片冲印</span><span>照片精修</span><span>照片换装</span><span>专项采集 →</span></div><div class="wf-order-card"><div class="wf-order-product">${orderThumb()}<div><div class="wf-row"><strong>证件照排版冲印</strong><span class="wf-chip">已支付</span></div><p>4大8小 · 1版</p></div></div><div class="wf-row">2026/10/21 09:42<strong>¥29.80</strong></div>${text("查看订单", "p23")}</div><div class="wf-order-card"><div class="wf-order-product">${orderThumb()}<div><div class="wf-row"><strong>照片精修</strong><span class="wf-chip">已支付</span></div><p>二寸 · 35 × 49 mm</p></div></div><div class="wf-row">2026/10/21 09:44<strong>¥2.00</strong></div></div><p>照片为虚构示例，仅用于购买识别，不提供放大或业务跳转。</p>`,
+            `<div class="wf-choice"><span class="selected">全部</span><span>待付款</span><span>付款确认中</span><span>已支付</span><span>已关闭</span></div><div class="wf-row"><a href="orders-1.4.6.html">全部类型⌄</a><small>共2笔</small></div><div class="wf-order-card"><div class="wf-order-header"><strong>背胶模切证件照</strong><span>已支付</span></div><div class="wf-order-product">${orderThumb()}<div><div class="wf-row"><span>二寸4张＋一寸8张 · 1版</span><strong>¥29.80</strong></div><p>2026-10-21 09:42</p></div></div>${text("查看订单", "p23")}</div><div class="wf-order-card"><div class="wf-order-header"><strong>照片精修</strong><span>已支付</span></div><div class="wf-order-product">${orderThumb()}<div><div class="wf-row"><span>二寸</span><strong>¥2.00</strong></div><p>35 × 49 mm</p><p>2026-10-21 09:44</p></div></div></div><p>照片为虚构示例，仅用于购买识别。实际视觉以<a href="orders-1.4.6.html">订单交互样例</a>为准。</p>`,
         },
         p23: {
           title: "订单详情",
           body: () =>
-            `<div class="wf-row"><h3>已支付</h3><span>实付金额 <strong>¥29.80</strong></span></div><div class="wf-block"><div class="wf-order-product">${orderThumb()}<div><strong style="font-size:15px">证件照排版冲印</strong><p>4大8小 · 1版</p></div></div><div class="wf-row">冲印费<strong>¥19.80</strong></div><div class="wf-row">配送费<strong>¥10.00</strong></div></div><div class="wf-block"><strong style="font-size:13px">配送信息</strong><p>待发货</p><p>示例用户　138 **** 0000<br>示例市 · 示例地址（虚构）</p></div><div class="wf-block"><strong style="font-size:13px">订单信息</strong><p>订单编号、创建时间、支付时间、支付方式</p></div>`,
+            `<div class="wf-row"><h3>已支付</h3><span>实付金额 <strong>¥29.80</strong></span></div><div class="wf-order-receipt"><section><div class="wf-order-product">${orderThumb()}<div><strong style="font-size:15px">背胶模切证件照</strong><p>二寸4张＋一寸8张 · 1版</p></div></div></section><section><strong>费用明细</strong><div class="wf-row">冲印费<strong>¥19.80</strong></div><div class="wf-row">配送费<strong>¥10.00</strong></div></section><section><strong>配送信息</strong><p>待发货</p><p>示例用户　138 **** 0000<br>示例市 · 示例地址（虚构）</p></section><section><strong>订单信息</strong><p>订单编号、创建时间、支付时间、支付方式</p></section></div>`,
           states: ["待付款", "付款确认中", "已支付", "已关闭"],
         },
       };
       let current = 0,
-        state = "";
+        state = "",
+        repairColor = "";
       function bodyState(id, v) {
         if (id === "p23" && state)
           return v
             .body()
             .replace("<h3>已支付</h3>", `<h3>${escape(state)}</h3>`)
-            .replace("实付金额", state === "已支付" ? "实付金额" : "订单金额");
+            .replace(
+              "实付金额",
+              state === "已支付"
+                ? "实付金额"
+                : state === "待付款"
+                  ? "待付金额"
+                  : "订单金额",
+            );
         if (id === "p14" && state === "更换背景")
           return `<div class="wf-center"><img class="wf-bear" style="width:56px;height:56px" src="${assetRoot}bear-background.webp" alt=""><h3>已发起下载</h3><p>请在手机相册中查看</p>${portrait()}<p>蓝色背景</p>${spec()}</div>`;
         if (id === "p01" && state === "已选图")
@@ -1505,6 +1563,12 @@
       document.getElementById("prev").onclick = () => go(pages[current - 1].id);
       document.getElementById("next").onclick = () => go(pages[current + 1].id);
       document.addEventListener("click", (e) => {
+        const color = e.target.closest("[data-repair-color]");
+        if (color) {
+          repairColor = color.dataset.repairColor;
+          render();
+          return;
+        }
         const b = e.target.closest(
           "[data-go],[data-state],[data-doc-exit],[data-note]",
         );

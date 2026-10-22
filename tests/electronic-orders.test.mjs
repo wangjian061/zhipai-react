@@ -233,3 +233,39 @@ test("missing-session paid receipt remains recoverable and does not recreate a c
   assert.equal((await c.readElectronicOrders())[0].savedId, "made-session");
   assert.equal(await c.readCameraSession(r.id), undefined);
 });
+
+test("new purchase metadata remains a receipt snapshot through payment confirmation and matching draft updates", async () => {
+  const { context: c } = setup();
+  const r = session("pending");
+  const snapshot = {
+    specName: "二寸",
+    mm: "35 × 49 mm",
+    pixels: "413 × 579 px",
+    backgroundName: "蓝色",
+  };
+  r.draft.order.purchaseSnapshot = snapshot;
+  await c.writeCameraSession(r);
+  await c.updateElectronicReceipt(
+    r.draft.order.id,
+    r.draft.order.owner,
+    "pending",
+    { status: "verifying", method: "wechat" },
+  );
+  await c.updateElectronicReceipt(
+    r.draft.order.id,
+    r.draft.order.owner,
+    "verifying",
+    { status: "paid", paidAt: 42 },
+  );
+  const receipt = (await c.readElectronicOrders())[0];
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(receipt.purchaseSnapshot)),
+    snapshot,
+  );
+  assert.equal(receipt.amount, 980);
+  const restored = await c.readCameraSession(r.id);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(restored.draft.order.purchaseSnapshot)),
+    snapshot,
+  );
+});

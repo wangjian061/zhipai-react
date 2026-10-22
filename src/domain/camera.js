@@ -2264,6 +2264,15 @@ registerController("cameraStudio", () => ({
           id: "electronic-" + albumPhotoId(),
           owner,
           amount: this.electronicAmount,
+          purchaseSnapshot: {
+            specName: this.spec.name,
+            mm: this.spec.mm,
+            pixels: `${session.draft.outputWidth} × ${session.draft.outputHeight} px`,
+            backgroundName:
+              PHOTO_BACKGROUNDS.find(
+                (item) => item.value === session.draft.background,
+              )?.name || "未记录",
+          },
           ...(this.dualResults
             ? {
                 versionId: this.selectedVersion.id,

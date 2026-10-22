@@ -3,18 +3,23 @@ import { Portal } from "../runtime/components.jsx";
 
 export default function OrderPaymentSheet({ s }) {
   const dialog = useRef(null);
-  const opened = s.paymentOpen && s.page === "orders";
+  const opened = !!s.sheet && s.page === "orders";
   const order = s.current;
   const assignDialog = useCallback((node) => {
     if (node && !dialog.current) node.focus();
     dialog.current = node;
   }, []);
   useEffect(() => {
-    if (s.paymentOpen && !s.paymentBusy && (!order || s.page !== "orders"))
+    if (
+      s.sheet &&
+      !s.paymentBusy &&
+      (!order || !s.owner || s.page !== "orders")
+    )
       s.closePayment();
-  }, [order?.key, s.page, s.paymentBusy, s.paymentOpen]);
-  if (!opened || !order) return null;
-  const query = order.state === "verifying";
+  }, [order?.key, s.owner, s.page, s.paymentBusy, s.sheet]);
+  if (!opened || !order || !s.owner) return null;
+  const cancel = s.sheet === "cancel";
+  const query = s.queryMode;
   const trap = (event) => {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -51,7 +56,7 @@ export default function OrderPaymentSheet({ s }) {
   return (
     <Portal target="#orders-modal-layer">
       <div
-        className="order-payment-overlay"
+        className={`order-payment-overlay${cancel ? " is-confirmation" : ""}`}
         onClick={(event) => {
           if (event.target === event.currentTarget) s.closePayment();
         }}
@@ -59,7 +64,9 @@ export default function OrderPaymentSheet({ s }) {
         <section
           ref={assignDialog}
           tabIndex={-1}
-          className="ui-sheet order-payment-sheet"
+          className={
+            cancel ? "order-cancel-dialog" : "ui-sheet order-payment-sheet"
+          }
           role="dialog"
           aria-modal="true"
           aria-labelledby="order-payment-title"
@@ -68,11 +75,11 @@ export default function OrderPaymentSheet({ s }) {
         >
           <header className="ui-sheet-header">
             <h2 id="order-payment-title">
-              {query ? "查询付款结果" : "确认付款"}
+              {cancel ? "取消这笔订单？" : query ? "查询付款结果" : "确认付款"}
             </h2>
             <button
               className="order-payment-close"
-              aria-label="关闭付款窗口"
+              aria-label={cancel ? "关闭取消确认" : "关闭付款窗口"}
               disabled={s.paymentBusy}
               onClick={() => s.closePayment()}
             >
@@ -82,68 +89,100 @@ export default function OrderPaymentSheet({ s }) {
             </button>
           </header>
           <div className="ui-sheet-body">
-            <div className="order-payment-summary">
-              <p>{order.title}</p>
-              <strong>{s.money(order.amount)}</strong>
-            </div>
-            {query ? (
-              <p className="orders-notice">
-                付款结果待确认，查询期间无需再次付款。
+            {cancel ? (
+              <p className="order-cancel-copy">
+                取消后本订单将关闭，尚未付款。
               </p>
             ) : (
-              [
-                ["wechat", "微信支付"],
-                ["alipay", "支付宝"],
-              ].map(([id, name]) => (
-                <label className="order-payment-option" key={id}>
-                  {name}
-                  <input
-                    type="radio"
-                    name="order-payment-method"
-                    checked={s.paymentMethod === id}
-                    disabled={s.paymentBusy}
-                    onChange={() => {
-                      s.paymentMethod = id;
+              <>
+                <div className="order-payment-summary">
+                  <p>{order.title}</p>
+                  <strong>{s.money(order.amount)}</strong>
+                </div>
+                {query ? (
+                  <p className="orders-notice">
+                    付款结果待确认，查询期间无需再次付款。
+                  </p>
+                ) : (
+                  [
+                    ["wechat", "微信支付"],
+                    ["alipay", "支付宝"],
+                  ].map(([id, name]) => (
+                    <label className="order-payment-option" key={id}>
+                      {name}
+                      <input
+                        type="radio"
+                        name="order-payment-method"
+                        checked={s.paymentMethod === id}
+                        disabled={s.paymentBusy}
+                        onChange={() => {
+                          s.paymentMethod = id;
+                        }}
+                      />
+                    </label>
+                  ))
+                )}
+                <details className="order-payment-demo">
+                  <summary
+                    onClick={(event) => {
+                      if (s.paymentBusy) event.preventDefault();
                     }}
-                  />
-                </label>
-              ))
+                  >
+                    原型演示
+                  </summary>
+                  <label>
+                    模拟付款结果
+                    <select
+                      aria-label="模拟付款结果"
+                      value={s.paymentOutcome}
+                      disabled={s.paymentBusy}
+                      onChange={(event) => {
+                        s.paymentOutcome = event.target.value;
+                      }}
+                    >
+                      <option value="success">付款成功</option>
+                      <option value="failure">未付款</option>
+                      <option value="unknown">结果待确认</option>
+                    </select>
+                  </label>
+                </details>
+              </>
             )}
-            <details className="order-payment-demo">
-              <summary>原型演示</summary>
-              <label>
-                模拟付款结果
-                <select
-                  aria-label="模拟付款结果"
-                  value={s.paymentOutcome}
-                  disabled={s.paymentBusy}
-                  onChange={(event) => {
-                    s.paymentOutcome = event.target.value;
-                  }}
-                >
-                  <option value="success">付款成功</option>
-                  <option value="failure">未付款</option>
-                  <option value="unknown">结果待确认</option>
-                </select>
-              </label>
-            </details>
+            {!s.online && (
+              <p className="orders-error" role="status">
+                网络不可用，请恢复连接后重试。
+              </p>
+            )}
             {s.paymentError && (
               <p className="orders-error" role="alert">
                 {s.paymentError}
               </p>
             )}
           </div>
-          <footer className="ui-sheet-footer">
+          <footer
+            className={cancel ? "order-cancel-actions" : "ui-sheet-footer"}
+          >
+            {cancel && (
+              <button
+                className="orders-secondary"
+                disabled={s.paymentBusy}
+                onClick={() => s.closePayment()}
+              >
+                暂不取消
+              </button>
+            )}
             <button
               className="orders-primary"
-              disabled={s.paymentBusy}
-              onClick={() => s.pay()}
+              disabled={s.paymentBusy || !s.online}
+              onClick={() => (cancel ? s.cancel() : s.pay())}
             >
               {s.paymentBusy
                 ? "正在确认…"
-                : query
-                  ? "查询付款结果"
-                  : `确认付款 ${s.money(order.amount)}`}
+                : cancel
+                  ? "确认取消"
+                  : query
+                    ? "查询付款结果"
+                    : `确认付款 ${s.money(order.amount)}`}
             </button>
           </footer>
         </section>

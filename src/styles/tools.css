@@ -24,6 +24,19 @@
 .tool-spec-list,.tool-format-list{display:flex;gap:8px}.tool-spec-list button,.tool-format-list button{flex:1;min-width:0;min-height:64px;padding:10px 5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:#f3f5fc;border:2px solid transparent;border-radius:10px;font-size:13px}.tool-spec-list strong,.tool-format-list strong{font-weight:600}.tool-spec-list small,.tool-format-list small{font-size:11px;color:var(--tool-muted);white-space:nowrap}.tool-spec-list .selected,.tool-format-list .selected,.tool-outfit-list .selected{border-color:var(--brand-blue);background:#edf2ff;color:var(--brand-blue)}
 
 .tool-color-list{display:flex;gap:8px;justify-content:space-around}.tool-color-list button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:72px;min-width:50px;font-size:12px}.tool-color-list i{width:32px;height:32px;border:1px solid #bdc8d9;border-radius:50%}.tool-color-list .selected{box-shadow:0 0 0 3px #fff,0 0 0 4px var(--brand-blue)}
+.tool-repair-background .tool-options-heading>span{font-size:12px}
+.tool-repair-background-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.tool-repair-background-options label{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-width:44px;min-height:76px;padding:6px 0;color:var(--tool-muted);font-size:12px;cursor:pointer;border-radius:8px}
+.tool-repair-background-options input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:inherit}
+.tool-repair-background-options i{display:grid;place-items:center;width:32px;height:32px;border:1px solid #bdc8d9;border-radius:50%;pointer-events:none}
+.tool-repair-background-options i>svg{width:18px;height:18px;color:#fff;stroke-width:2.4}
+.tool-repair-background-options input[value="white"]+i>svg,.tool-repair-background-options input[value="gray"]+i>svg{color:var(--brand-blue)}
+.tool-repair-background-options input:checked+i{outline:2px solid var(--brand-blue);outline-offset:3px}
+.tool-repair-background-options label:has(input:checked)>span{color:var(--ui-heading,#203858);font-weight:600}
+.tool-repair-background-options label:has(input:focus-visible){outline:2px solid var(--brand-blue);outline-offset:2px}
+.tool-repair-background-options label:has(input:disabled){cursor:default;opacity:.65}
+.tool-repair-background-options label:has(input:not(:disabled)):active{background:#edf2ff}
+@media(hover:hover){.tool-repair-background-options label:has(input:not(:disabled)):hover{background:#f3f5fc}}
 .tool-local-note{display:block;color:var(--tool-muted);font-size:11px;line-height:1.7;margin:12px 2px 0}.tool-options-heading select,
 .tool-size-input{display:flex;gap:12px;align-items:center;background:#f3f5fc;border-radius:10px;padding:12px;font-size:13px}.tool-size-input input{width:100%;flex:1;min-width:0;border:0;background:none;color:var(--brand-blue);font-size:23px;text-align:right;font-variant-numeric:tabular-nums}.tool-size-input strong{font-size:13px;color:var(--tool-muted)}
 .tool-size-comparison{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 6px 0;font-size:11px;color:var(--tool-muted)}.tool-size-comparison>span{display:flex;flex-direction:column;gap:5px}.tool-size-comparison b{font-size:17px;color:#293240;font-weight:600}.tool-size-comparison svg{width:18px;height:18px}

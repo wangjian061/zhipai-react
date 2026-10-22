@@ -5,6 +5,7 @@ import PhotoProcessingEffect, {
 import { toolPhotoProcessingLabel } from "../components/photo-processing.js";
 import ToolNavigation from "../components/ToolNavigation.jsx";
 import ToolResult from "../components/ToolResult.jsx";
+import RepairBackgroundOptions from "../components/RepairBackgroundOptions.jsx";
 import ToolStepper from "../components/ToolStepper.jsx";
 import PhotoSelectionPreview from "../components/PhotoSelectionPreview.jsx";
 import ToolPhotoSelection from "../components/ToolPhotoSelection.jsx";
@@ -233,6 +234,15 @@ export default function ToolsPage({ scope, args = [] }) {
                   ></View>
                 </View>
               </View>
+              {s.action === "repair" && s.step === 1 && (
+                <RepairBackgroundOptions
+                  colors={s.colors}
+                  color={s.repairColor}
+                  disabled={s.repairSettingsLocked}
+                  required={!s.legacyRepairOrder}
+                  onChange={(id) => s.selectRepairBackground(id)}
+                />
+              )}
               {s.showPortraitCheck && s.portraitCheck.status !== "checking" && (
                 <PortraitCheckStatus
                   check={s.portraitCheck}
@@ -779,7 +789,7 @@ export default function ToolsPage({ scope, args = [] }) {
             show={s.view === "orders"}
           >
             <ToolNavigation
-              title={s.action === "repair" ? "AI修复订单" : "换装订单"}
+              title={s.action === "repair" ? "照片精修订单" : "换装订单"}
               onBack={() => s.back()}
             />
             <View as="div" scope={s} className="tool-work-scroll">
@@ -987,7 +997,7 @@ export default function ToolsPage({ scope, args = [] }) {
                           payment:
                             s.action === "outfit"
                               ? "确认换装订单"
-                              : "开始AI精修",
+                              : "开始照片精修",
                         }[s.panel]
                       }
                     ></View>
@@ -1253,6 +1263,9 @@ export default function ToolsPage({ scope, args = [] }) {
                             scope={s}
                             text={s.config.title}
                           ></View>
+                          {s.action === "repair" && s.repairColor && (
+                            <small>{s.repairColor.name}背景</small>
+                          )}
                         </View>
                         <View as="b" scope={s}>
                           {"¥2.00"}

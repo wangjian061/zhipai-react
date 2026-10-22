@@ -28,7 +28,7 @@ const PHOTO_TOOLS = {
     sources: ["finished", "phone"],
     requiresPortrait: true,
     service: true,
-    steps: ["选照片", "AI精修", "看效果"],
+    steps: ["选照片", "照片精修", "看效果"],
   },
   outfit: {
     title: "照片换装",
@@ -171,10 +171,16 @@ async function toolDemoResult(photo, action, options) {
       cvs.height * 0.49,
     );
   }
+  if (action === "repair" && options.repairBackground)
+    return replaceToolBackground(
+      await toolCanvasBlob(cvs, "png"),
+      options.repairBackground.value,
+      "jpeg",
+    );
   return toolCanvasBlob(cvs);
 }
 // Edge-connected color replacement for simple photo backgrounds, on-device.
-async function replaceToolBackground(blob, color) {
+async function replaceToolBackground(blob, color, format = "png") {
   const image = await decodePhotoBlob(blob),
     cvs = document.createElement("canvas");
   cvs.width = image.naturalWidth;
@@ -245,7 +251,7 @@ async function replaceToolBackground(blob, color) {
     visit(i + w);
   }
   c.putImageData(pixels, 0, 0);
-  return toolCanvasBlob(cvs, "png");
+  return toolCanvasBlob(cvs, format);
 }
 async function compressPhotoFile(photo, targetKB) {
   const image = await decodePhotoBlob(photo.blob),
@@ -352,6 +358,7 @@ registerController("toolStudio", () => ({
   targetValue: 200,
   sizeUnit: "KB",
   background: "blue",
+  repairBackgroundId: null,
   backgroundEditing: false,
   flowCompleted: false,
   outfit: "men-suit",
@@ -557,6 +564,41 @@ registerController("toolStudio", () => ({
   get chosenColor() {
     return this.colors.find((c) => c.id === this.background) || this.colors[0];
   },
+  get repairColor() {
+    const order = this.currentOrder;
+    const color =
+      order && order.status !== "pending"
+        ? order.repairBackground
+        : this.colors.find((c) => c.id === this.repairBackgroundId);
+    return color &&
+      this.colors.some((c) => c.id === color.id) &&
+      /^#[0-9a-f]{6}$/i.test(color.value) &&
+      typeof color.name === "string" &&
+      color.name
+      ? color
+      : null;
+  },
+  get legacyRepairOrder() {
+    return !!(
+      this.action === "repair" &&
+      this.currentOrder?.status === "paid" &&
+      !Object.hasOwn(this.currentOrder, "repairBackground")
+    );
+  },
+  get repairOptionsReady() {
+    // Legacy paid receipts keep their original output/processing contract.
+    return !!(this.repairColor || this.legacyRepairOrder);
+  },
+  get repairSettingsLocked() {
+    return !!(
+      this.busy ||
+      this.panel === "payment" ||
+      this.flowCompleted ||
+      this.serviceApplied ||
+      this.paid ||
+      (this.currentOrder && this.currentOrder.status !== "pending")
+    );
+  },
   get outputWidth() {
     if (this.action === "outfit")
       return this.outfitOutputSize?.width || this.photo?.width || 1;
@@ -574,6 +616,10 @@ registerController("toolStudio", () => ({
   },
   get resultSummary() {
     switch (this.action) {
+      case "repair":
+        return this.repairColor
+          ? `照片精修 · ${this.repairColor.name}背景`
+          : "照片精修";
       case "crop":
         return `${this.spec.name} · ${this.spec.mm}`;
       case "background":
@@ -690,6 +736,8 @@ registerController("toolStudio", () => ({
     if (this.busy) return false;
     if (!this.portraitEligible && this.photo) return false;
     if (this.choosingPhoto) return true;
+    if (this.action === "repair" && this.photo && !this.repairOptionsReady)
+      return false;
     if (this.error) return !!this.photo && this.step > 0;
     if (!this.photo) return true;
     if (this.action === "background" && !this.backgroundEditing) return true;
@@ -767,6 +815,7 @@ registerController("toolStudio", () => ({
       targetValue: 200,
       sizeUnit: "KB",
       background: "blue",
+      repairBackgroundId: null,
       backgroundEditing: false,
       flowCompleted: false,
       outfit: "men-suit",
@@ -1311,6 +1360,18 @@ registerController("toolStudio", () => ({
     this.background = id;
     await this.preview();
   },
+  selectRepairBackground(id) {
+    if (
+      this.action !== "repair" ||
+      this.step !== 1 ||
+      this.view !== "work" ||
+      this.repairSettingsLocked ||
+      !this.colors.some((c) => c.id === id)
+    )
+      return;
+    this.repairBackgroundId = id;
+    this.error = "";
+  },
   async primary() {
     if (!this.primaryEnabled) return;
     if (this.flowCompleted) return this.start();
@@ -1377,6 +1438,7 @@ registerController("toolStudio", () => ({
   },
   async openPayment() {
     if (!this.photo || !this.portraitEligible || this.busy) return;
+    if (this.action === "repair" && !this.repairOptionsReady) return;
     if (!requireOrderAccount()) return;
     const token = this.task;
     await this.ordersStore.loading;
@@ -1421,7 +1483,11 @@ registerController("toolStudio", () => ({
       (this.action === "outfit" && (!this.standardized || !this.chosenOutfit))
     )
       return;
-    if (await this.restoreExistingPayment()) return;
+    if (this.currentOrder && this.currentOrder.status !== "pending") {
+      await this.restoreExistingPayment();
+      return;
+    }
+    if (this.action === "repair" && !this.repairColor) return;
     const token = this.task,
       action = this.action,
       sourceKind = this.sourceKind,
@@ -1433,6 +1499,8 @@ registerController("toolStudio", () => ({
       outfit = this.outfit,
       output = this.output,
       standardBlob = this.standardBlob,
+      repairBackground =
+        this.action === "repair" ? { ...this.repairColor } : null,
       specId = this.specId,
       orders = this.ordersStore;
     let id = this.orderId;
@@ -1447,6 +1515,13 @@ registerController("toolStudio", () => ({
           action,
           status: "pending",
           amount: 200,
+          purchaseSnapshot: {
+            specName: (photo.spec || "规格未记录").split(" · ")[0],
+            specification: photo.spec || "规格未记录",
+            ...(repairBackground
+              ? { backgroundName: repairBackground.name }
+              : {}),
+          },
           createdAt: Date.now(),
           photo,
           outfit,
@@ -1457,9 +1532,22 @@ registerController("toolStudio", () => ({
           preserveSourceSize: true,
           sourceKind,
           savedId: null,
+          ...(repairBackground ? { repairBackground } : {}),
         };
         await orders.commit((items) => items.unshift(record));
         if (token === this.task) this.orderId = id;
+      } else if (repairBackground) {
+        // A canceled/unpaid attempt may change color, but retains its original ID.
+        await orders.commit((items) => {
+          const order = items.find((o) => o.id === id && o.owner === owner);
+          if (!order || order.status !== "pending")
+            throw Error("payment changed");
+          order.repairBackground = repairBackground;
+          order.purchaseSnapshot = {
+            ...order.purchaseSnapshot,
+            backgroundName: repairBackground.name,
+          };
+        });
       }
       if (outcome !== "success") {
         if (token === this.task)
@@ -1504,6 +1592,7 @@ registerController("toolStudio", () => ({
       this.flowCompleted ||
       !this.portraitEligible ||
       this.busy ||
+      (this.action === "repair" && !this.repairOptionsReady) ||
       (this.config.service &&
         (!this.paid || this.currentOrder?.status !== "paid")) ||
       (this.action === "outfit" && (!this.standardized || !this.standardBlob))
@@ -1512,9 +1601,13 @@ registerController("toolStudio", () => ({
     const token = ++this.task,
       action = this.action,
       photo = {
-        ...this.photo,
+        ...(action === "repair" ? this.currentOrder.photo : this.photo),
       },
       standardBlob = this.standardBlob,
+      repairBackground =
+        action === "repair" && this.repairColor
+          ? { ...this.repairColor }
+          : null,
       outfitImage = this.chosenOutfit?.image,
       id = this.orderId,
       orders = this.ordersStore;
@@ -1525,6 +1618,7 @@ registerController("toolStudio", () => ({
       const blob = await toolDemoResult(photo, action, {
         standardBlob,
         outfitImage,
+        repairBackground,
       });
       if (token !== this.task) return;
       if (id)
@@ -1649,6 +1743,7 @@ registerController("toolStudio", () => ({
     this.sourceKind = order.sourceKind || "finished";
     this.sourceURL = URL.createObjectURL(order.photo.blob);
     this.orderId = order.id;
+    this.repairBackgroundId = order.repairBackground?.id || null;
     this.outfit = order.outfit;
     this.outfitCategory = (order.outfit || "men-suit").split("-")[0];
     this.paid = order.status === "paid";

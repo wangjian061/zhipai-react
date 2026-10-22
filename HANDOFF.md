@@ -42,7 +42,7 @@
 | 冲印 | `/?page=print&print=select`；同上工具文档 | [PrintPage](src/pages/PrintPage.jsx)、[print](src/domain/print.js)、[固定裁剪](src/components/FixedPhotoCrop.jsx) | 排版、裁剪、订单流程有说明；正式生产与配送待接入 |
 | 专项采集 | `/?page=collection`；[专项说明](docs/collection-zone.md) | [CollectionPage](src/pages/CollectionPage.jsx)、[collection](src/domain/collection.js)、[项目配置](src/domain/collection-config.js)、[状态映射](src/domain/collection-status.js) | 有规则与实现；需整理一份无历史冲突的完整逐页契约 |
 | 相册 | `/?page=album`；[设计规范中的相册规则](DESIGN.md) | [AlbumPage](src/pages/AlbumPage.jsx)、[album](src/domain/album.js)、[照片查看层](src/components/AlbumPhotoViewer.jsx) | 有实现与测试；全模块页面、权限及删除规则表待补 |
-| 统一订单 | 个人中心「我的订单」；`/?page=orders` | [OrdersPage](src/pages/OrdersPage.jsx)、[orders](src/domain/orders.js)、[订单路由](src/domain/order-routing.js) | 有分类与状态实现；完整交易、接口和恢复契约待补 |
+| 统一订单 | 个人中心「我的订单」；`/?page=orders` | [OrdersPage](src/pages/OrdersPage.jsx)、[orders](src/domain/orders.js)、[订单路由](src/domain/order-routing.js) | [订单契约](docs/product/orders-1.4.6.md)已同步：无外发光的固定通透磨砂顶部、无边线横滑类型Tab、12px语义色状态单选胶囊，票据滚过顶部背后；直接进入详情无卡片转场、返回保留横纵位置；交易及模拟回归已覆盖，原生材质、安全区、手势、读屏、真实支付与接口待验收／接入 |
 | 个人中心、账号与分享 | `/?page=my`；[产品上下文](PRODUCT.md) | [MyPage](src/pages/MyPage.jsx)、[AccountPage](src/pages/AccountPage.jsx)、[account](src/domain/account.js)、[分享海报](src/domain/share-poster.js) | 有实现；正式登录、安全、隐私与分享适配待补 |
 | 扫码、客服与通知 | 首页／专区扫码、个人中心客服、专区通知 | [ScanPage](src/pages/ScanPage.jsx)、[SupportPage](src/pages/SupportPage.jsx)、[通知组件](src/components/CollectionNotifications.jsx) | 有原型；扫码协议、通知服务和平台能力契约待补 |
 
@@ -66,6 +66,8 @@
 | 状态 | 审核中与待提交使用橘色；成功、失败、正常状态沿用已确认语义色；审核完成与学信网上网完成是不同状态 |
 | 相册 | 列表只看照片，规格在详情；大图打开独立查看层，返回先关查看层，底页状态保留 |
 | 数据与交易 | 原图、草稿、结果、相册记录、订单分别管理；付款成功不等于保存成功；重试不能重复扣款、建单或写入结果 |
+
+照片精修2026-10-22更新：第二步以「照片精修」命名，蓝／白／红／浅灰单选，无默认值、选前不得付款；处理前始终预览原图。新订单记录`repairBackground: {id,name,value}`及`purchaseSnapshot.backgroundName`，三端服务请求、查询后的恢复、已付重试、成片摘要均使用同一快照；未付原单可改色，待确认／已付设置锁定，保存失败复用已有产物。换新照片或再处理重置未选；旧已付无字段单不补造底色或改写旧成片。Web仍用本地滤镜加简单边缘连通背景替换，正式人像处理接口需接入。布局与状态见[工具产品规范P05](docs/product/common-tools-1.4.6.md#p05-照片精修操作页)。
 
 细节以所链接的模块文档为准；此表用于防止还原时遗漏高影响规则，不替代完整验收用例。
 
@@ -230,3 +232,10 @@ node --test tests/camera-detection.test.mjs tests/album-presentation.test.mjs te
 已支付和已关闭无底部业务动作；继续付款、查款以及已支持的冲印取消均在原订单办理。已购未归档照片由原工具／相册恢复，复用所购输出及原订单权益。原生端需对应接入幂等支付／查询接口与结果交付恢复；Web使用本地模拟，不能将演示结果作为真实支付凭据。详情及验证范围见[本轮实施记录](docs/reviews/orders-20261021/transaction-boundary.md)。
 
 照片识别实现：共用 `OrderThumbnail`（56×78px、contain、固定占位）；电子照片取所购输出，精修／换装优先成片、尚未产出用本单输入，冲印取本单裁剪后照片，专项取关联记录当前照片。缺失或无法解码时不借用别的照片，不影响订单可见性和交易操作。原生端需对应处理本单缩略图、缺图占位、加载生命周期和无独立看图动作；现有Web仍为本地Blob，并非云缩略图服务。最新实施见[照片识别与排版记录](docs/reviews/orders-20261021/photo-identification.md)。
+
+
+### 订单UI执行契约（2026-10-22，已确认结构、待用户视觉验收）
+
+三端实现以[订单产品文档](docs/product/orders-1.4.6.md)和[DESIGN.md订单规范](DESIGN.md#统一订单中心)为当前依据，替代前述类型抽屉、筛选计数、未折叠长编号和冲印独立付款窗口的旧呈现。固定磨砂顶部（系统安全区至状态胶囊）、票据从顶部背后滚过、横纵位置恢复、各付款状态的操作、历史快照缺失、离线和支付未知结果均需逐项还原。顶部无外发光或外扩阴影；各端以原生材质及减少透明设置还原效果，不机械复用Web模糊数值。交互样例运行 `npm run dev` 后访问 `/docs/product/orders-1.4.6.html`，复用实际订单React组件与CSS，仅使用内存演示数据；不读取或修改账号订单，样例付款不接支付适配器。原生需接入原单幂等支付和查款、生命周期恢复、系统返回优先关闭弹层，不能把样例流程视为真实支付能力。
+
+本次三端视觉还原依据已确认的[订单三屏结构](docs/product/orders-structure-20261022.png)：列表服务表头与购买内容分区，详情页内状态／金额概览加一张分组凭据；费用和配送以同卡轻线分组，不恢复独立等重白卡。系统字体、导航、安全区和48px交易按钮沿用现有规范。旧电子订单缺版本时用通用服务标题，缺可选参数不显示内部未记录提示；实际像素和必要交易事实仍如实呈现，不能反推或改写原单。

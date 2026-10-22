@@ -41,9 +41,14 @@ const adaptedFs = {
         "utf8",
       );
       const ast = parse(code, { sourceType: "module" });
-      ast.program.body = ast.program.body.filter(
-        (n) =>
-          !["ImportDeclaration", "ExportNamedDeclaration"].includes(n.type),
+      ast.program.body = ast.program.body.flatMap((n) =>
+        n.type === "ImportDeclaration"
+          ? []
+          : n.type === "ExportNamedDeclaration"
+            ? n.declaration
+              ? [n.declaration]
+              : []
+            : [n],
       );
       code = generate(ast).code;
       if (match[1] === "camera") {

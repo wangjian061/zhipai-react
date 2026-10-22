@@ -6,6 +6,8 @@ import {
 } from "./camera.js";
 import { COLLECTION_PROJECTS, collectionProjectState } from "./collection.js";
 
+import { isCurrentPrintOrder, updatePrintTransaction } from "./print.js";
+
 const activePayments = new Set();
 const account = () => getStore("account")?.session?.phone;
 
@@ -16,7 +18,7 @@ export async function transactOrder(
   { method = "wechat", outcome = "success", query = false } = {},
 ) {
   const owner = account();
-  if (!owner || !order || order.type === "print") throw Error("订单不可付款。");
+  if (!owner || !order) throw Error("订单不可付款。");
   if (activePayments.has(order.key))
     throw Error("付款正在确认，请勿重复操作。");
   if (typeof navigator !== "undefined" && navigator.onLine === false)
@@ -33,11 +35,8 @@ export async function transactOrder(
         r.status !== expected
       )
         throw Error("订单状态已变化，请刷新后重试。");
-      if (
-        !Number.isInteger(r.amount) ||
-        r.amount <= 0 ||
-        r.amount !== order.amount
-      )
+      const amount = order.type === "print" ? r.total : r.amount;
+      if (!Number.isInteger(amount) || amount <= 0 || amount !== order.amount)
         throw Error("订单金额无法确认，请重新读取订单。");
       return r;
     };
@@ -50,6 +49,14 @@ export async function transactOrder(
         throw Error("订单内容暂时不可用，无法继续付款。");
       update = (status, patch) =>
         updateElectronicReceipt(current.id, owner, status, patch);
+    } else if (order.type === "print") {
+      current = check(
+        getStore("printLibrary").orders.find((r) => r.id === order.sourceId),
+      );
+      if (!query && !isCurrentPrintOrder(current))
+        throw Error("此订单使用旧冲印规格或价格，请取消后按新规格重新下单。");
+      update = (status, patch) =>
+        updatePrintTransaction(current.id, owner, status, patch);
     } else if (["repair", "outfit"].includes(order.type)) {
       const store = getStore("toolOrders");
       current = check(
@@ -103,7 +110,18 @@ export async function transactOrder(
     });
     let status;
     try {
-      status = await cameraPaymentResult(current, outcome);
+      // A stalled gateway must release the UI into query-only state.
+      let timer;
+      try {
+        status = await Promise.race([
+          cameraPaymentResult(current, outcome),
+          new Promise((resolve) => {
+            timer = setTimeout(() => resolve("verifying"), 15000);
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
     } catch {
       // An unknown response remains verifying. It must never become a fresh payment.
       throw Error("付款结果未能确认，请稍后查询，勿重复付款。");
@@ -116,6 +134,27 @@ export async function transactOrder(
       ...(status === "paid" ? { paidAt: Date.now() } : {}),
     });
     return status;
+  } finally {
+    activePayments.delete(order.key);
+  }
+}
+
+export async function cancelPrintOrder(order) {
+  const owner = account();
+  if (
+    !owner ||
+    order?.type !== "print" ||
+    order.state !== "pending" ||
+    activePayments.has(order.key)
+  )
+    throw Error("订单状态已变化，无法取消。");
+  if (typeof navigator !== "undefined" && navigator.onLine === false)
+    throw Error("网络不可用，请恢复连接后重试。");
+  activePayments.add(order.key);
+  try {
+    await updatePrintTransaction(order.sourceId, owner, "pending", {
+      status: "cancelled",
+    });
   } finally {
     activePayments.delete(order.key);
   }
