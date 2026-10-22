@@ -2,6 +2,8 @@
 
 日期：2026-10-22。任务：Impeccable document，用户选择「合并整理，保留已确认规则」。本轮只修改文档、组件面板与其Git共享白名单，不修改业务UI、路由、支付或本地业务数据。
 
+阶段说明：上段及「规则保留与兼容」「本轮验证」记录document归档时的基线。随后用户确认样图并授权「仅修改第1项照片预览」，本记录同步补充实施状态，详见下方「照片预览整改」。第2项卡片／宫格、第3项订单缩略图仍待逐项推进，不因方案确认而视为已完成。
+
 ## 阅读与维护
 
 - [根设计规范](../../DESIGN.md)：标准八节、机器可读令牌、已确认的模块细则与原章节锚点。
@@ -37,7 +39,7 @@
 | 认证抽屉输入44px／16px字 | [src/styles/collection-auth.css](../../src/styles/collection-auth.css#L40) |
 | 普通16px卡的实际实例 | [src/styles/my.css](../../src/styles/my.css#L13) |
 | 订单磨砂、类型Tab、状态胶囊与票据 | [src/styles/orders.css](../../src/styles/orders.css#L38)；[src/styles/orders.css](../../src/styles/orders.css#L227) |
-| 照片完整展示与订单缩略图后置覆盖 | [src/styles/photo-previews.css](../../src/styles/photo-previews.css#L3)；[src/styles/photo-previews.css](../../src/styles/photo-previews.css#L141) |
+| 照片完整展示与订单缩略图后置覆盖 | [src/styles/photo-previews.css](../../src/styles/photo-previews.css#L3)；[src/styles/photo-previews.css](../../src/styles/photo-previews.css#L147) |
 | 首页八项真实SVG图形 | [src/components/HomeToolIcon.jsx](../../src/components/HomeToolIcon.jsx#L4) |
 | 无照片占位图与只读照片语义 | [src/components/OrderThumbnail.jsx](../../src/components/OrderThumbnail.jsx#L4) |
 
@@ -95,8 +97,8 @@ styles/utility-grid.css
 | --- | --- | --- |
 | 首页两卡阴影 | 规则要求公共极轻阴影；专项卡实际为--ui-card-shadow，宫格外卡被utility-grid.css改为另一轻阴影 | 两值及来源均记录；不将当前差异定为新规范、不改页面 |
 | 订单缩略图 | 模块保留56×78px、#F1F5FB的旧描述；后加载photo-previews.css实际改为56px宽、5∶7比例、#F1F2F4留白 | 保留原规则并明示差异；实际比例下高度约78.4px，不写成严格固定78px |
-| 工具照片卡 | 早期tools.css含白底与阴影；photo-previews.css后置改为透明、无阴影 | 记录最终覆盖，避免重新包回白卡 |
-| 精修／换装预览 | 通用预览规则与更具体的工具选择器并存，最大高度还有窄宽度修正 | 不宣称一个宽度或最大高度适用于所有照片 |
+| 工具照片卡 | 复核纠正：归档时透明底已生效，但精修／换装高优先级旧阴影仍覆盖公共无阴影规则 | 第1项已清除旧阴影、外层圆角及边框，保留设置卡白底；待用户验收 |
+| 精修／换装预览 | 归档时仍存在width:100%、310px／280px最大高度、10px圆角和独立底色覆盖 | 第1项已移除冲突，回归公共250px宽度上限、5∶7、浅灰、contain；完成页236px及实际裁剪规则保留 |
 | 正文与输入 | 浏览器body是16px；任务正文14px；认证抽屉输入16px／44px，全屏账号输入15px／54px | 按角色提取，不做一刀切统一 |
 | 动效 | 工具按钮按压为0.98、圆底返回0.96；相册对话框180ms与工具抽屉230ms | 按组件记录，不概括成统一遮罩动画 |
 | 状态颜色 | 付款状态、审核流程与照片输出底色用途不同 | 保留场景语义，不复用一个通用状态色表 |
@@ -108,6 +110,14 @@ styles/utility-grid.css
 
 抽样确认导航17px／44px、主按钮48px／15px／14px、首页16px留白与标题、宫格极淡边线、两卡实际阴影差异、订单24px磨砂及胶囊／票据层级。此证据仅对应这三个状态，不代表全部抽屉、付费步骤、真实字体缩放或三端真机验收。
 
+## 照片预览整改（2026-10-22，第1项）
+
+用户已确认结构样图与整改方案，限定先修改照片预览、完成后验收。已拆开tools.css的照片外层与设置卡职责，移除精修／换装较高优先级的照片阴影、预览尺寸、圆角及底色覆盖；展示外形归photo-previews.css，选图由photo-selection.css承载，前后标签由photo-processing.css与工作照片保持同宽。
+
+工作及选图预览为5∶7、最大250px宽、`#F1F2F4`留白，直接图片在框内完整等比显示且不撑开框高。实际文件、裁剪画布、冲印排版、付款小图与236px完成预览未调整。设置卡、按钮、色值及订单行为保持原样。本轮未新增令牌或重做其他面板组件，仅补充现有无阴影与设置卡示例的适用说明。
+
+实施与验证边界见[第1项交付记录](../reviews/tool-photo-preview-20261022/review.md)。本轮未自动操作浏览器、截图或运行自动UI测试；不沿用归档时的空态抽样作为本次选图后画面的验收证据。首页宫格按压仍有覆盖风险，与卡片阴影列入第2项，未在本轮修改。
+
 ## 共享与后续更新
 
 仅放行.impeccable/design.json进入Git；briefs、critique、live、config与缓存继续忽略。团队克隆代码后可同时获得根设计规范和组件面板配置；不包含本机业务照片或订单数据。本轮未自动提交、推送或部署。
@@ -115,6 +125,8 @@ styles/utility-grid.css
 后续经用户确认的组件修改，应同步根文档的对应令牌／模块段、侧文件相关样例和本提取记录。生产CSS仍在原位置，面板文件不参与运行时注入。新设计继续遵守先展示结构样图、确认后实现的全局规则；本轮只整理已存在设计，不触发页面重设计。
 
 ## 本轮验证
+
+本节为document归档阶段的检查记录；随后照片预览整改已另行执行相关流程检查与构建，结果见[第1项交付记录](../reviews/tool-photo-preview-20261022/review.md#验证记录)。
 
 2026-10-22完成以下验证：
 

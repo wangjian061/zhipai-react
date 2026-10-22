@@ -55,8 +55,14 @@
 .tool-image-stage {
   width: min(100%, 250px);
   height: auto;
+  min-width: 0;
+  min-height: 0;
   max-height: none;
   margin-inline: auto;
+}
+.tool-image-stage > img {
+  position: absolute;
+  inset: 0;
 }
 .tool-comparison {
   background: var(--portrait-preview-ground);
@@ -145,5 +151,7 @@
 }
 .tool-photo-card {
   background: transparent;
+  border: 0;
+  border-radius: 0;
   box-shadow: none;
 }

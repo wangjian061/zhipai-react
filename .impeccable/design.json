@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-22T04:58:37.084Z",
+  "generatedAt": "2026-10-22T06:26:04.042Z",
   "title": "Design System: 知拍",
   "extensions": {
     "colorMeta": {
@@ -338,7 +338,7 @@
       {
         "name": "订单票据与公共照片预览",
         "value": "none",
-        "purpose": "保留平整票据与完整照片，不补阴影。"
+        "purpose": "保留平整票据与完整照片，不补阴影。2026-10-22已移除六工具工作照片外层及精修／换装预览的旧阴影覆盖；工作预览5∶7、250px上限，完成页236px保留。"
       }
     ],
     "motion": [
@@ -443,7 +443,7 @@
       "name": "精修必选背景色",
       "kind": "custom",
       "refersTo": "repair-background",
-      "description": "第二步四种底色单选，初始不预选；原图不实时换底。原生radio可在面板中体验勾选，面板不模拟付款或生成成片。",
+      "description": "第二步四种底色单选，初始不预选；原图不实时换底。白色设置卡独立于无边框／圆角／阴影的照片预览。原生radio可在面板体验勾选，面板不模拟付款或生成成片。",
       "html": "<section class=\"ds-repair-background\"><div class=\"ds-options-heading\"><h2 id=\"ds-background-title\">背景颜色</h2><span>请选择一种</span></div><div class=\"ds-background-options\" role=\"radiogroup\" aria-labelledby=\"ds-background-title\" aria-required=\"true\"><label><input type=\"radio\" name=\"ds-repair-background\" value=\"blue\"/><i style=\"background:#438bc6\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"m6 12 4 4 8-9\"/></svg></i><span>蓝色</span></label><label><input type=\"radio\" name=\"ds-repair-background\" value=\"white\"/><i style=\"background:#fff\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"m6 12 4 4 8-9\"/></svg></i><span>白色</span></label><label><input type=\"radio\" name=\"ds-repair-background\" value=\"red\"/><i style=\"background:#d6383d\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"m6 12 4 4 8-9\"/></svg></i><span>红色</span></label><label><input type=\"radio\" name=\"ds-repair-background\" value=\"gray\"/><i style=\"background:#d9e0e8\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"m6 12 4 4 8-9\"/></svg></i><span>浅灰</span></label></div></section>",
       "css": ".ds-repair-background{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-repair-background{--tool-muted:#53637b;}.ds-repair-background{background:#fff;border-radius:16px;padding:12px;margin-bottom:12px;}.ds-options-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 14px;}.ds-options-heading h2{font-size:15px;font-weight:650;}.ds-options-heading h2{margin:0;line-height:1.5;color:var(--ui-heading,#203858);}.ds-options-heading>span{font-size:12px;color:var(--tool-muted);}.ds-background-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}.ds-background-options label{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-width:44px;min-height:76px;padding:6px 0;color:var(--tool-muted);font-size:12px;cursor:pointer;border-radius:8px;}.ds-background-options input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:inherit;}.ds-background-options i{display:grid;place-items:center;width:32px;height:32px;border:1px solid #bdc8d9;border-radius:50%;pointer-events:none;}.ds-background-options i>svg{width:18px;height:18px;color:#fff;stroke-width:2.4;}.ds-background-options input[value=\"white\"]+i>svg,.ds-background-options input[value=\"gray\"]+i>svg{color:var(--brand-blue, #0032ff);}.ds-background-options input:checked+i{outline:2px solid var(--brand-blue, #0032ff);outline-offset:3px;}.ds-background-options label:has(input:checked)>span{color:var(--ui-heading,#203858);font-weight:600;}.ds-background-options label:has(input:focus-visible){outline:2px solid var(--brand-blue, #0032ff);outline-offset:2px;}.ds-background-options label:has(input:disabled){cursor:default;opacity:.65;}.ds-background-options label:has(input:not(:disabled)):active{background:#edf2ff;}.ds-background-options label:has(input:not(:disabled)):hover{background:#f3f5fc;}.ds-background-options svg{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;}.ds-background-options input:not(:checked)+i>svg{display:none;}"
     },

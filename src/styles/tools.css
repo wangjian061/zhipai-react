@@ -13,7 +13,7 @@
 .tool-primary,.tool-secondary{display:flex;align-items:center;justify-content:center;width:100%;min-height:var(--ui-button-height);border-radius:var(--ui-button-radius);padding:0 16px;font-size:var(--ui-button-font);line-height:1.4;font-weight:600}
 .tool-primary{background:var(--brand-blue);color:#fff}.tool-secondary{background:#eef2fa;color:#334d78;margin-top:12px}.tool-page button:disabled,.tool-sheet button:disabled{cursor:default;opacity:.55}.tool-primary:disabled{background:#e3e8f1;color:#58677e;opacity:1}
 .tool-empty-pick{width:100%;min-height:340px;border-radius:16px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:24px}.tool-empty-pick img{width:140px;height:140px;object-fit:contain;margin-bottom:12px}.tool-empty-pick strong{font-size:18px;font-weight:650}.tool-empty-pick>span{font-size:13px;color:var(--tool-muted)}
-.tool-photo-card,.tool-settings{background:#fff;border-radius:16px;padding:12px;margin-bottom:12px}.tool-image-stage{position:relative;width:100%;aspect-ratio:var(--photo-ratio);max-height:350px;overflow:hidden;border-radius:9px;background:#eef2fa;isolation:isolate}.tool-image-stage>img,.tool-comparison img{display:block;width:100%;height:100%;object-fit:contain}
+.tool-photo-card{padding:0 12px;margin-bottom:12px}.tool-settings{background:#fff;border-radius:16px;padding:12px;margin-bottom:12px}.tool-image-stage{position:relative;isolation:isolate}
 .tool-comparison{position:absolute;inset:0;pointer-events:none;z-index:1}
 .tool-compare-handle{position:absolute;top:0;bottom:0;width:2px;background:#fff;z-index:2;pointer-events:none;box-shadow:0 2px 5px #23304433}.tool-compare-handle>span{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;background:white;border-radius:50%;display:grid;place-items:center;color:#334d78;box-shadow:0 3px 8px #23304420}.tool-compare-handle svg{width:18px;height:18px}
 .tool-photo-range{position:absolute;inset:0;z-index:3;width:100%;height:100%;opacity:0;cursor:ew-resize;margin:0;touch-action:pan-y}.tool-image-stage:has(.tool-photo-range:focus-visible){outline:3px solid var(--brand-blue);outline-offset:2px}
@@ -63,11 +63,10 @@
 /* Outfit workflow: photo-led native page, quiet choices, explicit saved destination. */
 .tool-page:is([data-tool="outfit"],[data-tool="repair"]){background:#edf2fb;color:#1d3458}
 .tool-page:is([data-tool="outfit"],[data-tool="repair"]) .tool-work-scroll{padding:16px 18px 24px}
-.tool-page:is([data-tool="outfit"],[data-tool="repair"]) .tool-photo-card{padding:16px;border-radius:16px;margin-bottom:16px;box-shadow:0 5px 20px -12px #243d6d2b}
+.tool-page:is([data-tool="outfit"],[data-tool="repair"]) .tool-photo-card{padding:0 16px;margin-bottom:16px}
 .tool-photo-heading{display:flex;align-items:center;justify-content:space-between;min-height:24px;margin-bottom:14px;gap:12px}
 .tool-photo-heading h2,.outfit-clothes-heading h2{font-size:16px;font-weight:650;line-height:1.5;margin:0}
 .tool-photo-heading>span{font-size:12px;color:#405b84;background:#edf2ff;padding:5px 10px;border-radius:8px;white-space:nowrap}
-.tool-page:is([data-tool="outfit"],[data-tool="repair"]) .tool-image-stage{max-height:310px;width:100%;border-radius:10px;background:#f2f5fb}
 .tool-page:is([data-tool="outfit"],[data-tool="repair"]) .tool-photo-meta{font-size:12px;margin-top:14px;color:#526885;line-height:1.5}
 .tool-page[data-tool="outfit"] .outfit-clothes-card{padding:16px;border-radius:16px;margin-bottom:0}
 .outfit-clothes-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px}
@@ -81,7 +80,7 @@
 .tool-page:is([data-tool="outfit"],[data-tool="repair"]) .tool-work-footer{padding-top:12px;background:#ffffffed;gap:12px}
 .tool-page:is([data-tool="outfit"],[data-tool="repair"]) .tool-repick{min-width:102px;background:#e9eff8;color:#345074;min-height:48px}
 .tool-page:is([data-tool="outfit"],[data-tool="repair"]) .tool-work-footer .tool-primary{min-height:var(--ui-button-height);border-radius:var(--ui-button-radius);font-size:var(--ui-button-font);font-weight:600}
-@media(max-width:360px){.tool-page:is([data-tool="outfit"],[data-tool="repair"]) .tool-work-scroll{padding-inline:14px}.tool-page:is([data-tool="outfit"],[data-tool="repair"]) .tool-image-stage{max-height:280px}}
+@media(max-width:360px){.tool-page:is([data-tool="outfit"],[data-tool="repair"]) .tool-work-scroll{padding-inline:14px}}
 
 
 
