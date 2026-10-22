@@ -17,7 +17,8 @@ coverage/
 .DS_Store
 .idea/
 .vscode/
-.impeccable/
+.impeccable/*
+!.impeccable/design.json
 AGENTS.md
 
 # Internal presentations and design experiments

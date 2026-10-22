@@ -1,0 +1,507 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-22T04:58:37.084Z",
+  "title": "Design System: 知拍",
+  "extensions": {
+    "colorMeta": {
+      "brand-blue": {
+        "role": "primary",
+        "displayName": "知拍主操作蓝",
+        "tonalRamp": [
+          "oklch(15% 0.29182 264.13)",
+          "oklch(26% 0.29182 264.13)",
+          "oklch(38% 0.29182 264.13)",
+          "oklch(49% 0.29182 264.13)",
+          "oklch(61% 0.29182 264.13)",
+          "oklch(72% 0.29182 264.13)",
+          "oklch(84% 0.29182 264.13)",
+          "oklch(95% 0.29182 264.13)"
+        ]
+      },
+      "heading-ink": {
+        "role": "neutral",
+        "displayName": "标题深蓝",
+        "tonalRamp": [
+          "oklch(15% 0.06427 256.07)",
+          "oklch(26% 0.06427 256.07)",
+          "oklch(38% 0.06427 256.07)",
+          "oklch(49% 0.06427 256.07)",
+          "oklch(61% 0.06427 256.07)",
+          "oklch(72% 0.06427 256.07)",
+          "oklch(84% 0.06427 256.07)",
+          "oklch(95% 0.06427 256.07)"
+        ]
+      },
+      "muted-ink": {
+        "role": "neutral",
+        "displayName": "通用辅助蓝灰",
+        "tonalRamp": [
+          "oklch(15% 0.03902 254.96)",
+          "oklch(26% 0.03902 254.96)",
+          "oklch(38% 0.03902 254.96)",
+          "oklch(49% 0.03902 254.96)",
+          "oklch(61% 0.03902 254.96)",
+          "oklch(72% 0.03902 254.96)",
+          "oklch(84% 0.03902 254.96)",
+          "oklch(95% 0.03902 254.96)"
+        ]
+      },
+      "tool-muted-ink": {
+        "role": "neutral",
+        "displayName": "工具辅助蓝灰",
+        "tonalRamp": [
+          "oklch(15% 0.04331 258.35)",
+          "oklch(26% 0.04331 258.35)",
+          "oklch(38% 0.04331 258.35)",
+          "oklch(49% 0.04331 258.35)",
+          "oklch(61% 0.04331 258.35)",
+          "oklch(72% 0.04331 258.35)",
+          "oklch(84% 0.04331 258.35)",
+          "oklch(95% 0.04331 258.35)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "普通浅灰画布",
+        "tonalRamp": [
+          "oklch(15% 0.00574 264.53)",
+          "oklch(26% 0.00574 264.53)",
+          "oklch(38% 0.00574 264.53)",
+          "oklch(49% 0.00574 264.53)",
+          "oklch(61% 0.00574 264.53)",
+          "oklch(72% 0.00574 264.53)",
+          "oklch(84% 0.00574 264.53)",
+          "oklch(95% 0.00574 264.53)"
+        ]
+      },
+      "soft-blue-canvas": {
+        "role": "neutral",
+        "displayName": "浅蓝画布",
+        "tonalRamp": [
+          "oklch(15% 0.00957 273.36)",
+          "oklch(26% 0.00957 273.36)",
+          "oklch(38% 0.00957 273.36)",
+          "oklch(49% 0.00957 273.36)",
+          "oklch(61% 0.00957 273.36)",
+          "oklch(72% 0.00957 273.36)",
+          "oklch(84% 0.00957 273.36)",
+          "oklch(95% 0.00957 273.36)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "白色表面",
+        "tonalRamp": [
+          "oklch(15% 0.00000 0.00)",
+          "oklch(26% 0.00000 0.00)",
+          "oklch(38% 0.00000 0.00)",
+          "oklch(49% 0.00000 0.00)",
+          "oklch(61% 0.00000 0.00)",
+          "oklch(72% 0.00000 0.00)",
+          "oklch(84% 0.00000 0.00)",
+          "oklch(95% 0.00000 0.00)"
+        ]
+      },
+      "utility-divider": {
+        "role": "neutral",
+        "displayName": "极淡宫格线",
+        "tonalRamp": [
+          "oklch(15% 0.00624 255.48)",
+          "oklch(26% 0.00624 255.48)",
+          "oklch(38% 0.00624 255.48)",
+          "oklch(49% 0.00624 255.48)",
+          "oklch(61% 0.00624 255.48)",
+          "oklch(72% 0.00624 255.48)",
+          "oklch(84% 0.00624 255.48)",
+          "oklch(95% 0.00624 255.48)"
+        ]
+      },
+      "portrait-ground": {
+        "role": "neutral",
+        "displayName": "照片展示留白",
+        "tonalRamp": [
+          "oklch(15% 0.00288 264.54)",
+          "oklch(26% 0.00288 264.54)",
+          "oklch(38% 0.00288 264.54)",
+          "oklch(49% 0.00288 264.54)",
+          "oklch(61% 0.00288 264.54)",
+          "oklch(72% 0.00288 264.54)",
+          "oklch(84% 0.00288 264.54)",
+          "oklch(95% 0.00288 264.54)"
+        ]
+      },
+      "secondary-button-fill": {
+        "role": "neutral",
+        "displayName": "次按钮浅底",
+        "tonalRamp": [
+          "oklch(15% 0.01154 264.51)",
+          "oklch(26% 0.01154 264.51)",
+          "oklch(38% 0.01154 264.51)",
+          "oklch(49% 0.01154 264.51)",
+          "oklch(61% 0.01154 264.51)",
+          "oklch(72% 0.01154 264.51)",
+          "oklch(84% 0.01154 264.51)",
+          "oklch(95% 0.01154 264.51)"
+        ]
+      },
+      "secondary-button-ink": {
+        "role": "neutral",
+        "displayName": "次按钮文字",
+        "tonalRamp": [
+          "oklch(15% 0.07890 260.04)",
+          "oklch(26% 0.07890 260.04)",
+          "oklch(38% 0.07890 260.04)",
+          "oklch(49% 0.07890 260.04)",
+          "oklch(61% 0.07890 260.04)",
+          "oklch(72% 0.07890 260.04)",
+          "oklch(84% 0.07890 260.04)",
+          "oklch(95% 0.07890 260.04)"
+        ]
+      },
+      "disabled-button-fill": {
+        "role": "neutral",
+        "displayName": "禁用主按钮底",
+        "tonalRamp": [
+          "oklch(15% 0.01331 262.38)",
+          "oklch(26% 0.01331 262.38)",
+          "oklch(38% 0.01331 262.38)",
+          "oklch(49% 0.01331 262.38)",
+          "oklch(61% 0.01331 262.38)",
+          "oklch(72% 0.01331 262.38)",
+          "oklch(84% 0.01331 262.38)",
+          "oklch(95% 0.01331 262.38)"
+        ]
+      },
+      "disabled-button-ink": {
+        "role": "neutral",
+        "displayName": "禁用主按钮文字",
+        "tonalRamp": [
+          "oklch(15% 0.04103 258.83)",
+          "oklch(26% 0.04103 258.83)",
+          "oklch(38% 0.04103 258.83)",
+          "oklch(49% 0.04103 258.83)",
+          "oklch(61% 0.04103 258.83)",
+          "oklch(72% 0.04103 258.83)",
+          "oklch(84% 0.04103 258.83)",
+          "oklch(95% 0.04103 258.83)"
+        ]
+      },
+      "auth-input-fill": {
+        "role": "neutral",
+        "displayName": "认证输入浅底",
+        "tonalRamp": [
+          "oklch(15% 0.00740 260.73)",
+          "oklch(26% 0.00740 260.73)",
+          "oklch(38% 0.00740 260.73)",
+          "oklch(49% 0.00740 260.73)",
+          "oklch(61% 0.00740 260.73)",
+          "oklch(72% 0.00740 260.73)",
+          "oklch(84% 0.00740 260.73)",
+          "oklch(95% 0.00740 260.73)"
+        ]
+      },
+      "auth-input-ink": {
+        "role": "neutral",
+        "displayName": "认证输入正文",
+        "tonalRamp": [
+          "oklch(15% 0.05989 255.51)",
+          "oklch(26% 0.05989 255.51)",
+          "oklch(38% 0.05989 255.51)",
+          "oklch(49% 0.05989 255.51)",
+          "oklch(61% 0.05989 255.51)",
+          "oklch(72% 0.05989 255.51)",
+          "oklch(84% 0.05989 255.51)",
+          "oklch(95% 0.05989 255.51)"
+        ]
+      },
+      "paid-filter-ink": {
+        "role": "neutral",
+        "displayName": "已支付筛选文字",
+        "tonalRamp": [
+          "oklch(15% 0.08103 163.09)",
+          "oklch(26% 0.08103 163.09)",
+          "oklch(38% 0.08103 163.09)",
+          "oklch(49% 0.08103 163.09)",
+          "oklch(61% 0.08103 163.09)",
+          "oklch(72% 0.08103 163.09)",
+          "oklch(84% 0.08103 163.09)",
+          "oklch(95% 0.08103 163.09)"
+        ]
+      },
+      "paid-filter-fill": {
+        "role": "neutral",
+        "displayName": "已支付筛选浅底",
+        "tonalRamp": [
+          "oklch(15% 0.01484 158.25)",
+          "oklch(26% 0.01484 158.25)",
+          "oklch(38% 0.01484 158.25)",
+          "oklch(49% 0.01484 158.25)",
+          "oklch(61% 0.01484 158.25)",
+          "oklch(72% 0.01484 158.25)",
+          "oklch(84% 0.01484 158.25)",
+          "oklch(95% 0.01484 158.25)"
+        ]
+      },
+      "paid-filter-selected": {
+        "role": "neutral",
+        "displayName": "已支付筛选选中底",
+        "tonalRamp": [
+          "oklch(15% 0.02989 161.07)",
+          "oklch(26% 0.02989 161.07)",
+          "oklch(38% 0.02989 161.07)",
+          "oklch(49% 0.02989 161.07)",
+          "oklch(61% 0.02989 161.07)",
+          "oklch(72% 0.02989 161.07)",
+          "oklch(84% 0.02989 161.07)",
+          "oklch(95% 0.02989 161.07)"
+        ]
+      },
+      "paid-filter-stroke": {
+        "role": "neutral",
+        "displayName": "已支付筛选描边",
+        "tonalRamp": [
+          "oklch(15% 0.06773 160.08)",
+          "oklch(26% 0.06773 160.08)",
+          "oklch(38% 0.06773 160.08)",
+          "oklch(49% 0.06773 160.08)",
+          "oklch(61% 0.06773 160.08)",
+          "oklch(72% 0.06773 160.08)",
+          "oklch(84% 0.06773 160.08)",
+          "oklch(95% 0.06773 160.08)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "navigation-title": {
+        "displayName": "导航标题",
+        "purpose": "52px导航中的17px居中标题。"
+      },
+      "section-title": {
+        "displayName": "区块标题",
+        "purpose": "首页与规格等16px分组标题。"
+      },
+      "sheet-title": {
+        "displayName": "抽屉标题",
+        "purpose": "18px上滑抽屉标题。"
+      },
+      "task-body": {
+        "displayName": "任务正文",
+        "purpose": "工具页面正文，非浏览器全局body覆盖。"
+      },
+      "utility-label": {
+        "displayName": "宫格名称",
+        "purpose": "13px名称与20px行高。"
+      },
+      "metadata": {
+        "displayName": "辅助信息",
+        "purpose": "12px数字尺寸与次要信息。"
+      },
+      "button": {
+        "displayName": "主次操作",
+        "purpose": "15px普通按钮。"
+      },
+      "auth-input": {
+        "displayName": "认证输入",
+        "purpose": "抽屉内16px输入文字。"
+      },
+      "status-label-selected": {
+        "displayName": "选中状态胶囊",
+        "purpose": "订单状态选中态12px、600字重、18px行高，区别于400字重辅助信息。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "公共内容卡",
+        "value": "0 2px 8px #29496b06,0 6px 18px -10px #29496b0d",
+        "purpose": "普通内容卡与首页专项卡，来自ui-foundations.css。"
+      },
+      {
+        "name": "连贯宫格内容卡当前覆盖",
+        "value": "0 4px 14px -7px #26344a1c",
+        "purpose": "utility-grid.css当前生效；与已确认公共卡阴影存在差异，待单独统一。"
+      },
+      {
+        "name": "底部容器",
+        "value": "0 -3px 16px #29496b06",
+        "purpose": "承托底部操作区。"
+      },
+      {
+        "name": "上滑抽屉",
+        "value": "0 -10px 32px #20385812",
+        "purpose": "公共抽屉覆盖层。"
+      },
+      {
+        "name": "悬浮主导航",
+        "value": "0 10px 20px -7px #26365330,0 3px 6px -2px #26365312,inset 0 1px 0 #fff,inset 0 -1px 0 #bcc7d329",
+        "purpose": "专属主导航层次，不用于普通卡片。"
+      },
+      {
+        "name": "订单票据与公共照片预览",
+        "value": "none",
+        "purpose": "保留平整票据与完整照片，不补阴影。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "圆底返回反馈",
+        "value": "transform 160ms cubic-bezier(.2,.75,.25,1), opacity 160ms cubic-bezier(.2,.75,.25,1)",
+        "purpose": "tool-navigation.css；按压scale(.96)，禁用不缩放，减少动态时关闭transition。"
+      },
+      {
+        "name": "工具抽屉进入",
+        "value": "230ms cubic-bezier(.16,1,.3,1)",
+        "purpose": "tools.css tool-sheet-enter：translateY(24px)/opacity(.7)到原位/opacity(1)。"
+      },
+      {
+        "name": "相册居中对话框进入",
+        "value": "180ms cubic-bezier(.2,.75,.25,1)",
+        "purpose": "album.css album-dialog-in，不能概括为所有遮罩的淡入时间。"
+      },
+      {
+        "name": "订单票据点击",
+        "value": "none",
+        "purpose": "无缩放、展开和共享元素转场；焦点提示保留。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "工具局部窄宽度修正",
+        "value": "(max-width: 360px)"
+      },
+      {
+        "name": "订单胶囊局部换行排列",
+        "value": "(max-width: 370px)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "知拍蓝主按钮",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "工具主操作，至少48px；未选底色时由业务禁用，示例本身不发起付款。",
+      "html": "<button type=\"button\" class=\"ds-button-primary\">付款并开始精修</button>",
+      "css": ".ds-button-primary{display:flex;align-items:center;justify-content:center;width:100%;min-height:var(--ui-button-height, 48px);border-radius:var(--ui-button-radius, 14px);padding:0 16px;font-size:var(--ui-button-font, 15px);line-height:1.4;font-weight:600;}.ds-button-primary{background:var(--brand-blue, #0032ff);color:#fff;}.ds-button-primary{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-button-primary{border:0;cursor:pointer;transition:transform 160ms var(--ease,cubic-bezier(.2,.75,.25,1)),color 180ms var(--ease,cubic-bezier(.2,.75,.25,1));}.ds-button-primary:focus-visible{outline:3px solid var(--brand-blue,#0032ff);outline-offset:3px;}.ds-button-primary:not(:disabled):active{transform:scale(.98);}.ds-button-primary:disabled{cursor:default;}@media(prefers-reduced-motion:reduce){.ds-button-primary{transition:none;}}.ds-button-primary:disabled{background:#e3e8f1;color:#58677e;opacity:1;}"
+    },
+    {
+      "name": "浅底次按钮",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "浅底次要操作；仅流程允许回退的工作步骤使用，终态不显示上一步。",
+      "html": "<button type=\"button\" class=\"ds-button-secondary\">上一步</button>",
+      "css": ".ds-button-secondary{display:flex;align-items:center;justify-content:center;width:100%;min-height:var(--ui-button-height, 48px);border-radius:var(--ui-button-radius, 14px);padding:0 16px;font-size:var(--ui-button-font, 15px);line-height:1.4;font-weight:600;}.ds-button-secondary{background:#eef2fa;color:#334d78;margin-top:12px;}.ds-button-secondary{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-button-secondary{border:0;cursor:pointer;transition:transform 160ms var(--ease,cubic-bezier(.2,.75,.25,1)),color 180ms var(--ease,cubic-bezier(.2,.75,.25,1));}.ds-button-secondary:focus-visible{outline:3px solid var(--brand-blue,#0032ff);outline-offset:3px;}.ds-button-secondary:not(:disabled):active{transform:scale(.98);}.ds-button-secondary:disabled{cursor:default;}@media(prefers-reduced-motion:reduce){.ds-button-secondary{transition:none;}}"
+    },
+    {
+      "name": "认证抽屉输入",
+      "kind": "input",
+      "refersTo": "auth-input",
+      "description": "44px认证抽屉输入与16px输入字，非54px全屏账号输入。名称仅为示例；聚焦沿用细边框，不新增外发光。",
+      "html": "<label class=\"ds-auth-field\"><span>姓名</span><span class=\"ds-auth-input\"><input placeholder=\"请输入姓名\" autocomplete=\"off\" /></span></label>",
+      "css": ".ds-auth-field{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-auth-field{display:block;font-size:13px;color:#4c6481;line-height:1.5;margin:0 0 16px;}.ds-auth-field>span{display:block;margin-bottom:6px;font-weight:500;}.ds-auth-input{transition:none;}.ds-auth-input:focus-within{border-color:#779fed;box-shadow:none;background:#fff;}.ds-auth-input>input{flex:1;min-width:0;width:100%;height:42px;padding:0 12px;border:0;background:transparent;outline:none;font-family:inherit;font-weight:400;font-size:16px;color:#273e5c;caret-color:#0032ff;}.ds-auth-input>input::placeholder{color:#6e7e94;font-size:14px;}@media(prefers-reduced-motion:reduce){.ds-auth-input{transition:none;}}"
+    },
+    {
+      "name": "任务导航",
+      "kind": "nav",
+      "refersTo": "task-navigation",
+      "description": "52px导航、44px白色圆底返回、17px居中标题；右槽保留对称空间，不带订单入口。",
+      "html": "<header class=\"ds-task-nav\"><button class=\"ds-nav-back\" type=\"button\" aria-label=\"返回\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"m14 6-6 6 6 6\"/></svg></button><h1 class=\"ds-nav-title\">照片精修</h1><span class=\"ds-nav-right\"></span></header>",
+      "css": ".ds-task-nav{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-task-nav{display:grid;grid-template-columns:44px minmax(0, 1fr) 44px;align-items:center;gap:8px;flex:none;height:52px;padding:0 12px;background:transparent;color:var(--ui-heading, #203858);}.ds-task-nav .ds-nav-back{transition:none;}.ds-nav-back svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;}.ds-task-nav .ds-nav-back:not(:disabled):active{transform:scale(0.96);}.ds-task-nav .ds-nav-back:disabled{opacity:0.45;cursor:default;transform:none;}.ds-task-nav .ds-nav-back:focus-visible{outline:2px solid var(--brand-blue, #0032ff);outline-offset:2px;}.ds-nav-title{min-width:0;margin:0;overflow:hidden;color:var(--ui-heading, #203858);font-size:17px;font-weight:650;line-height:1.4;text-align:center;text-overflow:ellipsis;white-space:nowrap;}.ds-nav-right{display:flex;align-items:center;justify-content:center;width:44px;min-width:0;}.ds-nav-back svg{stroke-linecap:round;stroke-linejoin:round;}@media(prefers-reduced-motion:reduce){.ds-task-nav .ds-nav-back{transition:none;}}"
+    },
+    {
+      "name": "已支付状态胶囊",
+      "kind": "chip",
+      "refersTo": "paid-filter",
+      "description": "订单状态单选胶囊的选中样式；可见24px、触控至少44px，文案与描边共同表达选中。示例不承担真实筛选。",
+      "html": "<div class=\"ds-status-tabs\"><button type=\"button\" data-status=\"paid\" class=\"ds-active\" aria-pressed=\"true\"><span>已支付</span></button></div>",
+      "css": ".ds-status-tabs{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-status-tabs button{--filter-ink:#425878;--filter-fill:#edf2fa;--filter-selected:#dbe6f8;--filter-stroke:#91a8ca;display:grid;place-items:center;min-height:44px;min-width:44px;padding:10px 0;border:0;background:transparent;color:var(--filter-ink);}.ds-status-tabs [data-status=\"paid\"]{--filter-ink:#216449;--filter-fill:#ebf6ef;--filter-selected:#d5ecdf;--filter-stroke:#80b397;}.ds-status-tabs span{display:block;padding:2px 10px;border:1px solid transparent;border-radius:16px;background:var(--filter-fill);font-size:12px;line-height:18px;white-space:nowrap;font-weight:500;}.ds-status-tabs .ds-active span{border-color:var(--filter-stroke);background:var(--filter-selected);color:var(--filter-ink);font-weight:600;}.ds-status-tabs button:active span{background:var(--filter-selected);}.ds-status-tabs button{font-family:inherit;cursor:pointer;}.ds-status-tabs button:focus-visible{outline:2px solid var(--brand-blue,#0032ff);outline-offset:2px;}"
+    },
+    {
+      "name": "个人中心快捷卡",
+      "kind": "card",
+      "refersTo": "content-card",
+      "description": "实际普通16px内容卡实例：白底、16px留白、公共极轻阴影。示例数量为静态示意，不读取账号数据。",
+      "html": "<button type=\"button\" class=\"ds-quick-card\"><span class=\"ds-quick-heading\"><strong>我的相册</strong></span><span class=\"ds-quick-count\"><b>8</b><span>张照片</span></span></button>",
+      "css": ".ds-quick-card{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-quick-card{display:flex;flex-direction:column;gap:20px;text-align:left;min-width:0;background:#fff;border-radius:var(--ui-card-radius, 16px);padding:16px;box-shadow:var(--card-shadow, var(--ui-card-shadow, 0 2px 8px #29496b06,0 6px 18px -10px #29496b0d));}.ds-quick-heading{display:flex;align-items:center;gap:7px;width:100%;color:var(--ui-heading, #203858);}.ds-quick-heading strong{font-size:14px;font-weight:600;white-space:nowrap;}.ds-quick-count{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;}.ds-quick-count b{font-size:28px;line-height:1;font-weight:650;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--ui-heading, #203858);}.ds-quick-count>span{font-size:11px;color:var(--ui-muted, #73849a);}.ds-quick-card{border:0;cursor:pointer;}.ds-quick-card:focus-visible{outline:2px solid var(--brand-blue,#0032ff);outline-offset:3px;border-radius:12px;}.ds-quick-card:active{transform:scale(.96);}@media(prefers-reduced-motion:reduce){.ds-quick-card{transition:none;}}"
+    },
+    {
+      "name": "首页连贯八宫格",
+      "kind": "custom",
+      "refersTo": "utility-grid",
+      "description": "复用首页真实图形与宫格CSS。四列两行、极淡连线，规格页使用相同组件三列并独立承载名称和数字尺寸。",
+      "html": "<section class=\"ds-utility-card\"><h2>常用工具</h2><div class=\"ds-grid\"><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path fill=\"var(--tool-icon-light)\" d=\"M6 3h12v7H6z\"/><path fill=\"currentColor\" d=\"M5 8h14a3 3 0 0 1 3 3v6h-4v-4H6v4H2v-6a3 3 0 0 1 3-3Z\"/><path fill=\"var(--tool-icon-accent)\" d=\"M7 14h10v7H7z\"/><circle fill=\"var(--tool-icon-light)\" cx=\"18.5\" cy=\"11\" r=\"1\"/></svg></span><span>冲印照片</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><rect fill=\"var(--tool-icon-light)\" x=\"3\" y=\"4\" width=\"16\" height=\"17\" rx=\"3\"/><path fill=\"currentColor\" d=\"m11 6 1.8 5.2L18 13l-5.2 1.8L11 20l-1.8-5.2L4 13l5.2-1.8Z\"/><path fill=\"var(--tool-icon-accent)\" d=\"m19 1 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z\"/></svg></span><span>照片精修</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path fill=\"currentColor\" d=\"m8 3-6 4 3 5 3-1v10h12V11l2 1 2-5-6-4c-1.2 2.7-5.5 2.7-7 0Z\" transform=\"translate(-1 0)\"/><path fill=\"var(--tool-icon-light)\" d=\"m9 3 3 4 3-4-3 1Z\"/><path fill=\"var(--tool-icon-accent)\" d=\"M11.3 7h1.4v12h-1.4z\"/></svg></span><span>照片换装</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><rect fill=\"var(--tool-icon-light)\" x=\"2\" y=\"4\" width=\"20\" height=\"16\" rx=\"3\"/><circle fill=\"currentColor\" cx=\"8\" cy=\"10\" r=\"2.3\"/><path fill=\"currentColor\" d=\"M4.5 17v-1a3.5 3.5 0 0 1 7 0v1Z\"/><path fill=\"var(--tool-icon-accent)\" d=\"M14 9h5v1.5h-5zm0 4h5v1.5h-5z\"/></svg></span><span>证照规格</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path fill=\"var(--tool-icon-light)\" d=\"M7 7h11v11H7z\"/><path fill=\"currentColor\" d=\"M5 2h2v15h15v2H5Z\"/><path fill=\"var(--tool-icon-accent)\" d=\"M2 5h17v17h-2V7H2Z\"/></svg></span><span>照片裁剪</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><rect fill=\"var(--tool-icon-light)\" x=\"2\" y=\"2\" width=\"16\" height=\"17\" rx=\"3\"/><rect fill=\"var(--tool-icon-accent)\" x=\"6\" y=\"6\" width=\"16\" height=\"16\" rx=\"3\"/><circle fill=\"var(--tool-icon-light)\" cx=\"17.5\" cy=\"10.5\" r=\"1.5\"/><path fill=\"currentColor\" d=\"m7 19 5-6 4 4 2-2 4 4v1H7Z\"/></svg></span><span>更换背景</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path fill=\"var(--tool-icon-light)\" d=\"M5 2h9l5 5v14H5z\"/><path fill=\"currentColor\" d=\"M14 2v5h5ZM3 11h12v2H3zm6-3 4 4-4 4-1.4-1.4 2.6-2.6-2.6-2.6Z\"/><path fill=\"var(--tool-icon-accent)\" d=\"M11 17h10v2H11zm4-3 1.4 1.4-2.6 2.6 2.6 2.6L15 22l-4-4Z\"/></svg></span><span>格式转换</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"var(--tool-icon-light)\" d=\"M6 2h9l5 5v15H6z\" />\n        <path\n          fill=\"currentColor\"\n          d=\"M15 2v5h5ZM2 10h2v4h4v2H2Zm1.7 4.3 6-6L11 9.7l-6 6Z\"\n        />\n        <path\n          fill=\"var(--tool-icon-accent)\"\n          d=\"M22 19h-6v-2h4v-4h2Zm-8.7-8.7 1.4-1.4 6 6-1.4 1.4Z\"\n        /></svg></span><span>修改体积</span></button></div></section>",
+      "css": ".ds-utility-card{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-utility-card{padding:16px;border-radius:20px;background:#fff;box-shadow:0 4px 14px -7px #26344a1c;}.ds-grid{--utility-columns:4;--utility-divider:#f1f4f8;display:grid;grid-template-columns:repeat(var(--utility-columns), minmax(0, 1fr));grid-auto-rows:1fr;gap:0;margin-top:16px;border:1px solid var(--utility-divider);border-radius:12px;overflow:hidden;}.ds-grid[data-columns=\"3\"]{--utility-columns:3;}.ds-grid > .ds-grid-item{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:76px;gap:6px;padding:8px 4px;border:0;border-radius:0;background:transparent;box-shadow:none;font-size:13px;font-weight:500;line-height:20px;color:#4f5f76;text-align:center;overflow-wrap:anywhere;}.ds-grid:not([data-columns=\"3\"]) > .ds-grid-item:not(:nth-child(4n)),\n.ds-grid[data-columns=\"3\"] > .ds-grid-item:not(:nth-child(3n)){border-inline-end:1px solid var(--utility-divider);}.ds-grid:not([data-columns=\"3\"]) > .ds-grid-item:nth-child(n + 5),\n.ds-grid[data-columns=\"3\"] > .ds-grid-item:nth-child(n + 4){border-block-start:1px solid var(--utility-divider);}.ds-grid > .ds-grid-item:focus-visible{position:relative;z-index:1;outline-offset:-3px;}.ds-grid > .ds-grid-item:active{transform:none;}.ds-grid > .ds-grid-item:not([aria-disabled=\"true\"]):active{background:#f4f7ff;}.ds-grid .ds-grid-icon{--tool-icon-light:#e5ebf4;--tool-icon-accent:#6583bc;position:relative;display:grid;place-items:center;flex:none;width:32px;height:32px;color:#7488a3;}.ds-grid .ds-grid-icon svg{width:24px;height:24px;stroke:none;}.ds-grid > .ds-grid-item > span:not(.ds-grid-icon){width:100%;}.ds-grid-detail{display:block;flex:none;min-height:18px;font-size:12px;font-weight:400;line-height:18px;color:#59677a;}.ds-grid-label{display:flex;flex:none;align-items:center;justify-content:center;min-height:40px;line-height:20px;white-space:normal;overflow-wrap:anywhere;}.ds-utility-card>h2{margin:0;font-size:16px;font-weight:650;line-height:24px;color:var(--ui-heading,#203858);}.ds-grid-item{font-family:inherit;cursor:pointer;}.ds-grid-item:focus-visible{outline:3px solid var(--brand-blue,#0032ff);}"
+    },
+    {
+      "name": "工具步骤进度",
+      "kind": "nav",
+      "refersTo": "tool-stepper",
+      "description": "仅显示进度；示例第二步为当前，不支持点击跳步。完成、当前、未开始同时呈现。",
+      "html": "<nav class=\"ds-stepper\" aria-label=\"制作步骤\"><ol style=\"grid-template-columns:repeat(3,minmax(0,1fr))\"><li class=\"ds-done\"><span class=\"ds-step-number\">1</span><span class=\"ds-step-label\">选择照片</span></li><li class=\"ds-current\" aria-current=\"step\"><span class=\"ds-step-number\">2</span><span class=\"ds-step-label\">照片精修</span></li><li><span class=\"ds-step-number\">3</span><span class=\"ds-step-label\">保存照片</span></li></ol></nav>",
+      "css": ".ds-stepper{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-stepper{flex:none;margin:0 16px 4px;padding:8px 0;background:transparent;}.ds-stepper > ol{display:grid;list-style:none;margin:0;padding:0;}.ds-stepper li{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;color:#73849a;text-align:center;}.ds-stepper li:not(:first-child)::before{content:\"\";position:absolute;top:12px;left:calc(-50% + 12px);right:calc(50% + 12px);height:1px;background:#dce3ee;pointer-events:none;}.ds-stepper li:is(.ds-current, .ds-done)::before{background:#b9c7ff;}.ds-step-number{position:relative;display:grid;place-items:center;flex:none;width:24px;height:24px;border:1px solid #dce3ee;border-radius:50%;background:transparent;font-size:12px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;}.ds-step-label{max-width:100%;padding-inline:4px;font-size:12px;line-height:18px;}.ds-stepper .ds-current .ds-step-number{border-color:var(--brand-blue, #0032ff);background:var(--brand-blue, #0032ff);color:#fff;}.ds-stepper .ds-done .ds-step-number{border-color:var(--brand-blue, #0032ff);color:var(--brand-blue, #0032ff);}.ds-stepper .ds-current .ds-step-label{color:var(--brand-blue, #0032ff);font-weight:600;}.ds-stepper .ds-done .ds-step-label{color:#415574;}@media (max-width: 360px){.ds-stepper{margin-inline:14px;}}"
+    },
+    {
+      "name": "精修必选背景色",
+      "kind": "custom",
+      "refersTo": "repair-background",
+      "description": "第二步四种底色单选，初始不预选；原图不实时换底。原生radio可在面板中体验勾选，面板不模拟付款或生成成片。",
+      "html": "<section class=\"ds-repair-background\"><div class=\"ds-options-heading\"><h2 id=\"ds-background-title\">背景颜色</h2><span>请选择一种</span></div><div class=\"ds-background-options\" role=\"radiogroup\" aria-labelledby=\"ds-background-title\" aria-required=\"true\"><label><input type=\"radio\" name=\"ds-repair-background\" value=\"blue\"/><i style=\"background:#438bc6\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"m6 12 4 4 8-9\"/></svg></i><span>蓝色</span></label><label><input type=\"radio\" name=\"ds-repair-background\" value=\"white\"/><i style=\"background:#fff\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"m6 12 4 4 8-9\"/></svg></i><span>白色</span></label><label><input type=\"radio\" name=\"ds-repair-background\" value=\"red\"/><i style=\"background:#d6383d\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"m6 12 4 4 8-9\"/></svg></i><span>红色</span></label><label><input type=\"radio\" name=\"ds-repair-background\" value=\"gray\"/><i style=\"background:#d9e0e8\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"m6 12 4 4 8-9\"/></svg></i><span>浅灰</span></label></div></section>",
+      "css": ".ds-repair-background{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-repair-background{--tool-muted:#53637b;}.ds-repair-background{background:#fff;border-radius:16px;padding:12px;margin-bottom:12px;}.ds-options-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 14px;}.ds-options-heading h2{font-size:15px;font-weight:650;}.ds-options-heading h2{margin:0;line-height:1.5;color:var(--ui-heading,#203858);}.ds-options-heading>span{font-size:12px;color:var(--tool-muted);}.ds-background-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}.ds-background-options label{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-width:44px;min-height:76px;padding:6px 0;color:var(--tool-muted);font-size:12px;cursor:pointer;border-radius:8px;}.ds-background-options input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:inherit;}.ds-background-options i{display:grid;place-items:center;width:32px;height:32px;border:1px solid #bdc8d9;border-radius:50%;pointer-events:none;}.ds-background-options i>svg{width:18px;height:18px;color:#fff;stroke-width:2.4;}.ds-background-options input[value=\"white\"]+i>svg,.ds-background-options input[value=\"gray\"]+i>svg{color:var(--brand-blue, #0032ff);}.ds-background-options input:checked+i{outline:2px solid var(--brand-blue, #0032ff);outline-offset:3px;}.ds-background-options label:has(input:checked)>span{color:var(--ui-heading,#203858);font-weight:600;}.ds-background-options label:has(input:focus-visible){outline:2px solid var(--brand-blue, #0032ff);outline-offset:2px;}.ds-background-options label:has(input:disabled){cursor:default;opacity:.65;}.ds-background-options label:has(input:not(:disabled)):active{background:#edf2ff;}.ds-background-options label:has(input:not(:disabled)):hover{background:#f3f5fc;}.ds-background-options svg{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;}.ds-background-options input:not(:checked)+i>svg{display:none;}"
+    },
+    {
+      "name": "只读照片订单票据",
+      "kind": "card",
+      "refersTo": "order-ticket",
+      "description": "实际订单票据的无照片占位示例，非用图标替代已有照片。真实页面优先本单照片；整卡进入交易详情，缩略图不打开照片，没有点击缩放或展开。示例金额、日期为静态演示。",
+      "html": "<button type=\"button\" class=\"ds-ticket\"><span class=\"ds-ticket-heading\"><strong>证件照制作</strong><span class=\"ds-status-text\">已支付</span></span><span class=\"ds-ticket-body\"><span class=\"ds-thumbnail\" role=\"img\" aria-label=\"暂无订单照片\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><rect x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2\"/><circle cx=\"9\" cy=\"8\" r=\"1.5\"/><path d=\"m4 17 5-5 4 4 3-3 4 4\"/></svg></span><span class=\"ds-ticket-description\">普通证件照</span><span class=\"ds-ticket-amount\">¥1.98</span><span class=\"ds-ticket-dimensions\">一寸 · 25 × 35 mm</span><time class=\"ds-ticket-time\" datetime=\"2026-10-22T10:00:00+08:00\">2026-10-22 10:00</time></span></button>",
+      "css": ".ds-ticket{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-ticket{transition:none;position:relative;display:block;width:100%;margin:0 0 12px;padding:16px;border:0;text-align:left;background:#fff;border-radius:16px;color:inherit;}.ds-ticket:active{transform:none;background:#fff;}.ds-ticket-heading{position:relative;display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px dashed #d6dfec;}.ds-ticket-heading > strong{display:-webkit-box;flex:1;min-width:0;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;font-size:15px;font-weight:600;line-height:1.45;color:#203858;}.ds-ticket-body{display:grid;grid-template-columns:56px minmax(0, 1fr) auto;grid-template-rows:auto minmax(0, 1fr) auto;column-gap:12px;row-gap:6px;align-items:start;min-height:78px;margin-top:12px;}.ds-ticket-body > .ds-thumbnail{grid-column:1;grid-row:1 / 4;}.ds-ticket-description{grid-column:2;grid-row:1;min-width:0;font-size:13px;line-height:1.6;color:#32496b;overflow-wrap:anywhere;}.ds-ticket-amount{grid-column:3;grid-row:1;justify-self:end;font-size:17px;font-weight:600;line-height:1.3;font-variant-numeric:tabular-nums;color:#203858;white-space:nowrap;}.ds-ticket-dimensions{grid-column:2 / 4;grid-row:2;font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums;color:#53637b;overflow-wrap:anywhere;}.ds-ticket-time{grid-column:2 / 4;grid-row:3;align-self:end;font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums;color:#53637b;}.ds-status-text{text-align:right;font-weight:600;flex-shrink:0;white-space:nowrap;font-size:12px;line-height:1.6;color:var(--order-tone, #203858);}.ds-thumbnail{display:grid;place-items:center;flex:none;width:56px;height:78px;overflow:hidden;border-radius:6px;background:#f1f5fb;color:#8a9bb1;}.ds-ticket-heading::before,.ds-ticket-heading::after{content:\"\";position:absolute;width:12px;height:12px;border-radius:50%;background:#f3f5fc;pointer-events:none;}.ds-ticket-heading::before{left:-22px;bottom:-6px;}.ds-ticket-heading::after{right:-22px;bottom:-6px;}.ds-thumbnail{height:auto;aspect-ratio:var(--portrait-preview-ratio, 5/7);background:var(--portrait-preview-ground, #f1f2f4);}.ds-ticket{font-size:14px;color:#203858;cursor:pointer;box-shadow:none;}.ds-ticket:focus-visible{outline:3px solid var(--brand-blue,#0032ff);outline-offset:3px;}.ds-thumbnail svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}.ds-status-text{--order-tone:#207359;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "清晰、克制的证件照工作台",
+    "overview": "知拍以照片与当前任务为中心：浅蓝白画布、深蓝文字、知拍蓝主操作和轻质内容卡建立稳定的层级。界面重视横平竖直的对齐、完整的照片呈现与连贯的前后流程，减少重复提示和无关操作。\n\n本次为既有设计体系的合并归档，不提出新的品牌风格。保留已确认的场景差异：首页连贯宫格、订单交易票据、原因上滑抽屉和完整等比照片各有明确职责；订单专用磨砂顶部不能扩展成全站玻璃效果。",
+    "keyCharacteristics": [
+      "蓝白浅底与深蓝字，主操作、选中和语义状态各司其职。",
+      "共享边线、对齐线与间距，按页面任务组织信息密度。",
+      "照片完整等比显示；展示比例、原始文件和输出规格分别定义。",
+      "保留场景专用组件，原生还原按真实安全区、字体和系统返回适配。"
+    ],
+    "rules": [
+      {
+        "name": "用途分色",
+        "body": "品牌蓝表达操作和选中；业务状态按对应场景着色，不把审核状态套到交易付款状态。",
+        "section": "colors"
+      },
+      {
+        "name": "一处一个主动作",
+        "body": "前景文字与当前操作优先于背景装饰；半透明、弥散和阴影只服务已确认的层次，不增加外发光。",
+        "section": "colors"
+      },
+      {
+        "name": "内容自然增高",
+        "body": "长名称和数字信息分开承载，允许换行与自然增高，不通过压缩字形或裁切关键信息维持固定高度。",
+        "section": "typography"
+      },
+      {
+        "name": "克制分层",
+        "body": "普通卡片、悬浮导航与抽屉使用各自阴影；订单票据保持无额外阴影，照片预览不得重新包回白卡。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** 沿用已确认的组件、对齐线和分组方式；设计或布局调整先展示结构样图并等待明确确认，单次豁免仅对当次有效。",
+      "**Do** 记录具体场景的最终生效样式和来源；发现文档与实现差异时明示差异，保留已确认规则，不把现状自动升级为新规范。",
+      "**Do** 使用系统字体或来源、许可证明确的免费商用开源字体；图片与导出物遵守同一约束。",
+      "**Do** 保留至少44px的关键触控区和可见键盘焦点；列表滚动、覆盖层锁定、关闭后的焦点与位置恢复一起验收。",
+      "**Do** 将402×874、62px顶部及29px底部标为 Web 预览基准，三端按实际系统安全区、字体缩放与返回机制验证。",
+      "**Do** 如实标注原型模拟、代码检查、实际页面抽样与三端验收的范围；默认最终交付给出说明、验证和链接，用户要求时再附截图。"
+    ],
+    "donts": [
+      "**Don't** 为本次 document 重做页面或换一套品牌；未经确认不新增自定义照片规格。",
+      "**Don't** 让订单承担查看照片、排版、继续处理、采集任务或客服；订单照片仅为只读交易识别缩略图。",
+      "**Don't** 用整块预览区 Loading、遮罩或状态标签遮住照片；处理动效按相应流程限定在实际照片内，详情大图使用独立查看层。",
+      "**Don't** 将规格名称挤掉尺寸、将末行内容压入悬浮菜单，或通过减小字号和拉伸照片解决空间问题。",
+      "**Don't** 将工具面板的预览梯度当作已批准的产品色阶，将 HTML 示例当成完整业务实现，或把浏览器样式抽样写成全模块真机验收。",
+      "**Don't** 在订单票据恢复点击缩放、卡片展开或共享元素转场，也不将订单专用磨砂复制到其他页面。"
+    ]
+  }
+}
