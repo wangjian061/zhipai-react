@@ -352,9 +352,20 @@
         padding: 10px 12px;
         font-size: 13px;
       }
-      .wf-change {
-        display: block;
-        margin: 0 auto;
+      .wf-selection-actions {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+        gap: 12px;
+        width: 100%;
+      }
+      .wf-selection-actions .wf-button {
+        min-width: 0;
+        font-size: 15px;
+      }
+      .wf-selection-actions .secondary {
+        background: transparent;
+        border: 1px solid #c6cfdb;
+        color: #53637b;
       }
       .wf-footer {
         padding: 12px 16px 24px;
@@ -851,9 +862,9 @@
           notes: [
             "顶部：52px导航高、左右12px留白，左侧44px白色圆底返回、20px深蓝箭头，工具名称17px居中；右侧不放订单与分享。冲印和六项工具各步骤与完成页均使用同一导航组件。操作阶段显示三步进度，完成页不再展示步骤条。",
             "未选图：小白熊、“选取一张照片”；换装说明只写“从知拍相册选择”，其他工具为“知拍相册 / 手机相册”。直接放在页面背景，不包白卡。换装来源变更当前仅文档确认，代码待实施。",
-            "已选图：照片居中，下方12px间距为12px灰色规格文字，再下方是16px图标＋13px蓝字“更换照片”，无底色，点击高度至少44px。照片完整适应5∶7预览区、最大250px宽，余区浅灰，不拉伸、不自动裁切原图；宽度不足时等比缩小。",
-            "底部：未选图为“选取照片”；从后续步骤返回后为“下一步”。后续步骤不另放换图入口。",
-            "交互：打开选图抽屉；取消保留照片和设置；重新确认同一照片保留设置；确认新照片清除旧输出并重新执行该工具的检查。带照片从其他入口进入时可跳过重复选图，但不能绕过必要检查。",
+            "已选图：照片居中，下方12px间距为12px辅助色文件信息；删除照片下方旧换图入口。照片完整适应5∶7预览区、最大250px宽，余区浅灰，不拉伸、不自动裁切原图；宽度不足时等比缩小。",
+            "固定底部：未选图仅“选取照片”；选图后统一左侧中性描边“更换照片”、右侧知拍蓝“下一步”，宽度2∶3、间距12px、同高48px、14px圆角、15px字。底栏左右16px、上12px及设备安全区。后续步骤不另放换图入口。",
+            "七业务统一：抽屉确认、手机文件、照片详情带图及同图／新图重选均先留在第一步。点击下一步才检查或准备预览；冲印才检查5∶7，符合进入排版，否则手动裁剪。取消保留原图与有效设置，另一张清除对应旧产物和可重建草稿。顶部返回来源，带图入口返回原完整详情；待查款／已付款原单仍按原快照恢复。",
           ],
         },
         {
@@ -863,7 +874,7 @@
             "固定头部：“选择照片”、右上关闭；其下说明选择范围。",
             "固定来源区按工具限制：换装仅知拍相册，手机相册入口禁用，其他工具保留手机来源。“制作一张”仍进入制作，但换装须先保存为知拍相册记录后再选取。只支持单选；不出现“进入相册编辑”。",
             "独立滚动区为三列照片。换装空态提示先制作并保存到知拍相册；读取失败仅提供“重新读取”，不引导手机来源。其他工具仍可从手机相册选图。此共用线框默认演示开放手机来源的工具，不能据此认定换装允许手机照片。",
-            "固定底部：“使用这张照片”；未选中有效照片时禁用。只有照片列表滚动，标题、来源和确认区不跟随滚动。",
+            "固定底部：“使用这张照片”；未选中有效照片时禁用。确认只关闭抽屉并回到第一步的已选状态，不自动检测或前进；用户仍须点击下一步。只有照片列表滚动，标题、来源和确认区不跟随滚动。",
             "手机相册取消不换图；换装禁止接收未保存的拍照或手机文件，制作的新成片必须先成为知拍相册可用记录。其他工具沿用原回传规则；既有已付未完成换装订单仍按原单恢复。",
           ],
         },
@@ -883,7 +894,7 @@
           notes: [
             "固定标题“照片检查未通过”、关闭；正文标题“请重新选择人像证件照”。",
             "原因包括：不是人像证件照、未识别到清晰人脸、照片包含多人、背景较复杂。详细原因只通过“查看原因”进入抽屉，不在页面堆叠长文。",
-            "底部“返回选照片”关闭原因抽屉，回到第一步；换图仍使用页面唯一的“更换照片”入口。",
+            "底部“返回选照片”关闭原因抽屉，回到第一步；换图使用底部唯一的“更换照片”按钮。",
           ],
         },
         {
@@ -1112,6 +1123,15 @@
         `<img class="wf-photo" src="${photo}" alt="虚构示例证件照">`;
       const spec = () =>
         '<div class="wf-spec">一寸 · 25 × 35 mm　295 × 413 px</div>';
+      const selectedPhoto = () =>
+        `<div class="wf-photo-box"><img src="${photo}" alt="当前照片"></div>${spec()}`;
+      const selectionActions = (
+        to,
+        targetState = "",
+        busy = false,
+        blocked = false,
+      ) =>
+        `<div class="wf-selection-actions">${btn("更换照片", "p02", true, busy)}${btn(busy ? "正在检查照片…" : "下一步", to, false, busy || blocked, targetState)}</div>`;
       const steps = (labels, current) =>
         `<div class="wf-stepper">${labels.map((s, i) => `<div class="wf-step ${i === current ? "current" : i < current ? "done" : ""}"><i>${i + 1}</i><span>${s}</span></div>`).join("")}</div>`;
       const toolSteps = (stage = 1) =>
@@ -1128,8 +1148,15 @@
           step: steps(["选照片", "照片精修", "看效果"], 0),
           body: () =>
             `<div class="wf-empty"><img class="wf-bear" src="${bear}" alt="白熊主题示例"><h3>选取一张照片</h3><p>知拍相册 / 手机相册</p></div>`,
-          footer: () => btn("选取照片", "p02"),
-          states: ["未选图", "已选图"],
+          footer: () =>
+            state === "未选图"
+              ? btn("选取照片", "p02")
+              : state === "冲印 · 一寸比例"
+                ? selectionActions("p16")
+                : state === "冲印 · 需裁剪"
+                  ? selectionActions("p15")
+                  : selectionActions("p03", "检查中"),
+          states: ["未选图", "已选图", "冲印 · 一寸比例", "冲印 · 需裁剪"],
         },
         p02: {
           title: "照片精修",
@@ -1140,7 +1167,7 @@
               "选择照片",
               "单选一张照片，继续当前工具",
               `<div class="wf-gallery-count">知拍相册　12张</div><div class="wf-photo-grid">${Array.from({ length: 12 }, () => `<img src="${photo}" alt="虚构示例照片">`).join("")}</div>`,
-              btn("使用这张照片", "p03"),
+              btn("使用这张照片", "p01", false, false, "已选图"),
               '<button data-state="手机来源">手机相册</button><button data-note="实际页面进入个人照片制作，完成后将成片带回当前工具；该流程不在本示意范围。">制作一张</button>',
             ),
           states: ["照片列表", "空相册", "读取失败", "手机来源"],
@@ -1149,8 +1176,8 @@
           title: "照片精修",
           step: steps(["选照片", "照片精修", "看效果"], 0),
           body: () =>
-            `<div class="wf-photo-box"><img src="${photo}" alt="当前照片"></div>${spec()}<button class="wf-text-button wf-change" data-go="p02">↻ 更换照片</button><div class="wf-notice error">照片不符合证件照要求<br>${text("查看原因", "p04")}</div>`,
-          footer: () => btn("下一步", "", false, true),
+            `${selectedPhoto()}<div class="wf-notice error">照片不符合证件照要求<br>${text("查看原因", "p04")}</div>`,
+          footer: () => selectionActions("", "", state === "检查中", true),
           states: ["未通过", "检查中", "检查异常", "原型结果选择"],
         },
         p04: {
@@ -1343,7 +1370,8 @@
       };
       let current = 0,
         state = "",
-        repairColor = "";
+        repairColor = "",
+        selectionState = "未选图";
       function bodyState(id, v) {
         if (id === "p23" && state)
           return v
@@ -1359,12 +1387,11 @@
             );
         if (id === "p14" && state === "更换背景")
           return `<div class="wf-center"><img class="wf-bear" style="width:56px;height:56px" src="${assetRoot}bear-background.webp" alt=""><h3>已发起下载</h3><p>请在手机相册中查看</p>${portrait()}<p>蓝色背景</p>${spec()}</div>`;
-        if (id === "p01" && state === "已选图")
-          return `<div class="wf-photo-box"><img src="${photo}" alt="当前照片"></div>${spec()}<button class="wf-text-button wf-change" data-go="p02">↻ 更换照片</button>`;
+        if (id === "p01" && state !== "未选图") return selectedPhoto();
         if (id === "p03" && state === "检查中")
-          return `${portrait()}<div class="wf-notice">正在检查照片…</div>`;
+          return `${selectedPhoto()}<div class="wf-notice">正在检查照片…</div>`;
         if (id === "p03" && state === "检查异常")
-          return `${portrait()}<div class="wf-notice">照片检查未完成<br>${text("重新检查", "p03")}</div>`;
+          return `${selectedPhoto()}<div class="wf-notice">照片检查未完成<br><button class="wf-text-button" data-state="检查中">重新检查</button></div>`;
         if (id === "p07" && state === "保存失败")
           return `${portrait()}<div class="wf-notice error">保存未完成，已付款的照片已保留。重试保存不会再次收费。</div>`;
         return v.body();
@@ -1450,9 +1477,11 @@
         document.getElementById("doc-feedback").textContent = "";
         document.getElementById("phone").innerHTML =
           '<div class="wf-statusbar"><span>9:41</span><span>信号 · Wi-Fi · 电量</span></div><header class="wf-nav"><button data-doc-exit aria-label="返回文档目录"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button><strong>' +
-          v.title +
+          (p.id === "p01" && state.startsWith("冲印") ? "冲印照片" : v.title) +
           "</strong><span></span></header>" +
-          (v.step || "") +
+          (p.id === "p01" && state.startsWith("冲印")
+            ? steps(["选照片", "选排版", "确认订单"], 0)
+            : v.step || "") +
           '<div class="wf-body">' +
           bodyState(p.id, v) +
           "</div>" +
@@ -1539,11 +1568,15 @@
             ),
           );
       }
-      function go(id) {
+      function go(id, targetState = "") {
         const next = pages.findIndex((p) => p.id === id);
         if (next < 0) return;
+        if (pages[current].id === "p01" && state) selectionState = state;
         current = next;
-        state = view[id].states?.[0] || "";
+        state =
+          targetState ||
+          (id === "p01" ? selectionState : view[id].states?.[0] || "");
+        if (id === "p01") selectionState = state;
         if (location.hash !== "#" + id) location.hash = id;
         render();
       }
@@ -1583,11 +1616,7 @@
           document.getElementById("page-select").focus();
           window.scrollTo({ top: 0, behavior: "smooth" });
         } else if (b.dataset.go) {
-          go(b.dataset.go);
-          if (b.dataset.targetState) {
-            state = b.dataset.targetState;
-            render();
-          }
+          go(b.dataset.go, b.dataset.targetState || "");
         } else if (b.dataset.state) {
           state = b.dataset.state;
           render();

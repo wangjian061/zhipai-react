@@ -1054,8 +1054,7 @@ registerController("printStudio", () => ({
       this.error = "";
       this.message = "";
       this.crop = { scale: 1, offsetX: 0, offsetY: 0 };
-      if (source) this.nextLayouts();
-      else this.route("select");
+      this.route("select");
     } catch (_) {
       this.error = "暂时无法开始冲印，请重试。";
     }
@@ -1472,8 +1471,9 @@ registerController("printStudio", () => ({
     if (!photo) return;
     await this.store.loading;
     if (this.disabled) return;
-    const originalLocation = location.pathname + location.search;
     if (this.guardPendingPayment()) return;
+    if (this.view !== "select") this.route("select", {}, true);
+    const originalLocation = location.pathname + location.search;
     this.selectionId = null;
     const samePhoto =
       this.draft.photo?.id === photo.id &&
@@ -1497,7 +1497,6 @@ registerController("printStudio", () => ({
       if (location.pathname + location.search === originalLocation) {
         this.closeModal();
         if (!samePhoto) this.crop = { scale: 1, offsetX: 0, offsetY: 0 };
-        this.nextLayouts();
       }
     } catch (_) {
       this.error = "照片准备失败，选择已保留，请重试。";

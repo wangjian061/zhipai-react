@@ -20,7 +20,7 @@
   object-fit: contain;
   border-radius: 0;
 }
-.photo-selection-current-actions {
+.photo-selection-caption {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -30,43 +30,12 @@
   width: min(100%, 250px);
   text-align: center;
 }
-.photo-selection-current-actions > span {
+.photo-selection-caption > span {
   font-size: 12px;
-  color: #73849a;
+  color: var(--ui-body, #53637b);
   line-height: 1.6;
   min-width: 0;
   overflow-wrap: anywhere;
-}
-.photo-selection-change {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  flex: none;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  box-shadow: none;
-  color: var(--brand-blue, #0032ff);
-  font-size: 13px;
-  font-weight: 500;
-}
-.photo-selection-change > svg {
-  width: 16px;
-  height: 16px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.6;
-}
-.photo-selection-change:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-.photo-selection-change:focus-visible {
-  outline: 2px solid var(--brand-blue, #0032ff);
-  outline-offset: 3px;
 }
 .photo-selection-empty {
   width: 100%;
@@ -357,4 +326,65 @@
   min-height: 0;
   overflow: hidden;
   padding: 0;
+}
+
+/* Shared first-step controls: one action before selection, two after selection. */
+.tool-page .photo-selection-footer,
+.print-page .photo-selection-footer {
+  padding: 12px 16px
+    var(--device-nav-bottom, max(18px, env(safe-area-inset-bottom)));
+}
+.photo-selection-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+}
+.photo-selection-actions[data-selected="true"] {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+}
+.photo-selection-actions > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: var(--ui-button-height, 48px);
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-button-radius, 14px);
+  font: inherit;
+  font-size: var(--ui-button-font, 15px);
+  line-height: 1.4;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  touch-action: manipulation;
+}
+.photo-selection-actions .photo-selection-replace {
+  border-color: #c6cfdb;
+  background: transparent;
+  color: #53637b;
+}
+.photo-selection-actions .photo-selection-next {
+  background: var(--brand-blue, #0032ff);
+  color: #fff;
+}
+.photo-selection-actions .photo-selection-next:disabled {
+  background: #e3e8f1;
+  color: #58677e;
+  opacity: 1;
+  cursor: default;
+}
+.photo-selection-actions > button:focus-visible {
+  outline: 2px solid var(--brand-blue, #0032ff);
+  outline-offset: 3px;
+}
+.photo-selection-actions > button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+@media (prefers-reduced-motion: reduce) {
+  .photo-selection-actions > button:active:not(:disabled) {
+    transform: none;
+  }
 }

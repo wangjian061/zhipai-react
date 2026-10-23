@@ -8,6 +8,7 @@ import ToolResult from "../components/ToolResult.jsx";
 import RepairBackgroundOptions from "../components/RepairBackgroundOptions.jsx";
 import ToolStepper from "../components/ToolStepper.jsx";
 import PhotoSelectionPreview from "../components/PhotoSelectionPreview.jsx";
+import PhotoSelectionActions from "../components/PhotoSelectionActions.jsx";
 import ToolPhotoSelection from "../components/ToolPhotoSelection.jsx";
 import PendingPhotoResults from "../components/PendingPhotoResults.jsx";
 import PhotoSelectionEmpty from "../components/PhotoSelectionEmpty.jsx";
@@ -76,8 +77,6 @@ export default function ToolsPage({ scope, args = [] }) {
                 <PhotoSelectionPreview
                   photo={s.photo}
                   src={s.sourceURL}
-                  disabled={s.busy}
-                  onChange={() => s.pick()}
                   processingLabel={toolPhotoProcessingLabel(s)}
                 />
               )}
@@ -735,50 +734,64 @@ export default function ToolsPage({ scope, args = [] }) {
               as="footer"
               scope={s}
               className="tool-footer tool-work-footer"
+              dynamicClass={{ "photo-selection-footer": s.step === 0 }}
             >
-              <View
-                as="button"
-                scope={s}
-                className="tool-repick"
-                show={s.step > 0 && !s.serviceResult}
-                disabled={s.busy}
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.previousStep();
-                    },
-                  },
-                ]}
-              >
-                <View as="svg" scope={s} aria-hidden="true">
-                  <View as="use" scope={s} href="#i-chevron-left"></View>
-                </View>
-                <View as="span" scope={s} text="上一步"></View>
-              </View>
-              <View
-                as="button"
-                scope={s}
-                className="tool-primary"
-                disabled={!s.primaryEnabled}
-                text={s.saving ? "正在保存…" : s.primaryLabel}
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.primary();
-                    },
-                  },
-                ]}
-              ></View>
+              {s.step === 0 ? (
+                <PhotoSelectionActions
+                  hasPhoto={!!s.photo?.blob}
+                  disabled={s.busy}
+                  nextEnabled={s.primaryEnabled}
+                  nextLabel={s.primaryLabel}
+                  onSelect={() => s.pick()}
+                  onNext={() => s.primary()}
+                />
+              ) : (
+                <>
+                  <View
+                    as="button"
+                    scope={s}
+                    className="tool-repick"
+                    show={s.step > 0 && !s.serviceResult}
+                    disabled={s.busy}
+                    events={[
+                      {
+                        type: "click",
+                        prevent: false,
+                        stop: false,
+                        self: false,
+                        passive: false,
+                        run: function (scope, $event, $el) {
+                          scope.previousStep();
+                        },
+                      },
+                    ]}
+                  >
+                    <View as="svg" scope={s} aria-hidden="true">
+                      <View as="use" scope={s} href="#i-chevron-left"></View>
+                    </View>
+                    <View as="span" scope={s} text="上一步"></View>
+                  </View>
+                  <View
+                    as="button"
+                    scope={s}
+                    className="tool-primary"
+                    disabled={!s.primaryEnabled}
+                    text={s.saving ? "正在保存…" : s.primaryLabel}
+                    events={[
+                      {
+                        type: "click",
+                        prevent: false,
+                        stop: false,
+                        self: false,
+                        passive: false,
+                        run: function (scope, $event, $el) {
+                          scope.primary();
+                        },
+                      },
+                    ]}
+                  ></View>
+                </>
+              )}
             </View>
           </View>
           {s.page === "tool" && s.view === "saved" && <ToolResult studio={s} />}

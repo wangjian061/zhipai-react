@@ -32,7 +32,7 @@ function studio(){const tool=factories.toolStudio();tool.$store=stores;tool.page
  const library=stores.photoLibrary;await library.load();await stores.toolOrders.load();
  const photo={id:'original',name:'original.jpg',width:295,height:413,type:'image/jpeg',size:8,spec:'一寸 · 25 × 35 mm',blob:new Blob(['original'],{type:'image/jpeg'})};
  await library.commit({finished:[photo],archivedOriginals:[]});
- const tool=studio();await tool.accept({photo,kind:'finished',context:{action:'background'}});await tool.choosePortraitOutcome('passed');
+ const tool=studio();await tool.accept({photo,kind:'finished',context:{action:'background'}});assert.equal(tool.step,0);assert.equal(tool.portraitCheck.status,'idle');await tool.primary();await tool.choosePortraitOutcome('passed');
  assert.equal(tool.step,1);assert.equal(tool.primaryLabel,'保存到设备');
  const output=tool.output,task=tool.task,writesBefore=albumWrites;
  failWrite=true;failDownload=true;await tool.primary();assert.equal(tool.view,'work');assert.equal(library.finished.length,1);assert.match(tool.error,/保存未完成/);assert.equal(tool.primaryLabel,'重试保存');assert.equal(tool.output,output);

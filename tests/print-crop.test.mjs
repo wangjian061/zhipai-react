@@ -143,6 +143,9 @@ test("crop flows through real reactive routing into both layout previews and che
       }),
     };
     await s.choosePhoto(oldPhoto, "phone");
+    assert.equal(s.view, "select");
+    assert.equal(s.layoutOptions.length, 0);
+    s.nextLayouts();
     await settle();
     const oldURLs = s.layoutOptions.map((p) => p.previewURL);
     const photo = {
@@ -156,6 +159,8 @@ test("crop flows through real reactive routing into both layout previews and che
       }),
     };
     await s.choosePhoto(photo, "phone");
+    assert.equal(s.view, "select");
+    s.nextLayouts();
     assert.equal(s.view, "crop");
     s.setCrop({ scale: 1.5, offsetX: 50, offsetY: 30 });
     await s.applyCrop();

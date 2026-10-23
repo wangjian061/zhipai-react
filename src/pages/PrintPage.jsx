@@ -4,6 +4,7 @@ import ToolStepper from "../components/ToolStepper.jsx";
 import ToolPhotoSelection from "../components/ToolPhotoSelection.jsx";
 import PhotoSelectionEmpty from "../components/PhotoSelectionEmpty.jsx";
 import PhotoSelectionPreview from "../components/PhotoSelectionPreview.jsx";
+import PhotoSelectionActions from "../components/PhotoSelectionActions.jsx";
 import FixedPhotoCrop from "../components/FixedPhotoCrop.jsx";
 import { View, Repeat, Portal } from "../runtime/components.jsx";
 export default function PrintPage({ scope: s }) {
@@ -132,40 +133,20 @@ export default function PrintPage({ scope: s }) {
             />
           )}
           {s.draft.photo && (
-            <PhotoSelectionPreview
-              photo={s.draft.photo}
-              src={s.photoURL}
-              disabled={s.disabled || s.library.busy}
-              onChange={() => s.openAlbum()}
-            />
+            <PhotoSelectionPreview photo={s.draft.photo} src={s.photoURL} />
           )}
         </View>
-        <View as="footer" scope={s} className="print-footer print-step-footer">
-          <View
-            as="button"
-            scope={s}
-            className="print-primary"
+        <View
+          as="footer"
+          scope={s}
+          className="print-footer print-step-footer photo-selection-footer"
+        >
+          <PhotoSelectionActions
+            hasPhoto={!!s.draft.photo?.blob}
             disabled={s.disabled || s.library.busy}
-            events={[
-              {
-                type: "click",
-                prevent: false,
-                stop: false,
-                self: false,
-                passive: false,
-                run: function (scope, $event, $el) {
-                  scope.draft.photo?.blob
-                    ? scope.nextLayouts()
-                    : scope.openAlbum();
-                },
-              },
-            ]}
-          >
-            {s.draft.photo?.blob ? "下一步" : "选取照片"}
-            <View as="svg" scope={s} aria-hidden="true">
-              <View as="use" scope={s} href="#i-arrow"></View>
-            </View>
-          </View>
+            onSelect={() => s.openAlbum()}
+            onNext={() => s.nextLayouts()}
+          />
         </View>
       </View>
       <View

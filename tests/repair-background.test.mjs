@@ -184,6 +184,10 @@ test("previous/same photo preserves selection, new photo clears it and checks ag
     context: { action: "repair" },
   });
   assert.equal(s.repairColor, null);
+  assert.equal(s.step, 0);
+  assert.equal(s.primaryEnabled, true);
+  await s.primary();
+  assert.equal(s.step, 1);
   assert.equal(s.primaryEnabled, false);
   assert.equal(s.output, null);
   assert.equal(s.orderId, null);

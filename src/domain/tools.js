@@ -739,8 +739,8 @@ registerController("toolStudio", () => ({
   get primaryEnabled() {
     if (this.busy) return false;
     if (this.currentOrder?.status === "verifying") return true;
-    if (!this.portraitEligible && this.photo) return false;
     if (this.choosingPhoto) return true;
+    if (!this.portraitEligible && this.photo) return false;
     if (this.action === "repair" && this.photo && !this.repairOptionsReady)
       return false;
     if (this.error) return !!this.photo && this.step > 0;
@@ -963,7 +963,9 @@ registerController("toolStudio", () => ({
   },
   async start() {
     if (this.busy || this.action === "spec") return;
+    const token = this.task;
     if (!this.ordersStore.ready) await this.ordersStore.loading;
+    if (token !== this.task) return;
     const pending =
       this.config.service &&
       this.ordersStore.items.find(
@@ -973,7 +975,7 @@ registerController("toolStudio", () => ({
           o.action === this.action &&
           o.status === "verifying",
       );
-    if (pending) {
+    if (pending && !this.entryPhoto) {
       await this.resumeOrder(pending);
       return;
     }
@@ -1155,18 +1157,14 @@ registerController("toolStudio", () => ({
       photo = this.library.finished.find((p) => p.id === photo.id && p.blob);
       if (!photo) return;
     }
+    // Every source confirms a candidate for step one. Only Next may run the tool.
     if (
       this.photo?.id === photo.id &&
       this.photo.blob === photo.blob &&
       this.sourceKind === kind
     ) {
-      this.choosingPhoto = false;
+      this.choosingPhoto = true;
       this.closePanel();
-      if (
-        this.config.requiresPortrait &&
-        this.portraitCheck.status !== "passed"
-      )
-        await this.validatePortraitPhoto();
       return;
     }
     this.reset();
@@ -1182,8 +1180,7 @@ registerController("toolStudio", () => ({
           (s) => s.width === photo.width && s.height === photo.height,
         )?.id || "two";
     this.stage = "ready";
-    if (this.config.requiresPortrait) await this.validatePortraitPhoto();
-    else if (!this.config.service) await this.preview();
+    this.choosingPhoto = true;
   },
   async validatePortraitPhoto() {
     if (!this.config.requiresPortrait || !this.photo || this.busy) return;
@@ -1415,9 +1412,23 @@ registerController("toolStudio", () => ({
     if (this.flowCompleted) return this.start();
     if (this.currentOrder?.status === "verifying")
       return this.restoreExistingPayment();
-    if (this.error) return this.retry();
     if (this.choosingPhoto && this.photo) {
+      if (this.config.service) {
+        const pending = this.ordersStore.items.find(
+          (order) =>
+            order.owner === getStore("account")?.session?.phone &&
+            !order.fixture &&
+            order.action === this.action &&
+            order.status === "verifying",
+        );
+        if (pending) return this.resumeOrder(pending);
+      }
       this.choosingPhoto = false;
+      this.error = "";
+      if (!this.portraitEligible) {
+        await this.validatePortraitPhoto();
+        return;
+      }
       if (
         this.action === "background" &&
         !this.backgroundEditing &&
@@ -1425,9 +1436,12 @@ registerController("toolStudio", () => ({
       ) {
         this.backgroundEditing = true;
         await this.standardize();
+      } else if (!this.config.service && (!this.output || this.needsPreview)) {
+        await this.preview();
       }
       return;
     }
+    if (this.error) return this.retry();
     if (this.action === "background" && !this.backgroundEditing && this.photo) {
       this.backgroundEditing = true;
       await this.standardize();
