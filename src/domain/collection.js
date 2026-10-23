@@ -7,6 +7,11 @@ import {
   storageValue,
 } from "../runtime/state.js";
 import { accountHash, accountRoute } from "./account.js";
+import {
+  collectionScanService,
+  resolveCollectionCode,
+  validateCollectionCodeFile,
+} from "./collection-code.js";
 import { decodePhotoBlob, downloadAlbumBlob } from "./album.js";
 import { readCollectionQRCode } from "./scan.js";
 import {
@@ -423,6 +428,8 @@ registerController("collectionFlow", () => ({
   qr: null,
   qrURL: "",
   qrRead: false,
+  qrPrototype: false,
+  scanReturn: null,
   busy: false,
   error: "",
   notice: "",
@@ -894,6 +901,12 @@ registerController("collectionFlow", () => ({
     );
   },
   init() {
+    this.scanDirectory = () => ({
+      projects: this.projects,
+      entries: this.config.entries,
+      bindings: this.config.codeBindings,
+    });
+    collectionScanService.directory = this.scanDirectory;
     this.routeHandler = () => this.sync();
     this.photoHandler = (e) => this.acceptPhoto(e.detail);
     this.qrHandler = (e) => this.receiveScan(e.detail);
@@ -901,11 +914,30 @@ registerController("collectionFlow", () => ({
     window.addEventListener("popstate", this.routeHandler);
     window.addEventListener("zhipai-collection-photo", this.photoHandler);
     window.addEventListener("zhipai-collection-code", this.qrHandler);
-    this.recordsHandler = () => this.loadPhoto();
+    this.recordsHandler = () => {
+      this.loadPhoto();
+      if (
+        new URLSearchParams(location.search).get("page") === "collection" &&
+        this.view === "project"
+      )
+        this.resumeScan();
+    };
+    this.$watch?.("disabled", () => {
+      if (
+        !this.disabled &&
+        new URLSearchParams(location.search).get("page") === "collection" &&
+        this.view === "project"
+      )
+        this.resumeScan();
+    });
     window.addEventListener("zhipai-collection-records", this.recordsHandler);
     this.sync();
   },
   destroy() {
+    if (collectionScanService.directory === this.scanDirectory) {
+      collectionScanService.directory = () => ({});
+      collectionScanService.clear();
+    }
     window.removeEventListener("zhipai-route", this.routeHandler);
     window.removeEventListener("popstate", this.routeHandler);
     window.removeEventListener("zhipai-collection-photo", this.photoHandler);
@@ -922,6 +954,25 @@ registerController("collectionFlow", () => ({
   sync() {
     const q = new URLSearchParams(location.search);
     if (q.get("page") !== "collection") {
+      const pending = collectionScanService.pending;
+      let loginBack;
+      try {
+        loginBack = new URL(q.get("back") || "/", location.origin);
+      } catch (_) {}
+      if (
+        q.get("page") !== "scan" &&
+        !(
+          q.get("page") === "account" &&
+          pending &&
+          loginBack?.origin === location.origin &&
+          loginBack?.searchParams.get("page") === "collection" &&
+          loginBack?.searchParams.get("view") === "project" &&
+          loginBack?.searchParams.get("project") === pending.projectId
+        )
+      ) {
+        collectionScanService.clear();
+        this.scanReturn = null;
+      }
       this.task++;
       this.busy = false;
       this.panel = null;
@@ -994,7 +1045,72 @@ registerController("collectionFlow", () => ({
       this.loadPhoto();
       if (this.scrollHost)
         this.scrollHost.scrollTop = this.sectionScroll[this.scrollKey] || 0;
+      this.resumeScan();
     });
+  },
+  resumeScan() {
+    const pending = collectionScanService.pending;
+    if (pending) {
+      if (
+        this.view !== "project" ||
+        this.projectId !== pending.projectId ||
+        pending.expires < Date.now() ||
+        (pending.owner && pending.owner !== this.account.session?.phone)
+      ) {
+        collectionScanService.clear();
+        this.scanReturn = null;
+        return;
+      }
+      if (!this.guardCollect()) {
+        collectionScanService.clear();
+        return;
+      }
+      if (this.disabled) return;
+      if (!this.account.loggedIn) {
+        // Cancelled login returns to project without forcing another login loop.
+        if (pending.loginRequested) return;
+        pending.loginRequested = true;
+        accountRoute("welcome", location.pathname + location.search);
+        return;
+      }
+      collectionScanService.clear();
+      this.scanReturn = null;
+      this.releaseIdentity();
+      if (pending.kind === "chsi" && !this.project.methods.includes("qr")) {
+        this.showNotice(
+          "本项目当前不支持采集码认证，请按项目要求办理。",
+          "warning",
+          "manual",
+        );
+        return;
+      }
+      if (pending.kind === "chsi" && this.project.methods.includes("qr")) {
+        this.method = "qr";
+        this.qrRead = true;
+        this.qrPrototype = pending.prototype;
+        this.identity = {
+          name: pending.identity?.name || "",
+          number: pending.identity?.number || "",
+          lastFour: pending.identity?.lastFour || "",
+        };
+        this.openPanel("qrCheck");
+      } else this.begin();
+      return;
+    }
+    const previous = this.scanReturn;
+    this.scanReturn = null;
+    if (
+      previous &&
+      previous.projectId === this.projectId &&
+      this.view === "project" &&
+      previous.owner === this.account.session?.phone &&
+      previous.expires > Date.now() &&
+      this.canCollect
+    ) {
+      this.method = previous.method;
+      this.identity = previous.identity;
+      this.openPanel(previous.panel);
+    }
   },
   loadPhoto() {
     if (this.current) this.projectId = this.current.projectId;
@@ -1145,6 +1261,29 @@ registerController("collectionFlow", () => ({
     }
     if (this.view === "project") {
       this.dismissNotice();
+      const scanBack = new URLSearchParams(location.search).get("scanBack");
+      if (scanBack) {
+        try {
+          const target = new URL(scanBack, location.origin);
+          if (
+            target.origin === location.origin &&
+            [
+              "home",
+              "album",
+              "my",
+              "collection",
+              "search",
+              "specifications",
+              "orders",
+            ].includes(target.searchParams.get("page")) &&
+            target.searchParams.get("view") !== "project"
+          ) {
+            history.replaceState({}, "", target);
+            window.dispatchEvent(new Event("zhipai-route"));
+            return;
+          }
+        } catch (_) {}
+      }
       this.route(this.projectFrom, "", "", {
         category: this.projectCategory,
         q: this.projectQuery,
@@ -1242,6 +1381,7 @@ registerController("collectionFlow", () => ({
     this.qrURL = "";
     this.qr = null;
     this.qrRead = false;
+    this.qrPrototype = false;
     this.identity = {
       name: "",
       number: "",
@@ -1250,6 +1390,11 @@ registerController("collectionFlow", () => ({
   },
   begin() {
     if (this.disabled || !this.guardCollect()) return;
+    if (collectionScanService.pending?.projectId === this.projectId) {
+      collectionScanService.pending.loginRequested = false;
+      this.resumeScan();
+      return;
+    }
     if (!this.account.loggedIn) {
       accountRoute(
         "welcome",
@@ -1264,7 +1409,9 @@ registerController("collectionFlow", () => ({
         ? "qr"
         : this.method === "employee"
           ? "employee"
-          : "identity",
+          : this.method === "id"
+            ? "identity"
+            : "alternate",
     );
   },
   async uploadIdentity(e, side) {
@@ -1306,21 +1453,35 @@ registerController("collectionFlow", () => ({
     e.target.value = "";
     if (!file || this.busy) return;
     const token = ++this.task;
+    const owner = this.account.session?.phone;
     this.busy = true;
     this.error = "";
     try {
-      if (
-        file.size > 15 * 1048576 ||
-        !["image/jpeg", "image/png", "image/webp"].includes(file.type)
-      )
-        throw Error("请选择15 MB以内的二维码图片");
+      validateCollectionCodeFile(file);
       const image = await decodePhotoBlob(file);
       const code = await readCollectionQRCode(image);
-      if (token !== this.task) return;
+      if (token !== this.task || owner !== this.account.session?.phone) return;
       if (!code) throw Error("未识别到二维码，请上传清晰完整的采集码");
+      const result = await resolveCollectionCode(
+        code,
+        { intent: "collectionIdentity", projectId: this.projectId },
+        {
+          projects: this.projects,
+          entries: this.config.entries,
+          bindings: this.config.codeBindings,
+        },
+      );
+      if (token !== this.task || owner !== this.account.session?.phone) return;
       if (this.qrURL) URL.revokeObjectURL(this.qrURL);
       this.qrURL = URL.createObjectURL(file);
       this.qrRead = true;
+      this.method = "qr";
+      this.qrPrototype = result.prototype;
+      this.identity = {
+        name: result.identity.name || "",
+        number: result.identity.number || "",
+        lastFour: result.identity.lastFour || "",
+      };
       this.panel = "qrCheck";
     } catch (e) {
       if (token === this.task)
@@ -1333,8 +1494,17 @@ registerController("collectionFlow", () => ({
   },
   scanCode() {
     if (this.disabled) return;
+    const previous = {
+      projectId: this.projectId,
+      owner: this.account.session?.phone,
+      method: this.method,
+      identity: { ...this.identity },
+      panel: "qr",
+      expires: Date.now() + 5 * 60 * 1000,
+    };
     this.closePanel();
-    const returnTo = "/?page=collection&view=project&project=" + this.projectId;
+    this.scanReturn = previous;
+    const returnTo = location.pathname + location.search;
     window.dispatchEvent(
       new CustomEvent("zhipai-scan-open", {
         detail: {
@@ -1346,17 +1516,27 @@ registerController("collectionFlow", () => ({
     );
     this.go("scan");
   },
-  receiveScan(detail) {
-    if (!detail?.code || !this.projects.some((p) => p.id === detail.projectId))
+  async receiveScan(detail) {
+    // Compatibility event: never treat any non-empty QR string as verification.
+    if (
+      !detail?.code ||
+      this.view !== "project" ||
+      detail.projectId !== this.projectId
+    )
       return;
-    this.projectId = detail.projectId;
-    this.qrRead = true;
-    this.identity = {
-      name: "",
-      number: "",
-      lastFour: "",
-    };
-    this.openPanel("qrCheck");
+    const token = this.task;
+    try {
+      const result = await resolveCollectionCode(
+        detail.code,
+        { intent: "collectionIdentity", projectId: this.projectId },
+        this.scanDirectory(),
+      );
+      if (token !== this.task) return;
+      collectionScanService.queue(result, this.account.session?.phone);
+      this.resumeScan();
+    } catch (e) {
+      if (token === this.task) this.error = e.message;
+    }
   },
   async matchIdentity() {
     if (!this.guardCollect()) return;

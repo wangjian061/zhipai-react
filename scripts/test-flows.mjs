@@ -51,6 +51,37 @@ const adaptedFs = {
             : [n],
       );
       code = generate(ast).code;
+      if (["scan", "collection"].includes(match[1])) {
+        const contract = parse(
+          fs.readFileSync(
+            path.join(root, "src/domain/collection-code.js"),
+            "utf8",
+          ),
+          { sourceType: "module" },
+        );
+        contract.program.body = contract.program.body
+          .map((n) => (n.type === "ExportNamedDeclaration" ? n.declaration : n))
+          .filter(Boolean);
+        const names = [
+          "collectionScanService",
+          "resolveCollectionCode",
+          "collectionCodeError",
+          "validateCollectionCodeFile",
+        ];
+        code =
+          "var collectionCodeContract=globalThis.__collectionCodeContract ||= (function(){" +
+          generate(contract).code +
+          ";return {" +
+          names.join(",") +
+          "};})();" +
+          names
+            .map(
+              (name) => "var " + name + "=collectionCodeContract." + name + ";",
+            )
+            .join("") +
+          "\n" +
+          code;
+      }
       if (match[1] === "camera") {
         const versions = parse(
           fs.readFileSync(

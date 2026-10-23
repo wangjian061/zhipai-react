@@ -278,6 +278,10 @@ export default function CollectionIdentityDrawer({ scope: s }) {
         </button>
       </header>
       <div className="collection-auth-body" ref={body}>
+        <div className="collection-auth-project-context">
+          <span>{s.project.organization}</span>
+          <strong>{s.project.name}</strong>
+        </div>
         {s.error && (
           <p className="collection-auth-error" role="alert">
             {s.error}
@@ -289,7 +293,7 @@ export default function CollectionIdentityDrawer({ scope: s }) {
         {s.panel === "qrCheck" && s.qrRead && (
           <section className="collection-auth-proof">
             <CollectionIcon name="check" />
-            <span>采集码已识别</span>
+            <span>{s.qrPrototype ? "演示采集码已识别" : "采集码已识别"}</span>
             {s.qrURL && <img src={s.qrURL} alt="已识别的图像采集码" />}
           </section>
         )}
@@ -300,7 +304,7 @@ export default function CollectionIdentityDrawer({ scope: s }) {
             <div className="collection-auth-qr-guide">
               <CollectionIcon name="scan" />
               <strong>上传或扫描采集码</strong>
-              <p>照片需包含清晰完整的二维码</p>
+              <p>JPG、PNG 或 WebP，15 MB以内</p>
             </div>
           </section>
         )}

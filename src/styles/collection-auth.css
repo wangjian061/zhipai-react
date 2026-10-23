@@ -83,3 +83,8 @@
 .collection-payment-methods label:first-of-type svg{color:#20a66a}.collection-payment-methods label:last-of-type svg{color:#1677ff}
 .collection-payment-methods input{width:18px;height:18px;accent-color:var(--brand-blue);margin:0}
 .collection-payment-methods:disabled{opacity:.6}
+
+/* Same project context for direct entry, institution handoff and CHSI handoff. */
+.collection-auth-project-context{display:flex;flex-direction:column;gap:6px;margin:0 0 24px;padding:0;color:#203858}
+.collection-auth-project-context>span{font-size:12px;line-height:20px;color:#536982}
+.collection-auth-project-context>strong{font-size:14px;line-height:22px;font-weight:600;overflow-wrap:anywhere}

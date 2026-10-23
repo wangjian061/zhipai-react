@@ -1,0 +1,44 @@
+[
+  {
+    "id": "institution-graduate",
+    "label": "演示：毕业生项目机构码",
+    "payload": "zhipai-demo://institution?project=graduate",
+    "image": "institution-graduate.png",
+    "prototype": true
+  },
+  {
+    "id": "institution-enrollment",
+    "label": "演示：新生项目机构码",
+    "payload": "zhipai-demo://institution?project=enrollment",
+    "image": "institution-enrollment.png",
+    "prototype": true
+  },
+  {
+    "id": "institution-association",
+    "label": "演示：协会项目机构码",
+    "payload": "zhipai-demo://institution?project=association",
+    "image": "institution-association.png",
+    "prototype": true
+  },
+  {
+    "id": "chsi-graduate",
+    "label": "演示：本人学信网采集码（非真实码）",
+    "payload": "zhipai-demo://chsi?school=demo-10001&name=%E6%BC%94%E7%A4%BA%E5%90%8C%E5%AD%A6&number=20260001&lastFour=1234",
+    "image": "chsi-graduate.png",
+    "prototype": true
+  },
+  {
+    "id": "chsi-other-project",
+    "label": "演示：其他院校采集码（用于归属校验）",
+    "payload": "zhipai-demo://chsi?school=demo-10002",
+    "image": "chsi-other-project.png",
+    "prototype": true
+  },
+  {
+    "id": "institution-ended",
+    "label": "演示：已结束项目机构码",
+    "payload": "zhipai-demo://institution?project=association-talent",
+    "image": "institution-ended.png",
+    "prototype": true
+  }
+]

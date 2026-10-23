@@ -89,6 +89,25 @@ export const COLLECTION_PROJECT_STATES = {
 };
 export function createCollectionConfig() {
   return {
+    // Fictional school → institution → project bindings for the local prototype.
+    // Production replaces these with an authorized backend resolution response.
+    codeBindings: [
+      {
+        schoolCode: "demo-10001",
+        organizationId: "demo-college",
+        projectIds: ["graduate"],
+      },
+      {
+        schoolCode: "demo-10002",
+        organizationId: "demo-technical",
+        projectIds: ["graduate-degree"],
+      },
+      {
+        schoolCode: "demo-10003",
+        organizationId: "demo-continuing",
+        projectIds: ["graduate-continuing"],
+      },
+    ],
     featuredProjectIds: [
       "enrollment",
       "graduate",

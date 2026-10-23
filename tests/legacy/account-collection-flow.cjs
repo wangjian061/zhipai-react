@@ -1,6 +1,6 @@
 // Source/state checks only; no native SDKs, institution requests, screenshots or browser operation.
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),{webcrypto}=require('node:crypto');
-const stores={},data={},storage=new Map(),events=new Map(),downloads=[];let savedRecords,failRecords=false,decodeWait=null,qrResult='collection-code';
+const stores={},data={},storage=new Map(),events=new Map(),downloads=[];let savedRecords,failRecords=false,decodeWait=null,qrResult='zhipai-demo://chsi?school=demo-10001';
 const loc={origin:'http://127.0.0.1:4178',pathname:'/',search:'?page=collection',href:'http://127.0.0.1:4178/?page=collection'};
 function nav(u){const url=new URL(u,loc.origin);Object.assign(loc,{pathname:url.pathname,search:url.search,href:url.href});}
 const win={addEventListener(n,f){if(!events.has(n))events.set(n,[]);events.get(n).push(f)},removeEventListener(n,f){events.set(n,(events.get(n)||[]).filter(x=>x!==f))},dispatchEvent(e){for(const f of events.get(e.type)||[])f(e)}};
