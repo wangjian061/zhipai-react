@@ -140,6 +140,7 @@ export default function CollectionPage({ scope, args = [] }) {
               scope={s}
               className="collection-error"
               show={
+                !s.isProjectSearch &&
                 (s.error || s.recordsStore.error) &&
                 !(["detail", "complete"].includes(s.view) && s.current)
               }
@@ -151,6 +152,7 @@ export default function CollectionPage({ scope, args = [] }) {
               scope={s}
               className="account-text"
               show={
+                !s.isProjectSearch &&
                 s.recordsStore.error &&
                 !(["detail", "complete"].includes(s.view) && s.current)
               }
@@ -173,7 +175,11 @@ export default function CollectionPage({ scope, args = [] }) {
               as="p"
               scope={s}
               className="collection-empty"
-              show={!s.recordsStore.ready && !s.recordsStore.error}
+              show={
+                !s.isProjectSearch &&
+                !s.recordsStore.ready &&
+                !s.recordsStore.error
+              }
             >
               {"正在读取采集记录…"}
             </View>

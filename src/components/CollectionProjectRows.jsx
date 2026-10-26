@@ -1,5 +1,35 @@
 import React, { useLayoutEffect, useRef, useCallback } from "react";
 import { CollectionIcon } from "./CollectionHome.jsx";
+export function CollectionProjectRow({ scope: s, project: p, onOpen }) {
+  const state = s.projectStatus(p);
+  return (
+    <button
+      className="collection-project-row"
+      type="button"
+      data-project-id={p.id}
+      onClick={() => (onOpen ? onOpen(p.id) : s.openProject(p.id))}
+    >
+      <span className={"collection-project-art " + p.type}>
+        <img src={p.image} alt="" />
+      </span>
+      <div>
+        <strong>{p.name}</strong>
+        <p>
+          <CollectionIcon name="collection-org" />
+          {p.organization}
+        </p>
+        <p className="collection-project-date">
+          <CollectionIcon name="document" />
+          {p.date}
+        </p>
+        <span className={"collection-project-state " + state.tone}>
+          {state.label}
+        </span>
+      </div>
+      <CollectionIcon name="chevron" />
+    </button>
+  );
+}
 export default function CollectionProjectRows({ scope: s }) {
   const list = useRef(null);
   const home = s.view === "home";
@@ -22,35 +52,9 @@ export default function CollectionProjectRows({ scope: s }) {
       tabIndex={0}
       aria-label={s.view === "home" ? "热门项目列表" : "分类项目列表"}
     >
-      {s.projectsShown.map((p) => {
-        const state = s.projectStatus(p);
-        return (
-          <button
-            key={p.id}
-            className="collection-project-row"
-            onClick={() => s.openProject(p.id)}
-          >
-            <span className={"collection-project-art " + p.type}>
-              <img src={p.image} alt="" />
-            </span>
-            <div>
-              <strong>{p.name}</strong>
-              <p>
-                <CollectionIcon name="collection-org" />
-                {p.organization}
-              </p>
-              <p className="collection-project-date">
-                <CollectionIcon name="document" />
-                {p.date}
-              </p>
-              <span className={"collection-project-state " + state.tone}>
-                {state.label}
-              </span>
-            </div>
-            <CollectionIcon name="chevron" />
-          </button>
-        );
-      })}
+      {s.projectsShown.map((p) => (
+        <CollectionProjectRow key={p.id} scope={s} project={p} />
+      ))}
       {!s.projectsShown.length && (
         <div className="collection-empty">
           <CollectionIcon name="search" />

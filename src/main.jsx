@@ -18,6 +18,7 @@ import "./styles/account.css";
 import "./styles/collection.css";
 import "./styles/collection-auth.css";
 import "./styles/collection-task.css";
+import "./styles/collection-project-search.css";
 import "./styles/device-preview.css";
 import "./styles/ui-sheets.css";
 import "./styles/share.css";

@@ -2,8 +2,10 @@ import React from "react";
 import CollectionHeader from "./CollectionHeader.jsx";
 import CollectionProjectRows from "./CollectionProjectRows.jsx";
 import { CollectionSearch } from "./CollectionHome.jsx";
+import CollectionProjectSearch from "./CollectionProjectSearch.jsx";
 export default function CollectionProjects({ scope: s }) {
   if (s.view !== "projects") return null;
+  if (s.projectCategory === "all") return <CollectionProjectSearch scope={s} />;
   return (
     <div className="collection-section collection-category-page">
       <CollectionHeader
@@ -15,7 +17,7 @@ export default function CollectionProjects({ scope: s }) {
       <div className="collection-home-inner">
         <CollectionSearch scope={s} />
         <div className="collection-list-heading">
-          <h2>{s.projectCategory === "all" ? "搜索结果" : "采集项目"}</h2>
+          <h2>采集项目</h2>
           <span>{s.projectsShown.length} 个项目</span>
         </div>
         <CollectionProjectRows scope={s} />

@@ -8,6 +8,10 @@ iOS、Android、鸿蒙团队先读 [《知拍1.4.6三端还原交付说明》](H
 
 当前仓库提供 Web 原型与还原依据，尚未包含三端原生工程或真实业务后端。交付基线与资料缺口以该入口为准。
 
+## 版本与正式推送
+
+原型采用 `月.日-当天序号`（如 `10.26-1`、`10.26-2`）；App、管理后台、后端和小程序采用独立三段式版本，以交付记录关联。**每次向原型主分支／团队交付分支正式推送都必须有版本、台账、不可变 Git 标签、变更说明及验证／待验收状态，文档更新也适用。** 规则见[版本编号与交付规则](docs/release-versioning.md)，历史与后续基线见[原型交付台账](docs/releases/prototype-deliveries.md)。台账在实际交付时填写，不因建立规则预填已发布版本。
+
 ## 本地运行
 
 需要 Node.js 22.12+ 或受当前 Vite 版本支持的更高版本。
@@ -59,6 +63,8 @@ npm run dev
 
 ## 产品文档与审查
 
+- [专项项目搜索契约](docs/product/collection-project-search-1.4.6.md)：全部项目独立搜索页、初始／结果／无结果状态及详情返回；三个分类列表保持原样。[实施与待验收记录](docs/reviews/collection-project-search-20261026/review.md)包含已确认结构图和验证范围。
+
 - [全项目消息反馈规范](docs/design/message-feedback-guidelines.md)：六类消息、Toast位置、原因与Loading边界；[逐模块整改清单](docs/reviews/message-feedback-20261026/remediation.md)包含已确认结构图、源码现状和逐项验收顺序。当前为规范已确认、代码待实施。
 
 - [扫码采集契约与演示码](docs/product/scan-collection-1.4.6.md)：两类扫码去向、帮助、登录／返回／权限、15 MB输入及真实服务边界；[本轮实施记录](docs/reviews/scan-collection-20261023/review.md)保留已确认结构图和验收项。
@@ -92,6 +98,6 @@ node --test tests/bindings.test.mjs tests/orders.test.mjs
 
 上述检查为源码与模拟状态检查，不包含浏览器自动化或真机验收。
 
-本次规格入口及整改仍为本地修改，未再次部署、Git提交或推送用户仓库；此前公开站点版本23不包含这次规格修改。相关测试与构建的已执行结果见模块实施记录，不把文档整理视为重新运行全部检查或实际画面验收。
+历史实施记录中的「本地修改」「未推送」或站点版本号只描述当次状态，不作为最新交付结论。当前共享基线以实际 Git 分支、不可变标签及[交付台账](docs/releases/prototype-deliveries.md)为准；规则生效前的记录保留原提交，不补造日期版本。相关测试与构建的已执行结果见模块实施记录，不把文档整理视为重新运行全部检查或实际画面验收。
 
 `npm test` 还包含历史迁移一致性检查，依赖原迁移项目及当时的基线；单独克隆本仓库时不能将这部分作为当前功能的通过标准。`migration-manifest.json` 与 `scripts/migrate-source.mjs` 保留迁移来源记录，正常开发直接维护 `src/`，不要重新运行迁移工具覆盖当前页面。

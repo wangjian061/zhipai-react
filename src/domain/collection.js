@@ -405,6 +405,7 @@ registerController("collectionFlow", () => ({
   recordId: "",
   keyword: "",
   searchTerm: "",
+  projectSearchReturnId: "",
   projectCategory: "all",
   helpOpen: "",
   sectionScroll: { home: 0, records: 0, services: 0 },
@@ -547,7 +548,9 @@ registerController("collectionFlow", () => ({
     return this.view === "home"
       ? this.$refs.collectionProjectList
       : this.view === "projects"
-        ? this.$refs.collectionCategoryList
+        ? this.isProjectSearch
+          ? this.$refs.collectionProjectSearchScroll
+          : this.$refs.collectionCategoryList
         : this.view === "notifications"
           ? this.$refs.collectionMessageList
           : this.view === "records"
@@ -556,6 +559,9 @@ registerController("collectionFlow", () => ({
   },
   get isSection() {
     return ["home", "records", "services"].includes(this.view);
+  },
+  get isProjectSearch() {
+    return this.view === "projects" && this.projectCategory === "all";
   },
   get actionableRecords() {
     return this.records.filter((r) => canEditCollectionPhoto(r.status));
@@ -1199,16 +1205,47 @@ registerController("collectionFlow", () => ({
     this.go("home");
   },
   searchProjects() {
+    if (this.busy || this.panel) return;
+    const term = this.keyword.trim();
+    this.keyword = term;
+    if (this.isProjectSearch) {
+      this.projectSearchReturnId = "";
+      if (term === this.searchTerm) {
+        this.sectionScroll[this.scrollKey] = 0;
+        if (this.scrollHost) this.scrollHost.scrollTop = 0;
+        return;
+      }
+      this.sectionScroll["projects:all:" + term] = 0;
+      this.rememberScroll();
+      collectionNavigate("projects", "", "", true, {
+        category: "all",
+        q: term,
+      });
+      return;
+    } else if (this.view !== "projects") {
+      this.projectSearchReturnId = "";
+      this.sectionScroll["projects:all:" + term] = 0;
+    }
     this.route("projects", "", "", {
       category: this.view === "projects" ? this.projectCategory : "all",
-      q: this.keyword.trim(),
+      q: term,
     });
   },
   clearSearch() {
+    if (this.busy || this.panel) return;
+    if (this.view === "projects") {
+      this.projectSearchReturnId = "";
+      if (this.isProjectSearch) {
+        this.rememberScroll();
+        this.sectionScroll["projects:all:"] = 0;
+        collectionNavigate("projects", "", "", true, { category: "all" });
+        return;
+      }
+      this.route("projects", "", "", { category: this.projectCategory });
+      return;
+    }
     this.keyword = "";
     this.searchTerm = "";
-    if (this.view === "projects")
-      this.route("projects", "", "", { category: this.projectCategory });
   },
   loginForRecords() {
     accountRoute(
