@@ -59,6 +59,8 @@ npm run dev
 
 ## 产品文档与审查
 
+- [全项目消息反馈规范](docs/design/message-feedback-guidelines.md)：六类消息、Toast位置、原因与Loading边界；[逐模块整改清单](docs/reviews/message-feedback-20261026/remediation.md)包含已确认结构图、源码现状和逐项验收顺序。当前为规范已确认、代码待实施。
+
 - [扫码采集契约与演示码](docs/product/scan-collection-1.4.6.md)：两类扫码去向、帮助、登录／返回／权限、15 MB输入及真实服务边界；[本轮实施记录](docs/reviews/scan-collection-20261023/review.md)保留已确认结构图和验收项。
 
 - [首页产品契约](docs/product/home-1.4.6.md)：完整图片轮播、图内系统安静区、保留专项主卡、工具与导航入口；[实施复核](docs/reviews/home-mature-carousel-tools-20261020/review.md)、[独立收尾评审](docs/reviews/home-mature-carousel-tools-20261020/finish-review.md)及[资产来源](docs/assets/home-hero-mature-20261020.md)记录源码与出货资产检查。实际页面和三端设备效果仍待验收；此前专项主卡与布局评审保留为历史。
