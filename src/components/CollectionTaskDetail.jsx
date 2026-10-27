@@ -51,6 +51,16 @@ export default function CollectionTaskDetail({ scope: s }) {
   const status = s.statusKey;
   const error = s.error || s.recordsStore.error;
   const supplement = record.supplement || {};
+  const hasDocumentNumber =
+    ["id", "document", "passport"].includes(record.method) && !!record.number;
+  const documentNumber = hasDocumentNumber ? record.number : record.lastFour;
+  const documentLabel = hasDocumentNumber
+    ? record.method === "passport"
+      ? "护照号"
+      : "证件号"
+    : record.lastFour
+      ? "证件号后四位"
+      : "证件号";
   return (
     <div className="collection-task-detail" data-status={status}>
       <section
@@ -168,6 +178,12 @@ export default function CollectionTaskDetail({ scope: s }) {
             </button>
           )}
         </div>
+        <dl className="collection-task-identity">
+          <dt>姓名</dt>
+          <dd>{record.name || "未提供"}</dd>
+          <dt>{documentLabel}</dt>
+          <dd>{documentNumber || "未提供"}</dd>
+        </dl>
       </div>
       <section className="collection-task-links" aria-label="采集相关信息">
         <button
