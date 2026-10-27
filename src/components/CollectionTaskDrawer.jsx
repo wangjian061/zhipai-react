@@ -13,36 +13,6 @@ function InformationRows({ rows }) {
     </dl>
   );
 }
-function Materials({ scope: s }) {
-  const record = s.current;
-  return (
-    <>
-      <section className="collection-auth-block">
-        <header className="collection-auth-block-heading">
-          <h3>身份信息</h3>
-        </header>
-        <InformationRows
-          rows={[
-            ["姓名", record.name],
-            [s.identifierLabel, record.number],
-            ...(record.lastFour ? [["证件号后四位", record.lastFour]] : []),
-          ]}
-        />
-      </section>
-      <section className="collection-auth-block">
-        <header className="collection-auth-block-heading">
-          <h3>采集项目</h3>
-        </header>
-        <InformationRows
-          rows={[
-            ["项目名称", s.project.name],
-            ["所属机构", s.project.organization],
-          ]}
-        />
-      </section>
-    </>
-  );
-}
 function TaskSupport({ scope: s }) {
   return (
     <>
@@ -87,67 +57,6 @@ function TaskSupport({ scope: s }) {
     </>
   );
 }
-function Supplement({ scope: s }) {
-  return (
-    <section className="collection-auth-block">
-      <header className="collection-auth-block-heading">
-        <h3>补充资料</h3>
-        <span>{s.canEditSupplement ? "选填" : "已提交，仅供查看"}</span>
-      </header>
-      {s.canEditSupplement ? (
-        <form
-          id="collection-supplement-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            s.saveSupplement();
-          }}
-        >
-          <label className="collection-auth-field">
-            <span>推荐人</span>
-            <div className="collection-auth-input">
-              <input
-                name="collection-referrer"
-                maxLength={30}
-                placeholder="请输入推荐人姓名"
-                value={s.supplement.referrer}
-                disabled={s.disabled}
-                onChange={(event) => {
-                  s.supplement.referrer = event.target.value;
-                }}
-              />
-            </div>
-          </label>
-          <label className="collection-auth-field">
-            <span>年龄</span>
-            <div className="collection-auth-input">
-              <input
-                name="collection-age"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={120}
-                placeholder="请输入年龄"
-                value={s.supplement.age}
-                disabled={s.disabled}
-                onChange={(event) => {
-                  s.supplement.age = event.target.value;
-                }}
-              />
-            </div>
-          </label>
-        </form>
-      ) : (
-        <InformationRows
-          rows={[
-            ["推荐人", s.current.supplement?.referrer],
-            ["年龄", s.current.supplement?.age],
-          ]}
-        />
-      )}
-    </section>
-  );
-}
-
 export default function CollectionTaskDrawer({ scope: s }) {
   const dialog = useRef(null),
     body = useRef(null);
@@ -199,17 +108,11 @@ export default function CollectionTaskDrawer({ scope: s }) {
           <p>
             {confirm
               ? "核对照片及本人信息后提交审核"
-              : s.panel === "materials"
-                ? "本次采集登记的信息"
-                : s.panel === "reviewReason"
-                  ? s.failureReasonHint
-                  : s.panel === "taskSupport"
-                    ? "为本次采集提供帮助"
-                    : s.panel === "email"
-                      ? "将离开知拍并打开邮箱应用"
-                      : s.canEditSupplement
-                        ? "完善本次采集的补充资料"
-                        : "查看本次提交的补充资料"}
+              : s.panel === "reviewReason"
+                ? s.failureReasonHint
+                : s.panel === "taskSupport"
+                  ? "为本次采集提供帮助"
+                  : "将离开知拍并打开邮箱应用"}
           </p>
         </div>
         <button
@@ -227,8 +130,6 @@ export default function CollectionTaskDrawer({ scope: s }) {
             {s.error || s.recordsStore.error}
           </p>
         )}
-        {s.panel === "materials" && <Materials scope={s} />}
-        {s.panel === "supplement" && <Supplement scope={s} />}
         {s.panel === "taskSupport" && <TaskSupport scope={s} />}
         {s.panel === "reviewReason" && (
           <section className="collection-auth-block collection-review-content">
@@ -280,23 +181,15 @@ export default function CollectionTaskDrawer({ scope: s }) {
           </a>
         </footer>
       )}
-      {(confirm || (s.panel === "supplement" && s.canEditSupplement)) && (
+      {confirm && (
         <footer className="collection-auth-footer">
           <button
-            type={confirm ? "button" : "submit"}
-            form={confirm ? undefined : "collection-supplement-form"}
+            type="button"
             className="collection-primary"
-            disabled={
-              s.disabled ||
-              (confirm && (!s.canCollect || s.statusKey !== "draft"))
-            }
-            onClick={confirm ? () => s.confirmSubmit() : undefined}
+            disabled={s.disabled || !s.canCollect || s.statusKey !== "draft"}
+            onClick={() => s.confirmSubmit()}
           >
-            {s.busy || s.recordsStore.busy
-              ? "正在处理…"
-              : confirm
-                ? "确认提交审核"
-                : "保存信息"}
+            {s.busy || s.recordsStore.busy ? "正在处理…" : "确认提交审核"}
           </button>
         </footer>
       )}

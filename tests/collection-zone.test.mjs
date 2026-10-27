@@ -718,59 +718,33 @@ test("record task actions stay specific to all five states and retain their own 
   instance.stop();
 });
 
-test("materials remain read-only and supplement edits are limited to unsubmitted records", async () => {
+test("removed information sheets cannot reopen or lock the task and legacy data stays intact", async () => {
   const { s, instance, account } = setup();
   const records = getStore("collectionRecords");
   s.recordId = "pending";
   s.view = "detail";
-  s.openMaterials();
-  assert.equal(s.panel, "materials");
-  assert.equal(s.isTaskPanel, true);
-  assert.equal(s.panelTitle, "采集信息");
-  s.closePanel();
+  s.current.supplement = { referrer: "张老师", age: "19" };
+  const before = JSON.stringify(records.items);
   let commits = 0;
   const originalCommit = records.commit;
   records.commit = async () => {
     commits++;
   };
   try {
-    for (const status of [
-      "pending",
-      "draft",
-      "rejected",
-      "reviewing",
-      "complete",
-    ]) {
-      records.items = [
-        {
-          id: "task",
-          owner: account.session.phone,
-          projectId: "enrollment",
-          status,
-          supplement: { referrer: "张老师", age: "19" },
-        },
-      ];
-      s.recordId = "task";
-      s.editSupplement();
-      assert.equal(s.panel, "supplement");
-      assert.equal(s.supplement.referrer, "张老师");
-      assert.equal(
-        s.canEditSupplement,
-        ["pending", "draft", "rejected"].includes(status),
-      );
-      if (["reviewing", "complete"].includes(status)) {
-        s.supplement.age = "20";
-        await s.saveSupplement();
-        assert.equal(commits, 0);
-        assert.equal(s.current.supplement.age, "19");
-      }
-      s.closePanel();
+    for (const panel of ["materials", "supplement", "unknown"]) {
+      s.openPanel(panel);
+      assert.equal(s.panel, null);
+      assert.equal(s.isTaskPanel, false);
     }
+    assert.equal(commits, 0);
+    assert.equal(JSON.stringify(records.items), before);
+    s.openTaskSupport();
+    assert.equal(s.panel, "taskSupport");
+    assert.equal(s.isTaskPanel, true);
+    s.closePanel();
     account.session = { phone: "13900008000" };
     assert.equal(s.current, null);
-    s.openMaterials();
-    s.editSupplement();
-    await s.saveSupplement();
+    s.openTaskSupport();
     assert.equal(s.panel, null);
     assert.equal(commits, 0);
   } finally {
@@ -779,58 +753,41 @@ test("materials remain read-only and supplement edits are limited to unsubmitted
   }
 });
 
-test("supplement failure preserves edits for retry, successful save clears errors and does not modify another account", async () => {
+test("capture and submission preserve legacy fields without re-enabling supplement editing", async () => {
+  const { collectionAdapter } = await import("../src/domain/collection.js");
   const { s, instance } = setup();
   const records = getStore("collectionRecords"),
-    originalCommit = records.commit;
+    originalCommit = records.commit,
+    originalSubmit = collectionAdapter.submit;
   s.view = "detail";
   s.recordId = "pending";
-  s.editSupplement();
-  s.supplement.referrer = "李老师";
-  s.supplement.age = "121";
-  let commits = 0;
-  records.commit = async () => {
-    commits++;
-    throw Error("storage full");
+  s.current.supplement = { referrer: "历史信息", age: "18" };
+  s.current.payment = { status: "paid", amount: 1200 };
+  const supplement = { ...s.current.supplement };
+  records.commit = async (items) => {
+    records.items = items;
   };
+  collectionAdapter.submit = async (snapshot) => ({
+    ...snapshot,
+    status: "reviewing",
+  });
   try {
-    await s.saveSupplement();
-    assert.equal(s.error, "请填写有效年龄");
-    assert.equal(commits, 0);
-    s.supplement.age = "18";
-    await s.saveSupplement();
-    assert.equal(s.error, "信息保存失败，请重试");
-    assert.equal(s.panel, "supplement");
-    assert.equal(s.supplement.referrer, "李老师");
-    assert.equal(s.supplement.age, "18");
-    assert.equal(s.current.supplement, undefined);
-    records.items.push({
-      id: "pending",
-      owner: "13900008000",
-      projectId: "enrollment",
-      status: "draft",
-      supplement: { referrer: "其他账号", age: "22" },
+    await s.acceptPhoto({
+      recordId: "pending",
+      photo: { blob: new Blob(["photo"], { type: "image/jpeg" }) },
     });
-    records.commit = async (items) => {
-      records.items = items;
-    };
-    await s.saveSupplement();
-    assert.equal(s.error, "");
+    assert.equal(s.current.status, "draft");
+    assert.deepEqual(s.current.supplement, supplement);
+    await s.submit();
+    assert.equal(s.panel, "confirm");
+    await s.confirmSubmit();
+    assert.equal(s.current.status, "reviewing");
+    assert.deepEqual(s.current.supplement, supplement);
+    s.openPanel("supplement");
     assert.equal(s.panel, null);
-    assert.deepEqual(s.current.supplement, { referrer: "李老师", age: "18" });
-    assert.equal(
-      records.items.find((r) => r.owner === "13900008000" && r.id === "pending")
-        .supplement.referrer,
-      "其他账号",
-    );
-    // A later review result makes an already-open form read-only too.
-    s.editSupplement();
-    s.current.status = "reviewing";
-    s.supplement.age = "20";
-    await s.saveSupplement();
-    assert.equal(s.current.supplement.age, "18");
   } finally {
     records.commit = originalCommit;
+    collectionAdapter.submit = originalSubmit;
     instance.stop();
   }
 });
@@ -953,7 +910,7 @@ test("backend collection statuses are grouped for display without overwriting th
     records.items = [
       {
         id: "backend-task",
-        payment: {status: "paid", amount: 1200},
+        payment: { status: "paid", amount: 1200 },
         owner: "13800008000",
         projectId: "enrollment",
         status: raw,
@@ -983,21 +940,21 @@ test("backend actions distinguish production retry, review, completion and CHSI 
     action = "download";
   };
   const cases = [
-    [22, "返回采集记录", "records", false],
-    [23, "重新制作", "capture", true],
-    [24, "提交审核", "submit", true],
-    [25, "返回采集记录", "records", false],
-    [26, "返回采集记录", "records", false],
-    [30, "保存照片", "download", false],
-    [40, "重新拍摄", "capture", true],
-    ["uploaded", "保存照片", "download", false],
-    ["upload_failed", "联系客服", "support", false],
+    [22, "返回采集记录", "records"],
+    [23, "重新制作", "capture"],
+    [24, "提交审核", "submit"],
+    [25, "返回采集记录", "records"],
+    [26, "返回采集记录", "records"],
+    [30, "保存照片", "download"],
+    [40, "重新拍摄", "capture"],
+    ["uploaded", "保存照片", "download"],
+    ["upload_failed", "联系客服", "support"],
   ];
-  for (const [status, label, expected, editable] of cases) {
+  for (const [status, label, expected] of cases) {
     records.items = [
       {
         id: "backend-task",
-        payment: {status: "paid", amount: 1200},
+        payment: { status: "paid", amount: 1200 },
         owner: account.session.phone,
         projectId: "enrollment",
         status,
@@ -1008,7 +965,6 @@ test("backend actions distinguish production retry, review, completion and CHSI 
     s.view = "detail";
     action = null;
     assert.equal(s.primaryLabel, label);
-    assert.equal(s.canEditSupplement, editable);
     s.primary();
     if (expected === "records") {
       await settle();
@@ -1133,7 +1089,7 @@ test("record statistics stay account-scoped and stable while progress filters su
   );
   s.toggleRecordFilter("invalid");
   assert.equal(s.recordFilter, "ongoing");
-  s.panel = "materials";
+  s.panel = "taskSupport";
   s.toggleRecordFilter("complete");
   assert.equal(s.recordFilter, "ongoing");
   account.session = null;
@@ -1144,7 +1100,6 @@ test("record statistics stay account-scoped and stable while progress filters su
   assert.equal(s.filteredRecords.length, 0);
   instance.stop();
 });
-
 
 test("collection payment gates capture, survives cancellation and route recovery, and never charges a paid task again", async () => {
   const { collectionAdapter } = await import("../src/domain/collection.js");

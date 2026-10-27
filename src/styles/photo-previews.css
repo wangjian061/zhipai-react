@@ -8,8 +8,7 @@
   .capture-confirm-photo,
   .camera-result-photo,
   .detail-preview,
-  .tool-image-stage,
-  .collection-task-photo
+  .tool-image-stage
 ) {
   aspect-ratio: var(--portrait-preview-ratio);
   background: var(--portrait-preview-ground);
@@ -31,8 +30,7 @@
     .capture-confirm-photo,
     .camera-result-photo,
     .detail-preview,
-    .tool-image-stage,
-    .collection-task-photo
+    .tool-image-stage
   )
   > img,
 .tool-comparison img {
@@ -66,15 +64,6 @@
 }
 .tool-comparison {
   background: var(--portrait-preview-ground);
-}
-.collection-task-photo {
-  width: min(100%, 200px);
-  height: auto;
-  min-height: 0;
-  margin-inline: auto;
-}
-.collection-task-photo > img {
-  aspect-ratio: var(--portrait-preview-ratio);
 }
 .camera-saved-photo {
   width: min(100%, 230px);

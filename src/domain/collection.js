@@ -437,10 +437,6 @@ registerController("collectionFlow", () => ({
   task: 0,
   photoURL: "",
   previewId: "",
-  supplement: {
-    referrer: "",
-    age: "",
-  },
   previousFocus: null,
   maskIdentity: true,
   paymentMethod: "wechat",
@@ -803,13 +799,7 @@ registerController("collectionFlow", () => ({
   },
   get isTaskPanel() {
     return (
-      [
-        "materials",
-        "supplement",
-        "confirm",
-        "reviewReason",
-        "taskSupport",
-      ].includes(this.panel) ||
+      ["confirm", "reviewReason", "taskSupport"].includes(this.panel) ||
       (this.panel === "email" && this.isRecordView && !!this.current)
     );
   },
@@ -845,13 +835,6 @@ registerController("collectionFlow", () => ({
   openTaskSupport() {
     if (!this.isRecordView || !this.current || this.disabled) return;
     this.openPanel("taskSupport");
-  },
-  get canEditSupplement() {
-    return canEditCollectionPhoto(this.current?.status);
-  },
-  openMaterials() {
-    if (!this.current || this.disabled) return;
-    this.openPanel("materials");
   },
   get authReturnLabel() {
     if (this.panel === "qrCheck") return "重新识别采集码";
@@ -897,8 +880,6 @@ registerController("collectionFlow", () => ({
         existing: "已有采集记录",
         requirements: "采集要求",
         projectRecords: "当前采集记录",
-        supplement: "补充信息",
-        materials: "采集信息",
         reviewReason: this.failureReasonTitle,
         taskSupport: "客服支持",
         confirm: "确认提交",
@@ -1387,7 +1368,26 @@ registerController("collectionFlow", () => ({
     return true;
   },
   openPanel(panel) {
-    if (this.disabled) return;
+    if (
+      this.disabled ||
+      ![
+        "identity",
+        "verify",
+        "alternate",
+        "employee",
+        "qr",
+        "qrCheck",
+        "confirm",
+        "reviewReason",
+        "taskSupport",
+        "email",
+        "payment",
+        "existing",
+        "requirements",
+        "projectRecords",
+      ].includes(panel)
+    )
+      return;
     this.previousFocus = document.activeElement;
     this.error = "";
     this.panel = panel;
@@ -1637,10 +1637,6 @@ registerController("collectionFlow", () => ({
         },
         customer: String(Date.now()),
         photo: null,
-        supplement: {
-          referrer: "",
-          age: "",
-        },
         createdAt: Date.now(),
         fixture: false,
       };
@@ -1780,53 +1776,6 @@ registerController("collectionFlow", () => ({
     } finally {
       if (token === this.task) this.busy = false;
     }
-  },
-  async saveSupplement() {
-    if (this.disabled || !this.current || !this.canEditSupplement) return;
-    const record = this.current;
-    const supplement = { ...this.supplement };
-    if (
-      this.supplement.age &&
-      !/^(?:[1-9]\d?|1[01]\d|120)$/.test(this.supplement.age)
-    ) {
-      this.error = "请填写有效年龄";
-      return;
-    }
-    this.error = "";
-    try {
-      await this.recordsStore.commit(
-        this.recordsStore.items.map((r) =>
-          r.id === record.id && r.owner === record.owner
-            ? {
-                ...r,
-                supplement,
-              }
-            : r,
-        ),
-      );
-      if (
-        this.current?.id !== record.id ||
-        this.account.session?.phone !== record.owner
-      )
-        return;
-      this.closePanel();
-      this.showNotice("补充信息已保存");
-    } catch (_) {
-      if (
-        this.current?.id === record.id &&
-        this.account.session?.phone === record.owner
-      )
-        this.error = "信息保存失败，请重试";
-    }
-  },
-  editSupplement() {
-    if (!this.current || this.disabled) return;
-    this.supplement = {
-      referrer: "",
-      age: "",
-      ...this.current.supplement,
-    };
-    this.openPanel("supplement");
   },
   async copyCustomer(record = this.current) {
     if (!record) return;

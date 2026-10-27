@@ -5,6 +5,7 @@ import PhotoProcessingEffect, {
 import { CollectionIcon } from "./CollectionHome.jsx";
 import CollectionStatusArtwork from "./CollectionStatusArtwork.jsx";
 import { canEditCollectionPhoto } from "../domain/collection-status.js";
+import { buildCollectionTaskInformation } from "../domain/collection-task-information.js";
 
 export function CollectionTaskHeader({ scope: s }) {
   if (!s.isRecordView) return null;
@@ -50,17 +51,7 @@ export default function CollectionTaskDetail({ scope: s }) {
   const copy = s.status;
   const status = s.statusKey;
   const error = s.error || s.recordsStore.error;
-  const supplement = record.supplement || {};
-  const hasDocumentNumber =
-    ["id", "document", "passport"].includes(record.method) && !!record.number;
-  const documentNumber = hasDocumentNumber ? record.number : record.lastFour;
-  const documentLabel = hasDocumentNumber
-    ? record.method === "passport"
-      ? "护照号"
-      : "证件号"
-    : record.lastFour
-      ? "证件号后四位"
-      : "证件号";
+  const information = buildCollectionTaskInformation(record, s.project);
   return (
     <div className="collection-task-detail" data-status={status}>
       <section
@@ -160,59 +151,21 @@ export default function CollectionTaskDetail({ scope: s }) {
             </div>
           )}
         </section>
-        <div className="collection-task-customer">
-          <span>客服号</span>
-          <strong>{record.customer || "未生成"}</strong>
-          {record.customer && (
-            <button
-              type="button"
-              disabled={s.busy}
-              aria-label="复制客服号"
-              title="复制客服号"
-              onClick={() => s.copyCustomer()}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="8" y="8" width="12" height="12" rx="2" />
-                <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
-              </svg>
-            </button>
-          )}
-        </div>
-        <dl className="collection-task-identity">
-          <dt>姓名</dt>
-          <dd>{record.name || "未提供"}</dd>
-          <dt>{documentLabel}</dt>
-          <dd>{documentNumber || "未提供"}</dd>
+        <dl className="collection-task-information" aria-label="本次采集信息">
+          {information.map((row) => (
+            <div key={row.key}>
+              <dt>{row.label}</dt>
+              <dd>
+                {row.key === "customer" ? (
+                  <strong>{row.value}</strong>
+                ) : (
+                  row.value
+                )}
+              </dd>
+            </div>
+          ))}
         </dl>
       </div>
-      <section className="collection-task-links" aria-label="采集相关信息">
-        <button
-          type="button"
-          disabled={s.disabled}
-          onClick={() => s.openMaterials()}
-        >
-          <CollectionIcon name="collection-id" />
-          <strong>采集信息</strong>
-          <span>身份与证件信息</span>
-          <CollectionIcon name="chevron" />
-        </button>
-        <button
-          type="button"
-          disabled={s.disabled}
-          onClick={() => s.editSupplement()}
-        >
-          <CollectionIcon name="document" />
-          <strong>补充信息</strong>
-          <span>
-            {supplement.referrer || supplement.age
-              ? "已填写"
-              : s.canEditSupplement
-                ? "选填"
-                : "查看"}
-          </span>
-          <CollectionIcon name="chevron" />
-        </button>
-      </section>
     </div>
   );
 }
