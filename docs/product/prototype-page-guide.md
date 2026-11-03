@@ -128,3 +128,5 @@
 5. 页文档覆盖不表示真实业务、接口或三端实现完成。通知历史／已读、服务九项帮助及后台配置仍待正常业务补齐；换装仅知拍相册是已确认待代码落实限制。实际视觉和真机另验收。
 
 依据：[工作区契约](prototype-workbench.md)、[产品上下文](../../PRODUCT.md)、[设计规范](../../DESIGN.md)、[本轮实施记录](../reviews/page-documentation-20261103/implementation.md)、[本轮文档收尾](../reviews/page-documentation-20261103/documentation.md)。
+
+本轮通知、服务、登录共同依据：[V1.4.6第二阶段完整需求](collection-stage2-1.4.6.md)。进入具体页面后按对应区块显示说明，抽屉定位该页章节；不在首页堆放三模块全部内容。

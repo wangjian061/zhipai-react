@@ -49,6 +49,28 @@ const renderScene = (session) =>
     ),
   );
 
+test("service scenarios use shared help/contact sheets and never expose real mail navigation", () => {
+  const service = createDemoSession("service.default");
+  assert.match(renderScene(service), /服务中心/);
+  service.scope.openHelp("review");
+  assert.equal(service.context().panel, "serviceHelp");
+  assert.match(renderScene(service), /我知道了/);
+  service.scope.closePanel();
+  assert.equal(service.context().panel, "");
+  const invalid = createDemoSession("service.no-email");
+  invalid.scope.openEmailContact();
+  assert.ok(!renderScene(invalid).includes("mailto:"));
+  assert.match(renderScene(invalid), /重新读取/);
+  const failed = createDemoSession("service.load-error");
+  assert.match(renderScene(failed), /暂时无法读取帮助/);
+  failed.scope.retryServiceContent();
+  assert.equal(failed.scope.serviceContent.questions.length, 9);
+  const mail = createDemoSession("service.mail-error");
+  assert.match(renderScene(mail), /未能打开邮箱/);
+  assert.equal(mail.scope.confirmEmailContact(), false);
+  for (const session of [service, invalid, failed, mail]) session.dispose();
+});
+
 test("full page documents are independently loaded and complete sources remain actual repository content", async () => {
   assert.ok(PAGE_IDS.length >= 60);
   const home = await loadPage("home");

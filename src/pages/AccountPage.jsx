@@ -15,7 +15,7 @@ export default function AccountPage({ scope, args = [] }) {
           show={s.page === "account"}
           dynamicClass={{
             "account-security": ["privacy", "security"].includes(s.view),
-            "account-entry": s.isLoginSurface,
+            "account-entry": s.isLoginSurface || s.view === "reset",
           }}
           aria-label="知拍账号"
         >

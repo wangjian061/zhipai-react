@@ -1,3 +1,4 @@
+import { createServiceContent } from "../domain/collection-service-content.js";
 import {
   createDetachedController,
   observable,
@@ -10,6 +11,14 @@ import { collectionStatusInfo } from "../domain/collection-status.js";
 export const DEMO_SCENARIOS = {
   "notice.default": "默认列表",
   "notice.failed": "审核未通过",
+  "notice.making-failed": "制作失败",
+  "notice.uploaded": "上网完成",
+  "notice.empty": "暂无通知",
+  "notice.body-error": "公告无法读取",
+  "service.default": "九项采集帮助",
+  "service.no-email": "邮箱未配置",
+  "service.load-error": "帮助读取失败",
+  "service.mail-error": "邮箱打开失败",
   "notice.complete": "采集完成",
   "notice.upload-failed": "上网失败",
   "notice.project": "项目通知",
@@ -31,6 +40,13 @@ export function scenariosFor(context) {
       return ["login.code-error", "login.code-expired"];
     if (context.guide === "account.password") return ["login.password-error"];
   }
+  if (context.page === "collection" && context.guide === "collection.services")
+    return [
+      "service.default",
+      "service.load-error",
+      "service.no-email",
+      "service.mail-error",
+    ];
   if (
     context.page === "collection" &&
     context.guide === "collection.notifications"
@@ -38,7 +54,11 @@ export function scenariosFor(context) {
     return [
       "notice.default",
       "notice.failed",
+      "notice.making-failed",
       "notice.complete",
+      "notice.uploaded",
+      "notice.empty",
+      "notice.body-error",
       "notice.upload-failed",
       "notice.project",
       "notice.system",
@@ -48,11 +68,15 @@ export function scenariosFor(context) {
 }
 function notificationSession(id, onExit) {
   const result =
-    id === "notice.failed"
-      ? "rejected"
-      : id === "notice.upload-failed"
-        ? "upload_failed"
-        : "complete";
+    id === "notice.making-failed"
+      ? "processing_failed"
+      : id === "notice.uploaded"
+        ? "uploaded"
+        : id === "notice.failed"
+          ? "rejected"
+          : id === "notice.upload-failed"
+            ? "upload_failed"
+            : "complete";
   const project = {
     id: "workbench-sample",
     name: "示例学院毕业生图像采集",
@@ -128,7 +152,17 @@ function notificationSession(id, onExit) {
     messages.unshift(messages.splice(index, 1)[0]);
     messages[0].read = false;
   }
+  if (id === "notice.empty") messages.splice(0);
+  if (id === "notice.body-error") {
+    messages[1].body = "";
+    messages[1].read = false;
+  }
   const s = observable({
+    serviceContent: createServiceContent(),
+    get supportEmail() {
+      return this.serviceContent.email;
+    },
+    contactNotice: "",
     view: "notifications",
     notificationFilter: "all",
     sectionScroll: {},
@@ -200,6 +234,10 @@ function notificationSession(id, onExit) {
     },
     statusFor: collectionStatusInfo,
     openNotification(n) {
+      if (!n.record && !n.body) {
+        this.notificationsError = "通知正文暂时无法读取，请重新读取。";
+        return;
+      }
       this.sectionScroll.notifications =
         this.$refs.collectionMessageList?.scrollTop || 0;
       this.sourceMessage = n;
@@ -248,8 +286,11 @@ function notificationSession(id, onExit) {
       this.panel = "email";
     },
     confirmEmailContact() {
-      this.error = "这是隔离演示，不会打开真实邮件应用。";
+      this.error = this.contactNotice = "这是隔离演示，不会打开真实邮件应用。";
       return false;
+    },
+    copySupportEmail() {
+      this.contactNotice = "演示邮箱已复制（未写入设备剪贴板）";
     },
     copyCustomer() {
       this.error = "示例客服号仅用于演示，未复制真实任务资料。";
@@ -291,6 +332,90 @@ function notificationSession(id, onExit) {
           s.view === "detail"
             ? "collection-task-detail-1.4.6.md"
             : "collection-notifications-1.4.6.md",
+      };
+    },
+    dispose() {
+      s.panel = null;
+    },
+  };
+}
+function serviceSession(id, onExit) {
+  const content = createServiceContent();
+  if (id === "service.no-email") content.email = "";
+  if (id === "service.load-error")
+    content.error = "暂时无法读取帮助内容，请重试。";
+  const s = observable({
+    view: "services",
+    serviceContent: content,
+    panel: id === "service.mail-error" ? "email" : null,
+    $refs: {},
+    sectionScroll: {},
+    helpOpen: "",
+    busy: false,
+    isRecordView: false,
+    contactNotice:
+      id === "service.mail-error" ? "未能打开邮箱，请复制邮箱后自行联系。" : "",
+    get helpArticle() {
+      return this.serviceContent.questions.find((q) => q.id === this.helpOpen);
+    },
+    get supportEmail() {
+      return this.serviceContent.error ? "" : this.serviceContent.email;
+    },
+    get emailLink() {
+      return "#";
+    },
+    closePanel() {
+      this.panel = null;
+      this.contactNotice = "";
+      nextTick(() => {
+        if (this.previousFocus?.isConnected)
+          this.previousFocus.focus({ preventScroll: true });
+      });
+    },
+    openHelp(value) {
+      this.previousFocus = globalThis.document?.activeElement;
+      this.helpOpen = value;
+      this.panel = "serviceHelp";
+    },
+    openEmailContact() {
+      this.previousFocus = globalThis.document?.activeElement;
+      this.panel = "email";
+    },
+    confirmEmailContact() {
+      this.contactNotice = "这是隔离演示，不会打开真实邮件应用。";
+      return false;
+    },
+    copySupportEmail() {
+      this.contactNotice = "演示邮箱已复制（未写入设备剪贴板）";
+    },
+    retryServiceContent() {
+      this.serviceContent = createServiceContent();
+    },
+    openNotifications() {
+      onExit("已退出服务演示，请从原页面进入通知中心。");
+    },
+    exitCollection() {
+      onExit("已退出服务演示，原页面保持。");
+    },
+  });
+  return {
+    id,
+    kind: "service",
+    scope: s,
+    context() {
+      return {
+        page: "collection",
+        group: "专项采集",
+        guide: "collection.services",
+        title: "服务中心",
+        state:
+          s.panel === "serviceHelp"
+            ? s.helpArticle?.title
+            : s.panel
+              ? "邮件联系"
+              : DEMO_SCENARIOS[id],
+        panel: s.panel || "",
+        source: "collection-services-1.4.6.md",
       };
     },
     dispose() {
@@ -407,6 +532,7 @@ function loginSession(id, onExit) {
 }
 export function createDemoSession(id, onExit = () => {}) {
   if (!DEMO_SCENARIOS[id]) throw new Error("该演示场景尚未开放。");
+  if (id.startsWith("service.")) return serviceSession(id, onExit);
   if (id.startsWith("notice.")) return notificationSession(id, onExit);
   if (id.startsWith("login.")) return loginSession(id, onExit);
   const state = observable({ outcome: "ready", opened: false });

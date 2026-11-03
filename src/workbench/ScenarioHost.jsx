@@ -1,3 +1,5 @@
+import CollectionServices from "../components/CollectionServices.jsx";
+import CollectionSupportDrawer from "../components/CollectionSupportDrawer.jsx";
 import React, { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { subscribe, getSnapshot } from "../runtime/state.js";
 import { useWorkspace } from "./WorkspaceContext.jsx";
@@ -87,10 +89,41 @@ function NotificationScene({ scope: s }) {
             if (event.target === event.currentTarget) s.closePanel();
           }}
         >
+          <CollectionSupportDrawer
+            scope={s}
+            modal={false}
+            idPrefix="workbench-support"
+          />
           <CollectionTaskDrawer
             scope={s}
             modal={false}
             idPrefix="workbench-task"
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+function ServiceScene({ scope: s }) {
+  return (
+    <section className="page collection-page" data-view="services">
+      <div className="collection-scroll" inert={!!s.panel}>
+        <CollectionServices scope={s} />
+      </div>
+      {s.panel && (
+        <div
+          className="collection-overlay"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") s.closePanel();
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) s.closePanel();
+          }}
+        >
+          <CollectionSupportDrawer
+            scope={s}
+            modal={false}
+            idPrefix="workbench-service"
           />
         </div>
       )}
@@ -290,6 +323,8 @@ export default function ScenarioHost() {
     <div className="workbench-scenario-host" aria-label="隔离演示原型">
       {session.kind === "notification" ? (
         <NotificationScene scope={session.scope} />
+      ) : session.kind === "service" ? (
+        <ServiceScene scope={session.scope} />
       ) : session.kind === "login" ? (
         <LoginScene scope={session.scope} />
       ) : (

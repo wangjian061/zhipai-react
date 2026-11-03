@@ -45,46 +45,63 @@ export default function CollectionNotifications({ scope: s }) {
           ))}
         </nav>
         <div className="collection-message-scroll" ref={attach}>
-          {s.notificationsShown.map((n) => (
-            <button
-              className={"collection-message-card " + (n.status || n.type)}
-              data-status-tone={
-                n.type === "collection"
-                  ? s.statusFor(n.status || n.record?.status).tone
-                  : undefined
-              }
-              key={n.type + n.id}
-              data-message-id={n.type + ":" + n.id}
-              onClick={() => s.openNotification(n)}
-            >
-              <span className="collection-notification-mark">
-                <CollectionIcon
-                  name={n.type === "collection" ? "document" : "notification"}
-                />
-              </span>
-              <span className="collection-notification-copy">
-                <span className="collection-notification-title">
-                  <strong>{n.title}</strong>
-                  {n.read === false && (
-                    <span
-                      className="collection-message-unread"
-                      role="img"
-                      aria-label="未读"
-                    />
-                  )}
-                  <time>{n.time}</time>
+          {!s.notificationsLoading &&
+            s.notificationsShown.map((n) => (
+              <button
+                className={"collection-message-card " + (n.status || n.type)}
+                data-status-tone={
+                  n.type === "collection"
+                    ? s.statusFor(n.status || n.record?.status).tone
+                    : undefined
+                }
+                key={n.type + n.id}
+                data-message-id={n.type + ":" + n.id}
+                onClick={() => s.openNotification(n)}
+              >
+                <span className="collection-notification-mark">
+                  <CollectionIcon
+                    name={n.type === "collection" ? "document" : "notification"}
+                  />
                 </span>
-                <span className="collection-notification-project">
-                  {n.projectName ||
-                    (n.type === "system" ? "系统通知" : "项目通知")}
+                <span className="collection-notification-copy">
+                  <span className="collection-notification-title">
+                    <strong>{n.title}</strong>
+                    {n.read === false && (
+                      <span
+                        className="collection-message-unread"
+                        role="img"
+                        aria-label="未读"
+                      />
+                    )}
+                    <time>{n.time}</time>
+                  </span>
+                  <span className="collection-notification-project">
+                    {n.projectName ||
+                      (n.type === "system" ? "系统通知" : "项目通知")}
+                  </span>
+                  <span className="collection-notification-description">
+                    {n.text}
+                  </span>
                 </span>
-                <span className="collection-notification-description">
-                  {n.text}
-                </span>
-              </span>
-              {(n.record || n.projectId) && <CollectionIcon name="chevron" />}
-            </button>
-          ))}
+                <CollectionIcon name="chevron" />
+              </button>
+            ))}
+          {s.notificationsLoading && (
+            <p className="collection-empty" role="status">
+              正在读取通知…
+            </p>
+          )}
+          {s.account && !s.account.loggedIn && (
+            <div className="collection-empty">
+              <p>登录后查看你的通知</p>
+              <button
+                className="account-text"
+                onClick={() => s.loginForRecords()}
+              >
+                去登录
+              </button>
+            </div>
+          )}
           {s.notificationsError && (
             <div className="collection-empty" role="alert">
               <p>{s.notificationsError}</p>
@@ -97,12 +114,17 @@ export default function CollectionNotifications({ scope: s }) {
               </button>
             </div>
           )}
-          {!s.notificationsError && !s.notificationsShown.length && (
-            <div className="collection-empty">
-              <CollectionIcon name="notification" />
-              <p>暂无通知</p>
-            </div>
-          )}
+          {!s.notificationsLoading &&
+            !s.notificationsError &&
+            (!s.account || s.account.loggedIn) &&
+            !s.notificationsShown.length && (
+              <div className="collection-empty">
+                <CollectionIcon name="notification" />
+                <p>
+                  {s.notificationFilter === "all" ? "暂无通知" : "暂无此类通知"}
+                </p>
+              </div>
+            )}
         </div>
       </div>
     </div>

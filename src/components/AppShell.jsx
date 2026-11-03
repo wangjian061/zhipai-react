@@ -1,3 +1,4 @@
+import CollectionMessageReminder from "./CollectionMessageReminder.jsx";
 import React from "react";
 import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
 import HomePage from "../pages/HomePage.jsx";
@@ -36,6 +37,7 @@ export default function AppShell({ scope, args = [] }) {
         >
           <View as="div" scope={s} className="screen">
             <NativePhoneChrome />
+            <CollectionMessageReminder />
             <View
               as="div"
               scope={s}

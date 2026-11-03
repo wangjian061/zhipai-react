@@ -119,6 +119,9 @@ const adaptedFs = {
       }
       if (match[1] === "collection") {
         for (const dependency of [
+          "collection-messages.js",
+          "collection-service-content.js",
+          "collection-code-help.js",
           "collection-config.js",
           "collection-status.js",
         ]) {
@@ -127,6 +130,7 @@ const adaptedFs = {
             { sourceType: "module" },
           );
           config.program.body = config.program.body
+            .filter((n) => n.type !== "ImportDeclaration")
             .map((n) =>
               n.type === "ExportNamedDeclaration" ? n.declaration : n,
             )

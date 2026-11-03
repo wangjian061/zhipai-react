@@ -6,6 +6,7 @@ const collectionViews = {
   detail: "采集任务详情",
   complete: "采集任务详情",
   notifications: "通知中心",
+  announcement: "通知详情",
   services: "服务中心",
 };
 const accountViews = {
@@ -158,19 +159,17 @@ export function resolveWorkbenchContext(
       state = statuses[scope?.statusKey] || "";
       source = "collection-task-detail-1.4.6.md";
     }
+    if (view === "announcement") {
+      guide = "notification.detail";
+      source = "collection-notifications-1.4.6.md";
+    }
     if (view === "notifications") source = "collection-notifications-1.4.6.md";
     if (view === "services") {
       source = "collection-services-1.4.6.md";
-      const help = {
-        entry: "查找采集项目",
-        identity: "身份认证",
-        review: "审核未通过",
-        save: "保存照片",
-      }[scope?.helpOpen];
-      if (help) state = "采集帮助 · " + help;
+      if (scope?.panel === "serviceHelp")
+        state = "采集帮助 · " + (scope.helpArticle?.title || "帮助内容");
     }
     panel = scope?.panel || "";
-    if (view === "services" && scope?.helpOpen && !panel) panel = "serviceHelp";
   } else if (page === "account") {
     scope = scopes.accountFlow;
     const view = scope?.view || q.get("account") || "welcome";

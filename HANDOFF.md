@@ -1,12 +1,14 @@
 # 知拍1.4.6三端还原交付说明
 
-更新：2026-11-03（原型交付11.3-1，实际页面待验收）｜适用：iOS、Android、鸿蒙研发、产品、设计与测试团队。
+更新：2026-11-03（原型11.3-2交付登记，待用户验收）｜适用：iOS、Android、鸿蒙研发、产品、设计与测试团队。
 
 **这里是团队接收项目的统一入口。当前交付物是 React 移动 Web 交互原型及产品资料，可作为三端还原依据；不包含可直接编译的三端 App，也不代表真实业务服务已经接入。**
 
-本次登记的原型交付为 **11.3-1**（2026-11-03，北京时间），不可变标签`prototype/2026/11.3-1`解析为准确交付提交；实际推送结果以[交付台账](docs/releases/prototype-deliveries.md)及远端核验为准。此前`10.26-1`、`10.27-1`、`10.27-2`继续保留。此次交付包含登录A、文档工作区与62份逐页说明及产品材料，正常通知／服务UI仍待补齐；不代表V1.4.6三端原生工程、真实接口或正式接收验收已完成。本次不部署站点，不进行App提审或上架。接收方使用Git共同基线，不依赖作者未提交文件。
+输入基线为 **11.3-1**（2026-11-03，北京时间），提交`03b184c`、不可变标签`prototype/2026/11.3-1`；历史推送结果见[交付台账](docs/releases/prototype-deliveries.md)。此前`10.26-1`、`10.27-1`、`10.27-2`继续保留。该历史基线包含登录A、文档工作区与62份逐页说明及产品材料，当时正常通知／服务尚未补齐，不代表V1.4.6三端原生工程、真实接口或正式接收验收已完成。下段第二阶段扩展登记为原型 **11.3-2**，以`prototype/2026/11.3-2`解析唯一交付提交；分支与标签的实际核验见台账，不预先宣称推送成功。本次不部署站点，不进行App提审或上架。
 
-2026-11-03本地更新：[原型文档工作区](docs/product/prototype-workbench.md)按用户确认的首页完整内容标准修订，现有[62份逐页／步骤说明](docs/product/prototype-page-guide.md)。左侧完整正文与本页目录随右侧页面／步骤变化，抽屉定位父页章节并恢复阅读位置；通知、登录演示各归属当前页，强更独立顶部全局菜单，顶部唯一恢复默认。小于1000px继续只显示原手机。本轮源码／状态检查22/22及构建通过，[独立评审](docs/reviews/page-documentation-20261103/finish-review.md)为限定源码／状态／SSR的SHIP，强更上下文与真实相机弹层映射两项均resolved；实际视觉、键盘和读屏待验收。登录A已本地实现待验收，通知与服务正常业务UI仍待补齐；具体证据见[本轮实施](docs/reviews/page-documentation-20261103/implementation.md)。
+2026-11-03第二阶段本地更新：网站内[完整需求](docs/product/collection-stage2-1.4.6.md)已归档，并同步左侧逐页说明与右侧正常业务。通知已补齐账号隔离的本地历史／去重／已读、完整公告和最新任务去向；服务已补齐九项帮助、与扫码共源的两类码帮助、任务共用邮件联系及复制恢复；本人记录失败不阻断通用帮助。登录保持A结构，密码重置补齐单屏样式。[工作区](docs/product/prototype-workbench.md)保留62份说明，通知／服务／登录样例各归所属页面，强更仍独立顶部全局菜单；小于1000px只显示手机。真实消息发布／推送、内容后台、短信／授权、版本查询／安装尚未接入，实际视觉、键盘、读屏和原生能力待验收。先前工作区22项检查与[评审](docs/reviews/page-documentation-20261103/finish-review.md)仅为11.3-1历史证据，不替代本次扩展验收。
+
+本次[收尾复核](docs/reviews/collection-stage2-20261103/finish-review.md)为限定源码／状态／SSR的SHIP：主任务54项、独立33项检查及既有账号／采集离线流程通过，生产构建通过。实现评审未操作浏览器或截图；其后[演示卡顿排查](docs/reviews/collection-stage2-20261103/demo-freeze-investigation.md)获单独授权，只读核对并实点左侧默认列表和恢复默认，未扩展为全量自动UI测试，不代表用户验收通过。
 
 三端还原以右侧业务原型及已确认产品契约为依据。左侧文档、场景按钮与桌面双栏属于研发评审工具，不能原样加入iOS、Android或鸿蒙用户端；场景选择与隔离数据也不能当作正式App业务入口或真实接入能力。
 
@@ -25,13 +27,13 @@
 
 配套 HTML 是交互结构说明，**不是视觉定稿、实际截图或原生实现**。审查记录是某次修改的证据，不是替代产品文档的新需求。
 
-2026-11-02新增[第二阶段产品开发交接稿](docs/product/collection-week2-development-handoff-1.4.6.md)，用于11月4—10日通知、服务中心及App更新的产品交接。它区分原型现状、已确认规则、待确认方案、接口需求及验收场景，不代表原生实现和验收已经完成。用户已明确小程序将提供详细产品文档另行规划，本轮暂不考虑其职责、引流、跨端交接、原型或开发，早期草案不作为已批准需求。
+第二阶段先读[完整产品需求](docs/product/collection-stage2-1.4.6.md)，再读[开发交接稿](docs/product/collection-week2-development-handoff-1.4.6.md)中的11月4—10日计划、接口需求和接收条件。业务范围含通知、服务、登录及全局更新；不代表原生实现和验收已完成。用户已明确小程序将提供详细产品文档另行规划，本轮暂不考虑其职责、引流、跨端交接、原型或开发，早期草案不作为已批准需求。
 
-本轮按模块逐项确认，通知先读[独立业务规则](docs/product/collection-notifications-1.4.6.md)。其中已明确五类采集结果、保留历史、成功查看后已读、需要上网项目的推送终点、项目人工发布及默认关闭的手机提醒选项、系统人工定向发布；通知页面结构与配套规则已于11月3日确认，正式业务UI与原生接口仍待补齐或接入。不能继续引用交接初稿中“历史与已读是否纳入”作为未决问题。
+通知细则见[独立业务规则](docs/product/collection-notifications-1.4.6.md)。五类结果、独立历史、成功查看后已读、需要上网项目的推送终点、人工定向发布及默认关闭的手机提醒选项均已确认；正常原型已实现本地历史、已读、完整公告及返回恢复，真实发布／手机推送与原生接口仍待接入。不能继续引用交接初稿中“历史与已读是否纳入”或“公告正文结构待定”作为未决问题。
 
-App更新策略已另行确认：每次本平台、本渠道可获取的新正式版本发布后，所有旧版必须升级再继续使用。通知是否已读不决定强更是否生效，原型推送不触发App强更。更新通知、版本查询、发布可用性与升级恢复的产品方案见同一通知文档4.3—4.4；原生工程、版本管理接口和实际安装验证尚未接入，不把强更方案写成已有能力。
+App更新策略已确认：每次本平台、本渠道可获取的新正式版本发布后，所有旧版必须升级再继续使用。通知是否已读不决定强更是否生效，原型推送不触发App强更。版本查询、发布可用性与升级恢复见[通知文档](docs/product/collection-notifications-1.4.6.md)的全局强更规则；当前仅有外层隔离演示，原生工程、版本管理接口和实际安装验证尚未接入。
 
-服务中心业务范围及页面结构已逐项确认，详见[独立产品说明](docs/product/collection-services-1.4.6.md)：九项帮助、邮件咨询与复制邮箱恢复、原任务定位、知拍客服统一受理协调机构；帮助正文和客服邮箱由后台维护，三端读取同一份配置，不因仅修改说明发布App。正式业务仍为四项固定帮助，九项帮助UI、后台读取和更新机制及实际运行待补齐，不能把文档确认或隔离演示写成正式服务已经实现。
+服务中心见[独立产品说明](docs/product/collection-services-1.4.6.md)：正常原型已使用九项帮助、共用帮助／邮件抽屉、原任务项目与客服号定位、无任务咨询和复制邮箱恢复；知拍客服统一受理协调机构。当前为本地候选内容，真实后台发布／缓存／三端读取和邮箱有效性仍待落实；仅更新正文与邮箱不要求App发版。本地实现不等于正式服务与真实邮件发送能力已完成。
 
 ### 版本与冲突处理
 
@@ -55,7 +57,7 @@ App更新策略已另行确认：每次本平台、本渠道可获取的新正�
 | 个人证件照制作 | 首页相机／选图；[制作文档](docs/product/camera-confirmation-1.4.6.md)、[交互线框](docs/product/camera-confirmation-1.4.6.html) | [CameraPage](src/pages/CameraPage.jsx)、[camera](src/domain/camera.js)、[检测适配](src/domain/camera-detection.js)、[制作适配](src/domain/photo-making.js)、[版本契约](src/domain/photo-versions.js)、[双版本结果](src/components/CameraResultVersions.jsx)、[放大对比](src/components/CameraVersionComparison.jsx) | 双版本比较、部分成功、单版交易与保存链路已本地实现；源码／状态范围可交付，实际视觉、真实检测／精修／支付与原生适配待验收或接入 |
 | 六项常用工具 | 首页工具入口；[工具文档](docs/product/common-tools-1.4.6.md) | [ToolsPage](src/pages/ToolsPage.jsx)、[tools](src/domain/tools.js)、[选图](src/domain/photo-choice.js) | 逐页说明较完整；模型服务与平台保存能力待替换 |
 | 冲印 | `/?page=print&print=select`；同上工具文档 | [PrintPage](src/pages/PrintPage.jsx)、[print](src/domain/print.js)、[固定裁剪](src/components/FixedPhotoCrop.jsx) | 排版、裁剪、订单流程有说明；正式生产与配送待接入 |
-| 专项采集 | `/?page=collection`；[专项说明](docs/collection-zone.md)、[采集人物详情契约](docs/product/collection-task-detail-1.4.6.md) | [CollectionPage](src/pages/CollectionPage.jsx)、[collection](src/domain/collection.js)、[详情资料映射](src/domain/collection-task-information.js)、[项目配置](src/domain/collection-config.js)、[状态映射](src/domain/collection-status.js) | 详情按确认样图采用240px等比照片、连续资料列表并移除补充功能；本地实现待验收。专项10页独立说明已补齐，旧专项历史文档冲突以顶部当前口径与新契约为准；正常通知／服务仍待补齐 |
+| 专项采集 | `/?page=collection`；[专项说明](docs/collection-zone.md)、[采集人物详情契约](docs/product/collection-task-detail-1.4.6.md)、[第二阶段需求](docs/product/collection-stage2-1.4.6.md) | [CollectionPage](src/pages/CollectionPage.jsx)、[collection](src/domain/collection.js)、[详情资料映射](src/domain/collection-task-information.js)、[项目配置](src/domain/collection-config.js)、[状态映射](src/domain/collection-status.js) | 详情按确认样图采用240px等比照片、连续资料列表并移除补充功能；通知历史／已读／公告和九项帮助／共享联系已本地补齐待验收，真实后台与原生能力待接入；历史专项文档不覆盖最新契约 |
 | 相册 | `/?page=album`；[设计规范中的相册规则](DESIGN.md) | [AlbumPage](src/pages/AlbumPage.jsx)、[album](src/domain/album.js)、[照片查看层](src/components/AlbumPhotoViewer.jsx) | 有实现与测试；全模块页面、权限及删除规则表待补 |
 | 统一订单 | 个人中心「我的订单」；`/?page=orders` | [OrdersPage](src/pages/OrdersPage.jsx)、[orders](src/domain/orders.js)、[订单路由](src/domain/order-routing.js) | [订单契约](docs/product/orders-1.4.6.md)已同步：无外发光的固定通透磨砂顶部、无边线横滑类型Tab、12px语义色状态单选胶囊，票据滚过顶部背后；直接进入详情无卡片转场、返回保留横纵位置；交易及模拟回归已覆盖，原生材质、安全区、手势、读屏、真实支付与接口待验收／接入 |
 | 个人中心、账号与分享 | `/?page=my`；[账号登录契约](docs/product/account-login-1.4.6.md)、[产品上下文](PRODUCT.md) | [MyPage](src/pages/MyPage.jsx)、[AccountPage](src/pages/AccountPage.jsx)、[登录步骤](src/components/AccountLoginFlow.jsx)、[account](src/domain/account.js)、[分享海报](src/domain/share-poster.js) | 登录已按确认A结构本地实施：手机号→验证码、历史号码、密码次入口、平台第三方置底、协议及原业务返回；源码／状态评审可交付，实际画面、短信／授权SDK、服务端会话及原生安全／分享适配待验收或接入 |

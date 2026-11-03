@@ -2,6 +2,8 @@
 import test, { after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import vm from "node:vm";
 import { webcrypto } from "node:crypto";
 import React from "react";
@@ -312,11 +314,16 @@ test("platform providers and return-path guard remain deterministic", () => {
   }
 });
 
+const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "zhipai-account-ssr-"));
 const server = await createServer({
-  server: { middlewareMode: true },
+  cacheDir,
+  server: { middlewareMode: true, hmr: false, ws: false, watch: null },
   appType: "custom",
 });
-after(() => server.close());
+after(async () => {
+  await server.close();
+  fs.rmSync(cacheDir, { recursive: true, force: true });
+});
 const { default: Flow } = await server.ssrLoadModule(
   "/src/components/AccountLoginFlow.jsx",
 );

@@ -1,3 +1,8 @@
+import { createMessageHistory } from "./collection-messages.js";
+import {
+  createServiceContent,
+  validSupportEmail,
+} from "./collection-service-content.js";
 import { returnToOrderCenter } from "./order-routing.js";
 import { paymentResult } from "./order-status.js";
 import {
@@ -280,11 +285,12 @@ function collectionNavigate(
   if (view !== "home") u.searchParams.set("view", view);
   if (project) u.searchParams.set("project", project);
   if (record) u.searchParams.set("record", record);
-  for (const key of ["category", "q", "from", "section"])
+  for (const key of ["category", "q", "from", "section", "message"])
     if (context[key]) u.searchParams.set(key, context[key]);
   history[replace ? "replaceState" : "pushState"]({}, "", u);
   window.dispatchEvent(new Event("zhipai-route"));
 }
+registerStore("collectionMessages", createMessageHistory());
 registerStore("collectionRecords", {
   items: [],
   ready: false,
@@ -389,11 +395,16 @@ registerController("collectionFlow", () => ({
   view: "home",
   projects: COLLECTION_PROJECTS.map((p) => ({
     ...p,
+    requiresUpload: p.type === "graduate",
     price: COLLECTION_PRICES[p.id] ?? 1200,
     status: collectionProjectState(p.id),
     ...COLLECTION_PROJECT_MEDIA[p.id],
   })),
   config: createCollectionConfig(),
+  serviceContent: createServiceContent(),
+  contactNotice: "",
+  messageId: "",
+  lastMessageId: "",
   categories: COLLECTION_CATEGORIES,
   notificationFilter: "all",
   notificationFrom: "home",
@@ -565,43 +576,104 @@ registerController("collectionFlow", () => ({
   get continueTask() {
     return this.actionableRecords[0] || null;
   },
+  get messageStore() {
+    return this.$store.collectionMessages;
+  },
+  syncMessages() {
+    this.messageStore.sync(
+      this.account.session?.phone || "",
+      this.records,
+      this.projects,
+      this.config.messages,
+    );
+  },
   get collectionNotifications() {
-    return this.records.map((record) => ({
-      record,
-      type: "collection",
-      timestamp: record.updatedAt || record.createdAt || 0,
-      id: record.id,
-      status: collectionStatusKey(record.status),
-      title: collectionStatusInfo(record.status).label,
-      text: record.reason || collectionStatusInfo(record.status).hint,
-      projectName:
-        this.projects.find((p) => p.id === record.projectId)?.name ||
-        "专项采集",
-      time: new Date(
-        record.updatedAt || record.createdAt || Date.now(),
-      ).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" }),
-    }));
+    return this.notifications.filter((n) => n.type === "collection");
   },
   get latestCollectionNotification() {
     return this.collectionNotifications[0] || null;
   },
-  get notifications() {
-    const general = this.config.messages.map((n) => ({
-      ...n,
-      time: new Date(n.timestamp).toLocaleDateString("zh-CN", {
-        month: "2-digit",
-        day: "2-digit",
-      }),
-    }));
-    return [...general, ...this.collectionNotifications].sort(
-      (a, b) => b.timestamp - a.timestamp,
+  get notificationsError() {
+    return (
+      this.messageStore.error ||
+      (this.recordsStore.error
+        ? "采集结果暂时无法同步，已有通知仍可查看。"
+        : "")
     );
+  },
+  get notificationsLoading() {
+    return (
+      !!this.account.loggedIn &&
+      !this.recordsStore.ready &&
+      !this.recordsStore.error
+    );
+  },
+  get notifications() {
+    if (
+      !this.account.loggedIn ||
+      this.messageStore.owner !== this.account.session?.phone
+    )
+      return [];
+    return this.messageStore.items
+      .slice()
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((n) => ({
+        ...n,
+        time: new Date(n.timestamp).toLocaleString("zh-CN", {
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      }));
   },
   get notificationsShown() {
     return this.notifications.filter(
       (n) =>
         this.notificationFilter === "all" || n.type === this.notificationFilter,
     );
+  },
+  get sourceMessage() {
+    return this.notifications.find((n) => n.id === this.messageId);
+  },
+  markNotificationViewed() {
+    const n = this.sourceMessage;
+    if (
+      n &&
+      ((this.view === "announcement" && n.body?.trim()) ||
+        (this.isRecordView && this.current?.id === n.recordId))
+    )
+      this.messageStore.markRead(n.id);
+  },
+  async retryNotifications() {
+    if (this.recordsStore.error) await this.recordsStore.load();
+    this.messageStore.retry();
+    this.syncMessages();
+  },
+  get helpArticle() {
+    return this.serviceContent.questions.find(
+      (item) => item.id === this.helpOpen,
+    );
+  },
+  get supportEmail() {
+    return !this.serviceContent.error &&
+      this.serviceContent.ready &&
+      validSupportEmail(this.serviceContent.email)
+      ? this.serviceContent.email
+      : "";
+  },
+  openHelp(id) {
+    if (
+      this.busy ||
+      this.panel ||
+      !this.serviceContent.questions.some((q) => q.id === id)
+    )
+      return;
+    this.helpOpen = id;
+    this.openPanel("serviceHelp");
+  },
+  retryServiceContent() {
+    this.serviceContent = createServiceContent();
   },
   get filteredRecords() {
     return this.records.filter(
@@ -799,7 +871,13 @@ registerController("collectionFlow", () => ({
   },
   get isTaskPanel() {
     return (
-      ["confirm", "reviewReason", "taskSupport"].includes(this.panel) ||
+      [
+        "confirm",
+        "reviewReason",
+        "taskSupport",
+        "serviceHelp",
+        "email",
+      ].includes(this.panel) ||
       (this.panel === "email" && this.isRecordView && !!this.current)
     );
   },
@@ -872,6 +950,7 @@ registerController("collectionFlow", () => ({
     return (
       {
         email: "联系知拍客服",
+        serviceHelp: this.helpArticle?.title || "采集帮助",
         identity: "身份认证",
         verify: "核对身份信息",
         alternate: "其他认证方式",
@@ -902,6 +981,8 @@ registerController("collectionFlow", () => ({
     window.addEventListener("zhipai-collection-photo", this.photoHandler);
     window.addEventListener("zhipai-collection-code", this.qrHandler);
     this.recordsHandler = () => {
+      this.syncMessages();
+      this.markNotificationViewed();
       this.loadPhoto();
       if (
         new URLSearchParams(location.search).get("page") === "collection" &&
@@ -909,6 +990,11 @@ registerController("collectionFlow", () => ({
       )
         this.resumeScan();
     };
+    this.$watch?.("account.session.phone", () => {
+      this.panel = null;
+      this.syncMessages();
+      this.sync();
+    });
     this.$watch?.("disabled", () => {
       if (
         !this.disabled &&
@@ -918,6 +1004,7 @@ registerController("collectionFlow", () => ({
         this.resumeScan();
     });
     window.addEventListener("zhipai-collection-records", this.recordsHandler);
+    this.syncMessages();
     this.sync();
   },
   destroy() {
@@ -974,6 +1061,7 @@ registerController("collectionFlow", () => ({
       "project",
       "projects",
       "notifications",
+      "announcement",
       "records",
       "services",
       "detail",
@@ -1010,9 +1098,12 @@ registerController("collectionFlow", () => ({
     this.notificationFrom = sections.includes(q.get("section"))
       ? q.get("section")
       : "home";
-    this.projectFrom = ["projects", "notifications", ...sections].includes(
-      q.get("from"),
-    )
+    this.projectFrom = [
+      "projects",
+      "notifications",
+      "announcement",
+      ...sections,
+    ].includes(q.get("from"))
       ? q.get("from")
       : "home";
     if (this.view === "project") {
@@ -1024,14 +1115,33 @@ registerController("collectionFlow", () => ({
       this.projectQuery = q.get("q") || "";
     }
     this.recordId = q.get("record") || "";
+    this.messageId = q.get("message") || "";
     this.error = "";
     this.panel = null;
     const syncToken = this.task;
     this.$nextTick(() => {
       if (syncToken !== this.task) return;
       this.loadPhoto();
+      this.markNotificationViewed();
       if (this.scrollHost)
         this.scrollHost.scrollTop = this.sectionScroll[this.scrollKey] || 0;
+      if (
+        this.view === "notifications" &&
+        this.lastMessageId &&
+        this.$refs.collectionMessageList
+      ) {
+        const node = [
+          ...this.$refs.collectionMessageList.querySelectorAll(
+            "[data-message-id]",
+          ),
+        ].find(
+          (el) =>
+            el.dataset.messageId === "collection:" + this.lastMessageId ||
+            el.dataset.messageId === "system:" + this.lastMessageId ||
+            el.dataset.messageId === "project:" + this.lastMessageId,
+        );
+        node?.focus({ preventScroll: true });
+      }
       this.resumeScan();
     });
   },
@@ -1160,9 +1270,57 @@ registerController("collectionFlow", () => ({
     this.route("projects", "", "", { category: id });
   },
   openNotification(n) {
-    if (n.record) this.openRecord(n.record);
-    else if (n.projectId) this.openProject(n.projectId);
-    else this.showNotice(n.text, "info", "manual");
+    if (this.busy || this.panel) return;
+    const message = this.notifications.find((item) => item.id === n.id);
+    if (!message) return;
+    this.lastMessageId = message.id;
+    if (message.type === "collection") {
+      const record = this.records.find((item) => item.id === message.recordId);
+      if (!record || !this.projects.some((p) => p.id === record.projectId)) {
+        this.showNotice(
+          "该任务暂时无法查看，请在采集记录核实或联系客服。",
+          "warning",
+          "manual",
+        );
+        return;
+      }
+      this.route(
+        isCollectionFinished(record.status) ? "complete" : "detail",
+        record.projectId,
+        record.id,
+        {
+          from: "notifications",
+          section: this.notificationFrom,
+          message: message.id,
+        },
+      );
+    } else if (message.body?.trim())
+      this.route("announcement", message.projectId || "", "", {
+        section: this.notificationFrom,
+        message: message.id,
+      });
+    else
+      this.showNotice(
+        "通知正文暂时无法读取，请稍后重试。",
+        "warning",
+        "manual",
+      );
+  },
+  openAnnouncementProject() {
+    const n = this.sourceMessage;
+    if (!n?.projectId || !this.projects.some((p) => p.id === n.projectId)) {
+      this.showNotice(
+        "该项目暂时无法查看，请联系客服核实。",
+        "warning",
+        "manual",
+      );
+      return;
+    }
+    this.route("project", n.projectId, "", {
+      from: "announcement",
+      section: this.notificationFrom,
+      message: n.id,
+    });
   },
   showNotice(text, severity = "info", closeMode = "auto") {
     clearTimeout(this.noticeTimer);
@@ -1229,11 +1387,16 @@ registerController("collectionFlow", () => ({
     this.searchTerm = "";
   },
   loginForRecords() {
-    accountRoute(
-      "welcome",
+    const view = ["services", "notifications"].includes(this.view)
+      ? this.view
+      : "records";
+    const target =
       "/?page=collection&view=" +
-        (this.view === "services" ? "services" : "records"),
-    );
+      view +
+      (view === "notifications"
+        ? "&section=" + encodeURIComponent(this.notificationFrom)
+        : "");
+    accountRoute("welcome", target);
   },
   openProject(id) {
     this.releaseIdentity();
@@ -1266,6 +1429,10 @@ registerController("collectionFlow", () => ({
     }
     if (this.view === "home") {
       this.go("home");
+      return;
+    }
+    if (this.view === "announcement") {
+      this.route("notifications", "", "", { section: this.notificationFrom });
       return;
     }
     if (this.view === "notifications") {
@@ -1306,6 +1473,7 @@ registerController("collectionFlow", () => ({
         category: this.projectCategory,
         q: this.projectQuery,
         section: this.notificationFrom,
+        message: this.messageId,
       });
       return;
     }
@@ -1335,41 +1503,57 @@ registerController("collectionFlow", () => ({
     );
   },
   get emailLink() {
-    return this.panel === "email"
-      ? "mailto:zpai_service@163.com?subject=" +
+    return this.supportEmail
+      ? "mailto:" +
+          this.supportEmail +
+          "?subject=" +
           encodeURIComponent("专项采集咨询")
       : undefined;
   },
   openEmailContact() {
-    const taskContext = this.isRecordView && !!this.current;
     if (
       this.busy ||
-      (!taskContext && this.view !== "services") ||
-      (this.panel && !(taskContext && this.panel === "taskSupport"))
+      (!this.isRecordView && this.view !== "services") ||
+      (this.panel && !["taskSupport", "serviceHelp"].includes(this.panel))
     )
       return;
     if (!this.panel) this.previousFocus = document.activeElement;
+    this.error = "";
+    this.contactNotice = "";
     this.panel = "email";
     this.$nextTick(() =>
       this.$refs.collectionDialog
-        ?.querySelector("button,a")
+        ?.querySelector("button")
         ?.focus({ preventScroll: true }),
     );
   },
   confirmEmailContact() {
     if (
-      this.panel !== "email" ||
-      (!(this.isRecordView && this.current) && this.view !== "services") ||
+      !["email", "taskSupport"].includes(this.panel) ||
+      !this.supportEmail ||
       this.busy
     )
       return false;
-    this.panel = null;
-    this.$nextTick(() => this.previousFocus?.focus({ preventScroll: true }));
+    this.contactNotice =
+      "如未打开邮箱，可复制邮箱后自行联系。邮件需由你在邮箱应用中发送。";
     return true;
+  },
+  async copySupportEmail() {
+    if (!this.supportEmail) return;
+    const email = this.supportEmail,
+      token = this.task;
+    try {
+      await navigator.clipboard.writeText(email);
+      if (token === this.task && ["email", "taskSupport"].includes(this.panel))
+        this.contactNotice = "邮箱已复制";
+    } catch (_) {
+      if (token === this.task)
+        this.contactNotice = "复制失败，请长按邮箱地址复制。";
+    }
   },
   openPanel(panel) {
     if (
-      this.disabled ||
+      (panel === "serviceHelp" ? this.busy : this.disabled) ||
       ![
         "identity",
         "verify",
@@ -1380,6 +1564,7 @@ registerController("collectionFlow", () => ({
         "confirm",
         "reviewReason",
         "taskSupport",
+        "serviceHelp",
         "email",
         "payment",
         "existing",
@@ -1401,6 +1586,7 @@ registerController("collectionFlow", () => ({
     if (this.busy) return;
     this.releaseIdentity();
     this.panel = null;
+    this.contactNotice = "";
     this.$nextTick(() =>
       this.previousFocus?.focus({
         preventScroll: true,

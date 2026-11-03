@@ -1,3 +1,4 @@
+import { collectionCodeHelp as guideContent } from "../domain/collection-code-help.js";
 import React from "react";
 import { Controller, View, Portal } from "../runtime/components.jsx";
 import "../styles/scan.css";
@@ -9,29 +10,6 @@ function Icon({ name, ...props }) {
     </svg>
   );
 }
-const guideContent = {
-  institution: {
-    title: "机构／院校二维码",
-    intro: "由组织本次采集的机构或院校提供。",
-    steps: [
-      "查看机构或院校发布的采集通知，找到负责人／老师发送的二维码。",
-      "二维码在手机里时，先保存图片，再返回知拍从相册识别；现场提供的二维码可直接扫描。",
-      "尚未收到二维码时，请联系本次采集负责人获取。",
-    ],
-    note: "机构码用于进入采集项目，身份认证按项目要求继续办理。",
-  },
-  chsi: {
-    title: "学信网图像采集码",
-    intro: "使用本人账号，在学信档案中获取。",
-    steps: [
-      "登录本人学信网账号，进入「学信档案」。",
-      "查看本人学籍；有多条学籍时，选择本次采集对应的学籍。",
-      "打开该学籍的「图像采集码」，保存清晰完整的原图。",
-      "返回知拍，选择「从相册识别」，核对本次采集的身份信息。",
-    ],
-    note: "请使用本人学籍对应的采集码。知拍不会索取学信网账号密码，具体入口以学信网当前界面为准。",
-  },
-};
 function Guide({ s }) {
   const content = guideContent[s.guidePage];
   return (

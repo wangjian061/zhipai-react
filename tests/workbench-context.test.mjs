@@ -53,16 +53,21 @@ test("page address display excludes personal, photo, record and login-return dat
   assert.equal(resolve("?page=unexpected").page, "home");
 });
 test("current helpers, scanner guide, color drawer and photo picker follow actual flags", () => {
-  const s = { view: "services", helpOpen: "review" };
+  const s = { view: "services", helpOpen: "review", panel: "serviceHelp", helpArticle: { title: "照片审核未通过怎么办？" } };
   assert.match(
     resolve("?page=collection", { collectionFlow: s }).state,
     /审核未通过/,
   );
   s.helpOpen = "save";
+  s.helpArticle = { title: "采集完成后如何保存照片？" };
   assert.match(
     resolve("?page=collection", { collectionFlow: s }).state,
     /保存照片/,
   );
+  s.panel = null;
+  const closed = resolve("?page=collection", { collectionFlow: s });
+  assert.equal(closed.panel, "");
+  assert.equal(closed.section, "");
   assert.match(
     resolve("?page=scan", {
       collectionScanner: { guideOpen: true, guidePage: "chsi" },

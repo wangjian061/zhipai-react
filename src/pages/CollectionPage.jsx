@@ -1,3 +1,5 @@
+import CollectionAnnouncement from "../components/CollectionAnnouncement.jsx";
+import CollectionSupportDrawer from "../components/CollectionSupportDrawer.jsx";
 import React from "react";
 import CollectionDevelopmentExamples from "../components/CollectionDevelopmentExamples.jsx";
 import CollectionProjectOverview, {
@@ -43,9 +45,13 @@ export default function CollectionPage({ scope, args = [] }) {
             className="collection-nav"
             show={
               !s.isSection &&
-              !["projects", "notifications", "detail", "complete"].includes(
-                s.view,
-              )
+              ![
+                "projects",
+                "notifications",
+                "announcement",
+                "detail",
+                "complete",
+              ].includes(s.view)
             }
             inert={!!s.panel}
           >
@@ -99,6 +105,7 @@ export default function CollectionPage({ scope, args = [] }) {
             <CollectionProjects scope={s} />
             <CollectionNotifications scope={s} />
             <CollectionServices scope={s} />
+            <CollectionAnnouncement scope={s} />
             <CollectionProjectOverview scope={s} />
             <CollectionRecords scope={s} />
             <CollectionTaskDetail scope={s} />
@@ -141,6 +148,9 @@ export default function CollectionPage({ scope, args = [] }) {
               className="collection-error"
               show={
                 !s.isProjectSearch &&
+                !["services", "notifications", "announcement"].includes(
+                  s.view,
+                ) &&
                 (s.error || s.recordsStore.error) &&
                 !(["detail", "complete"].includes(s.view) && s.current)
               }
@@ -153,6 +163,9 @@ export default function CollectionPage({ scope, args = [] }) {
               className="account-text"
               show={
                 !s.isProjectSearch &&
+                !["services", "notifications", "announcement"].includes(
+                  s.view,
+                ) &&
                 s.recordsStore.error &&
                 !(["detail", "complete"].includes(s.view) && s.current)
               }
@@ -177,6 +190,9 @@ export default function CollectionPage({ scope, args = [] }) {
               className="collection-empty"
               show={
                 !s.isProjectSearch &&
+                !["services", "notifications", "announcement"].includes(
+                  s.view,
+                ) &&
                 !s.recordsStore.ready &&
                 !s.recordsStore.error
               }
@@ -253,6 +269,7 @@ export default function CollectionPage({ scope, args = [] }) {
               <CollectionPaymentDrawer scope={s} />
               <CollectionIdentityDrawer scope={s} />
               <CollectionTaskDrawer scope={s} />
+              <CollectionSupportDrawer scope={s} />
               {!s.isAuthPanel && !s.isTaskPanel && s.panel !== "payment" && (
                 <View
                   as="section"
@@ -324,31 +341,6 @@ export default function CollectionPage({ scope, args = [] }) {
                           items={s.project.requirements}
                         />
                       </section>
-                    )}
-
-                    {s.panel === "email" && (
-                      <div className="collection-email-confirm">
-                        <p>是否打开邮箱联系知拍客服？</p>
-                        <span>zpai_service@163.com</span>
-                        <div className="collection-email-actions">
-                          <button
-                            className="collection-secondary"
-                            onClick={() => s.closePanel()}
-                          >
-                            取消
-                          </button>
-                          <a
-                            className="collection-primary"
-                            href={s.emailLink}
-                            onClick={(event) => {
-                              if (!s.confirmEmailContact())
-                                event.preventDefault();
-                            }}
-                          >
-                            打开邮箱
-                          </a>
-                        </div>
-                      </div>
                     )}
 
                     <View as="div" scope={s} show={s.panel === "existing"}>

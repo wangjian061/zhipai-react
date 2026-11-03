@@ -166,7 +166,6 @@ test("every supported page and business step loads its own complete document, in
 test("local scenes respect page ownership; force update is a separate global control", () => {
   for (const guide of [
     "home",
-    "collection.services",
     "collection.detail",
     "notification.detail",
     "orders.detail",
@@ -175,6 +174,9 @@ test("local scenes respect page ownership; force update is a separate global con
       scenariosFor({ page: guide === "home" ? "home" : "collection", guide }),
       [],
     );
+  assert.ok(
+    scenariosFor({ page: "collection", guide: "collection.services" }).every((id) => id.startsWith("service.")),
+  );
   assert.ok(
     scenariosFor({
       page: "collection",
@@ -215,7 +217,7 @@ test("drawers remain in the owner document and critical section anchors actually
     ],
     [
       "?page=collection",
-      { collectionFlow: { view: "services", helpOpen: "review" } },
+      { collectionFlow: { view: "services", helpOpen: "review", panel: "serviceHelp" } },
     ],
     [
       "?page=tool",
