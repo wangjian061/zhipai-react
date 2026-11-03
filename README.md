@@ -8,6 +8,14 @@ iOS、Android、鸿蒙团队先读 [《知拍1.4.6三端还原交付说明》](H
 
 当前仓库提供 Web 原型与还原依据，尚未包含三端原生工程或真实业务后端。交付基线与资料缺口以该入口为准。
 
+V1.4.6第二阶段（11月4—10日）的[产品开发交接稿](docs/product/collection-week2-development-handoff-1.4.6.md)汇总通知、服务中心及App更新的现有依据、接口需求、验收场景及待确认项。小程序由用户提供详细产品文档后另行规划，本轮暂不考虑；当前材料不代表原生开发、接口或验收已完成。
+
+本轮改为按模块逐一梳理，先读[通知业务规则](docs/product/collection-notifications-1.4.6.md)：三类通知、五类采集结果、历史与已读、上网结果推送节奏及项目人工发布开关已单独归档，页面结构及配套规则已确认；正式业务UI与接入仍待补齐。
+
+[专项采集服务中心](docs/product/collection-services-1.4.6.md)已确认九项帮助、邮件咨询与恢复、任务定位、知拍客服统一协调机构，以及后台维护帮助和邮箱、三端读取同一份配置。页面结构已确认；正式业务UI、后台接口和实际运行仍待补齐。
+
+2026-11-03[原型文档工作区](docs/product/prototype-workbench.md)已按用户确认的首页完整正文与结构图修订：左侧连续阅读当前页全部区块，目录定位全文，抽屉定位父页章节并恢复阅读位置；当前[62份独立说明](docs/product/prototype-page-guide.md)按页面／步骤加载。通知演示仅在通知中心，登录演示仅在对应步骤，强更从顶部全局菜单进入；小于1000px保留手机预览。实际画面待验收，本次随原型 **11.3-1**交付；准确基线及Git结果以[交付台账](docs/releases/prototype-deliveries.md)和不可变标签为准，不部署站点，不代表通知、服务正常业务全部完成。
+
 ## 版本与正式推送
 
 原型采用 `月.日-当天序号`（如 `10.26-1`、`10.26-2`）；App、管理后台、后端和小程序采用独立三段式版本，以交付记录关联。**每次向原型主分支／团队交付分支正式推送都必须有版本、台账、不可变 Git 标签、变更说明及验证／待验收状态，文档更新也适用。** 规则见[版本编号与交付规则](docs/release-versioning.md)，历史与后续基线见[原型交付台账](docs/releases/prototype-deliveries.md)。台账在实际交付时填写，不因建立规则预填已发布版本。
@@ -35,6 +43,7 @@ npm run dev
 - **专项采集**：项目分类、热门项目、身份认证、采集任务、状态跟踪、通知中心及服务中心。扫码支持两类显式演示码：机构码自动打开对应项目认证入口，学信网码直接进入本人信息核对第二步；含两类获取码帮助、权限及失败恢复。真实码解析与机构核验待接入。
 - **个人中心与订单**：相册、分类订单、账号安全、客服抽屉与二维码分享海报。
 - **设备预览**：统一的 iPhone 外壳、状态栏、安全区域及底部操作横杠。
+- **桌面文档工作区**：62份按页／步骤组织的完整说明、实际区块目录、抽屉与来源阅读恢复，右侧保留可操作手机；通知及登录场景归属当前页，强更归属顶部全局菜单，内存演示不写业务数据。
 
 支付、短信、身份认证、照片制作及精修／换装为原型演示，尚未接入真实业务后端。个人制作在「开始制作」后的弹窗选择五种检测场景，重试可重新选择，不使用专用测试网页；工具检查仍人工选择模拟结果，均不执行真实识别。照片裁剪、格式转换、压缩、下载及部分背景替换使用浏览器本地能力。
 
@@ -50,18 +59,24 @@ npm run dev
 | `src/components/` | 公共组件、导航和抽屉                  |
 | `src/domain/`     | 状态、业务流程、存储及处理逻辑        |
 | `src/runtime/`    | 状态订阅、生命周期、表单绑定和 Portal |
+| `src/workbench/`  | 页面上下文、Markdown读取与隔离演示会话 |
 | `src/styles/`     | 共享规范与页面样式                    |
 | `public/assets/`  | 运行所需图片与图标                    |
 | `public/vendor/`  | 本地二维码识别库                      |
 | `tests/`          | 状态、业务流程与迁移对照检查          |
 | `scripts/`        | 流程测试及历史迁移工具                |
-| `docs/`           | 项目说明                              |
+| `docs/product/pages/` | 62份按页面／步骤组织的完整说明         |
+| `docs/`           | 模块契约、设计依据与检查记录           |
 
 产品定位、用户、能力边界和开放决策见 [PRODUCT.md](PRODUCT.md)；视觉规范见 [DESIGN.md](DESIGN.md)。
 
 设计规则与实际代码值已合并归档至 [DESIGN.md](DESIGN.md)。Impeccable 的共享组件面板配置为 [.impeccable/design.json](.impeccable/design.json)；提取来源、实现差异及验证范围见 [设计系统提取记录](docs/design/design-system-source-map.md)。仅共享该面板文件，其他本机 Impeccable 状态继续忽略。
 
 ## 产品文档与审查
+
+- [原型文档工作区契约](docs/product/prototype-workbench.md)及[62页文档目录](docs/product/prototype-page-guide.md)：连续全文、本页区块目录、父页抽屉定位、阅读恢复、页面场景与全局升级；[本轮实施](docs/reviews/page-documentation-20261103/implementation.md)与[文档收尾](docs/reviews/page-documentation-20261103/documentation.md)记录实际检查和待验收。[上一版工作区记录](docs/reviews/prototype-workbench-20261103/implementation.md)保留为历史，不作为本轮重跑结果。
+
+- [账号登录契约](docs/product/account-login-1.4.6.md)：已确认A分步结构、记住成功号码、协议、密码找回、平台第三方及原业务返回；[独立收尾评审](docs/reviews/account-login-20261102/finish-review.md)仅在源码／状态范围可交付。当前仍为本地短信、授权和账号模拟，实际画面及三端体验待验收。
 
 - [专项项目搜索契约](docs/product/collection-project-search-1.4.6.md)：全部项目独立搜索页、初始／结果／无结果状态及详情返回；三个分类列表保持原样。[实施与待验收记录](docs/reviews/collection-project-search-20261026/review.md)包含已确认结构图和验证范围。
 
@@ -97,6 +112,8 @@ node --test tests/bindings.test.mjs tests/orders.test.mjs
 ```
 
 上述检查为源码与模拟状态检查，不包含浏览器自动化或真机验收。
+
+工作区针对性检查：`node --test tests/workbench-context.test.mjs tests/workbench-demo.test.mjs tests/workbench-pages.test.mjs tests/bindings.test.mjs`。本轮主任务22/22通过，包含全部62份文档与映射、场景归属、实际抽屉枚举、链接、唯一锚点、阅读恢复和数据隔离；生产构建通过，jsQR普通script与超过500kB分块提示保留。本轮未跑全量测试；此前24项相关回归及compat历史超时的范围仅见[上一版记录](docs/reviews/prototype-workbench-20261103/implementation.md)，不能称本轮已重跑或全量通过。[独立评审](docs/reviews/page-documentation-20261103/finish-review.md)为限定源码／状态／SSR的SHIP，强更上下文与真实相机弹层映射均resolved；文档收尾检查见[本轮记录](docs/reviews/page-documentation-20261103/implementation.md)。
 
 历史实施记录中的「本地修改」「未推送」或站点版本号只描述当次状态，不作为最新交付结论。当前共享基线以实际 Git 分支、不可变标签及[交付台账](docs/releases/prototype-deliveries.md)为准；规则生效前的记录保留原提交，不补造日期版本。相关测试与构建的已执行结果见模块实施记录，不把文档整理视为重新运行全部检查或实际画面验收。
 

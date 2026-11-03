@@ -2,6 +2,7 @@ import React from "react";
 import { View } from "./runtime/components.jsx";
 import AppShell from "./components/AppShell.jsx";
 import DevicePreview from "./components/DevicePreview.jsx";
+import PrototypeWorkbench from "./components/PrototypeWorkbench.jsx";
 export default function App() {
   const s = {};
   return (
@@ -506,11 +507,13 @@ export default function App() {
           </View>
         </View>
       </View>
-      <View as="main" scope={s} className="stage" aria-label="知拍 App">
-        <DevicePreview>
-          <AppShell scope={s} args={[]} />
-        </DevicePreview>
-      </View>
+      <PrototypeWorkbench>
+        <View as="main" scope={s} className="stage" aria-label="知拍 App">
+          <DevicePreview>
+            <AppShell scope={s} args={[]} />
+          </DevicePreview>
+        </View>
+      </PrototypeWorkbench>
     </>
   );
 }

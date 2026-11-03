@@ -26,5 +26,6 @@ import "./styles/orders.css";
 import "./styles/photo-previews.css";
 import "./styles/specifications.css";
 import "./styles/utility-grid.css";
+import "./styles/prototype-workbench.css";
 initializeStores();
 createRoot(document.getElementById("root")).render(<App />);

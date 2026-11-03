@@ -57,7 +57,11 @@ function TaskSupport({ scope: s }) {
     </>
   );
 }
-export default function CollectionTaskDrawer({ scope: s }) {
+export default function CollectionTaskDrawer({
+  scope: s,
+  modal = true,
+  idPrefix = "collection-task",
+}) {
   const dialog = useRef(null),
     body = useRef(null);
   const attach = useCallback(
@@ -88,8 +92,8 @@ export default function CollectionTaskDrawer({ scope: s }) {
       data-panel={s.panel}
       ref={attach}
       role="dialog"
-      aria-modal="true"
-      aria-labelledby="collection-task-drawer-title"
+      aria-modal={modal}
+      aria-labelledby={`${idPrefix}-drawer-title`}
     >
       <header className="collection-auth-header">
         <span className="collection-drawer-symbol">
@@ -104,7 +108,7 @@ export default function CollectionTaskDrawer({ scope: s }) {
           />
         </span>
         <div>
-          <h2 id="collection-task-drawer-title">{s.panelTitle}</h2>
+          <h2 id={`${idPrefix}-drawer-title`}>{s.panelTitle}</h2>
           <p>
             {confirm
               ? "核对照片及本人信息后提交审核"

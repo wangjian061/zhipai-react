@@ -45,7 +45,10 @@ function PortraitGuide() {
   );
 }
 
-export default function CollectionTaskDetail({ scope: s }) {
+export default function CollectionTaskDetail({
+  scope: s,
+  idPrefix = "collection-task",
+}) {
   const record = s.current;
   if (!["detail", "complete"].includes(s.view) || !record) return null;
   const copy = s.status;
@@ -56,12 +59,12 @@ export default function CollectionTaskDetail({ scope: s }) {
     <div className="collection-task-detail" data-status={status}>
       <section
         className="collection-task-status"
-        aria-labelledby="collection-task-heading"
+        aria-labelledby={`${idPrefix}-heading`}
       >
         <div className="collection-task-status-row">
           <CollectionStatusArtwork status={status} />
           <div className="collection-task-status-copy">
-            <h1 id="collection-task-heading">{copy.label}</h1>
+            <h1 id={`${idPrefix}-heading`}>{copy.label}</h1>
             <p>
               {status === "rejected" && !s.canViewReviewReason
                 ? "请核对项目要求后重新拍摄"

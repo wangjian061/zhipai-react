@@ -16,6 +16,7 @@ import MyPage from "../pages/MyPage.jsx";
 import LiquidTabs from "../components/LiquidTabs.jsx";
 import PhotoPicker from "../components/PhotoPicker.jsx";
 import NativePhoneChrome from "./NativePhoneChrome.jsx";
+import ScenarioHost from "../workbench/ScenarioHost.jsx";
 export default function AppShell({ scope, args = [] }) {
   return (
     <Controller name="phoneDemo" args={args}>
@@ -35,7 +36,12 @@ export default function AppShell({ scope, args = [] }) {
         >
           <View as="div" scope={s} className="screen">
             <NativePhoneChrome />
-            <View as="div" scope={s} className="app-viewport">
+            <View
+              as="div"
+              scope={s}
+              className="app-viewport"
+              inert={!!s.$store.prototypeWorkspace?.active}
+            >
               <View
                 as="div"
                 scope={s}
@@ -172,6 +178,7 @@ export default function AppShell({ scope, args = [] }) {
               <View as="div" scope={s} id="collection-modal-layer"></View>
               <PhotoPicker scope={s} args={[]} />
             </View>
+            <ScenarioHost />
           </View>
         </View>
       )}

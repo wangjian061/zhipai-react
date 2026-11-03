@@ -1,6 +1,7 @@
 // Domain state is observed by React through useSyncExternalStore.
 // Only plain records/arrays are observed; browser objects and files keep native identity.
 const factories = new Map();
+const activeControllers = new Map();
 const stores = Object.create(null);
 const listeners = new Set();
 const watchers = new Set();
@@ -18,6 +19,18 @@ export function registerStore(name, state) {
 }
 export function getStore(name) {
   return stores[name];
+}
+// Read-only observation for the outside prototype workspace; never serializes form values.
+export function getControllerScopes() {
+  return Object.fromEntries(
+    [...activeControllers].map(([name, scopes]) => [name, [...scopes].at(-1)]),
+  );
+}
+// Demo controllers have no init/lifecycle and receive explicitly isolated stores and navigation.
+export function createDetachedController(name, overrides) {
+  const factory = factories.get(name);
+  if (!factory) throw new Error("Unknown controller: " + name);
+  return observable(Object.assign(factory(), overrides));
 }
 export function setDomainGlobals(values) {
   globals = values;
@@ -152,9 +165,15 @@ export function createController(name, args = [], parent = null) {
     scope: controller,
     refs: ownRefs,
     start() {
+      if (!activeControllers.has(name)) activeControllers.set(name, new Set());
+      activeControllers.get(name).add(controller);
+      markChanged();
       if (Object.hasOwn(state, "init")) controller.init?.();
     },
     stop() {
+      activeControllers.get(name)?.delete(controller);
+      if (!activeControllers.get(name)?.size) activeControllers.delete(name);
+      markChanged();
       if (Object.hasOwn(state, "destroy")) controller.destroy?.();
       disposers.forEach((remove) => remove());
     },

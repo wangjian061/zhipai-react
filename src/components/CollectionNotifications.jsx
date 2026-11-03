@@ -50,10 +50,11 @@ export default function CollectionNotifications({ scope: s }) {
               className={"collection-message-card " + (n.status || n.type)}
               data-status-tone={
                 n.type === "collection"
-                  ? s.statusFor(n.record.status).tone
+                  ? s.statusFor(n.status || n.record?.status).tone
                   : undefined
               }
               key={n.type + n.id}
+              data-message-id={n.type + ":" + n.id}
               onClick={() => s.openNotification(n)}
             >
               <span className="collection-notification-mark">
@@ -64,6 +65,13 @@ export default function CollectionNotifications({ scope: s }) {
               <span className="collection-notification-copy">
                 <span className="collection-notification-title">
                   <strong>{n.title}</strong>
+                  {n.read === false && (
+                    <span
+                      className="collection-message-unread"
+                      role="img"
+                      aria-label="未读"
+                    />
+                  )}
                   <time>{n.time}</time>
                 </span>
                 <span className="collection-notification-project">
@@ -77,7 +85,19 @@ export default function CollectionNotifications({ scope: s }) {
               {(n.record || n.projectId) && <CollectionIcon name="chevron" />}
             </button>
           ))}
-          {!s.notificationsShown.length && (
+          {s.notificationsError && (
+            <div className="collection-empty" role="alert">
+              <p>{s.notificationsError}</p>
+              <button
+                type="button"
+                className="account-text"
+                onClick={() => s.retryNotifications?.()}
+              >
+                重新读取
+              </button>
+            </div>
+          )}
+          {!s.notificationsError && !s.notificationsShown.length && (
             <div className="collection-empty">
               <CollectionIcon name="notification" />
               <p>暂无通知</p>

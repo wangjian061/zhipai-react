@@ -5,9 +5,10 @@ import {
   storageValue,
 } from "../runtime/state.js";
 
-// Local functional-prototype adapter. Replace SMS/carrier/OAuth and identity checks with server APIs before production.
+// Local functional-prototype adapter. Replace SMS/OAuth and identity checks with server APIs before production.
 const ACCOUNT_KEY = "zhipai-accounts-v1",
-  SESSION_KEY = "zhipai-session-v1";
+  SESSION_KEY = "zhipai-session-v1",
+  LAST_PHONE_KEY = "zhipai-last-login-phone-v1";
 function accountRoute(view = "welcome", back = "/?page=my") {
   const u = new URL(location.href);
   u.search = "";
@@ -40,12 +41,20 @@ async function accountHash(password, salt) {
 registerStore("account", {
   accounts: [],
   session: null,
+  lastPhone: "",
   error: "",
   init() {
     try {
       this.accounts = JSON.parse(localStorage.getItem(ACCOUNT_KEY) || "[]");
       const phone = localStorage.getItem(SESSION_KEY);
       this.session = this.accounts.find((a) => a.phone === phone) || null;
+      const remembered = localStorage.getItem(LAST_PHONE_KEY);
+      if (
+        /^1[3-9]\d{9}$/.test(remembered || "") &&
+        this.accounts.some((a) => a.phone === remembered)
+      )
+        this.lastPhone = remembered;
+      else if (this.session) this.rememberPhone(this.session.phone);
     } catch (_) {
       this.error = "账号记录未能读取，请重试。";
     }
@@ -83,6 +92,20 @@ registerStore("account", {
     if (provider && !account.providers.includes(provider))
       account.providers.push(provider);
     this.save(items, phone);
+    this.rememberPhone(phone);
+  },
+  rememberPhone(phone) {
+    this.lastPhone = phone;
+    try {
+      localStorage.setItem(LAST_PHONE_KEY, phone);
+    } catch (_) {}
+  },
+  forgetPhone(phone) {
+    if (this.lastPhone !== phone) return;
+    this.lastPhone = "";
+    try {
+      localStorage.removeItem(LAST_PHONE_KEY);
+    } catch (_) {}
   },
   update(change) {
     if (!this.session) throw Error("login");
@@ -123,6 +146,8 @@ registerController("accountFlow", () => ({
   epoch: 0,
   verifiedPhone: "",
   previousFocus: null,
+  loginActive: false,
+  usingRecentPhone: false,
   get account() {
     return this.$store.account;
   },
@@ -153,6 +178,47 @@ registerController("accountFlow", () => ({
   get validPhone() {
     return /^1[3-9]\d{9}$/.test(this.phone);
   },
+  get isLoginSurface() {
+    return ["welcome", "phone", "code", "password", "bind", "forgot"].includes(
+      this.view,
+    );
+  },
+  get displayRecentPhone() {
+    return (
+      this.usingRecentPhone &&
+      this.validPhone &&
+      this.phone === this.account.lastPhone
+    );
+  },
+  updatePhone(value) {
+    const next = value.replace(/\D/g, "").slice(0, 11);
+    if (next === this.phone) return;
+    this.phone = next;
+    this.usingRecentPhone = false;
+    this.challenge = null;
+    this.code = "";
+    this.verifiedPhone = "";
+    this.error = "";
+    this.notice = "";
+    clearInterval(this.clock);
+    this.seconds = 0;
+  },
+  changePhone() {
+    if (this.busy) return;
+    this.updatePhone("");
+    this.usingRecentPhone = false;
+    if (this.view === "code")
+      this.route(
+        this.codePurpose === "bind"
+          ? "bind"
+          : this.codePurpose === "reset"
+            ? "forgot"
+            : "phone",
+      );
+    this.$nextTick(() =>
+      this.$refs.accountPhone?.focus({ preventScroll: true }),
+    );
+  },
   get maskedPhone() {
     return this.phone.slice(0, 3) + " **** " + this.phone.slice(-4);
   },
@@ -180,12 +246,22 @@ registerController("accountFlow", () => ({
       this.password = "";
       this.oldPassword = "";
       this.confirmPassword = "";
+      this.phone = "";
+      this.provider = "";
+      this.agreed = false;
+      this.loginActive = false;
+      this.usingRecentPhone = false;
       clearInterval(this.clock);
       return;
     }
     if (this.view === "reset" && q.get("account") !== "reset")
       this.verifiedPhone = "";
     this.returnTo = accountSafeBack(q.get("back") || this.returnTo);
+    if (this.busy && q.get("account") !== this.view) {
+      this.epoch++;
+      this.busy = false;
+      this.panel = null;
+    }
     const allowed = [
       "welcome",
       "phone",
@@ -223,6 +299,20 @@ registerController("accountFlow", () => ({
     if (this.view === "code" && !this.challenge) this.view = "phone";
     if (this.view === "code" && this.challenge) this.startClock();
     if (this.view === "bind" && !this.provider) this.view = "welcome";
+    if (
+      ["welcome", "phone", "password"].includes(this.view) &&
+      this.account.loggedIn
+    ) {
+      this.leave();
+      return;
+    }
+    if (this.isLoginSurface && !this.loginActive) {
+      this.loginActive = true;
+      if (!this.phone && this.account.lastPhone) {
+        this.phone = this.account.lastPhone;
+        this.usingRecentPhone = true;
+      }
+    }
   },
   route(view) {
     if (this.busy) return;
@@ -255,9 +345,20 @@ registerController("accountFlow", () => ({
       this.route("security");
       return;
     }
-    if (["phone", "password", "forgot", "bind", "reset"].includes(this.view)) {
+    if (["welcome", "phone"].includes(this.view)) {
+      this.leave();
+      return;
+    }
+    if (["password", "forgot", "bind", "reset"].includes(this.view)) {
       if (this.view === "reset") this.verifiedPhone = "";
-      this.route(this.view === "reset" ? "password" : "welcome");
+      if (this.view === "bind") {
+        this.provider = "";
+        this.challenge = null;
+        this.code = "";
+      }
+      this.route(
+        ["reset", "forgot"].includes(this.view) ? "password" : "welcome",
+      );
       return;
     }
     this.leave();
@@ -297,14 +398,6 @@ registerController("accountFlow", () => ({
       clearInterval(this.clock);
       this.leave();
     });
-  },
-  oneTap() {
-    if (!this.consent()) return;
-    this.openPanel("carrier");
-  },
-  confirmCarrier() {
-    this.panel = null;
-    this.finish("13800008000");
   },
   thirdParty(kind) {
     if (!this.consent()) return;
@@ -351,7 +444,7 @@ registerController("accountFlow", () => ({
     ) {
       this.codePurpose = purpose;
       this.route("code");
-      this.notice = "本次验证码：123456";
+      this.notice = "原型演示验证码：123456";
       return;
     }
     this.codePurpose = purpose;
@@ -366,7 +459,7 @@ registerController("accountFlow", () => ({
     this.code = "";
     this.startClock();
     this.route("code");
-    this.notice = "本次验证码：123456";
+    this.notice = "原型演示验证码：123456";
   },
   startClock() {
     clearInterval(this.clock);
@@ -392,6 +485,7 @@ registerController("accountFlow", () => ({
   },
   verifyCode() {
     if (this.busy) return;
+    if (!this.consent()) return;
     if (
       !this.challenge ||
       this.challenge.phone !== this.phone ||
@@ -415,6 +509,8 @@ registerController("accountFlow", () => ({
     this.finish(this.phone, purpose === "bind" ? provider : "");
   },
   async passwordLogin() {
+    if (this.busy) return;
+    this.notice = "";
     if (!this.consent() || !this.validPhone) {
       if (!this.validPhone) this.error = "请输入有效的手机号";
       return;
@@ -498,6 +594,8 @@ registerController("accountFlow", () => ({
     });
   },
   openPanel(panel) {
+    if (!["oauth", "policy", "unbind", "logout", "delete"].includes(panel))
+      return;
     this.previousFocus = document.activeElement;
     this.error = "";
     this.panel = panel;
@@ -526,6 +624,7 @@ registerController("accountFlow", () => ({
     );
   },
   openPolicy(kind) {
+    if (!["service", "privacy"].includes(kind)) return;
     this.policy = kind;
     this.openPanel("policy");
   },
@@ -597,6 +696,7 @@ registerController("accountFlow", () => ({
         this.account.accounts.filter((a) => a.phone !== phone),
         null,
       );
+      this.account.forgetPhone(phone);
       this.code = "";
       this.panel = null;
       this.leave();
@@ -627,4 +727,11 @@ registerController("accountFlow", () => ({
     }
   },
 }));
-export { ACCOUNT_KEY, SESSION_KEY, accountRoute, accountSafeBack, accountHash };
+export {
+  ACCOUNT_KEY,
+  SESSION_KEY,
+  LAST_PHONE_KEY,
+  accountRoute,
+  accountSafeBack,
+  accountHash,
+};
