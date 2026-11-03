@@ -116,14 +116,18 @@ test("read/write failure does not erase history or falsely mark a message read",
   assert.match(broken.error, /读取通知/);
 });
 test("temporary write failure retains intervening result history until storage recovers", () => {
-  const storage = memory(), history = createMessageHistory(storage);
+  const storage = memory(),
+    history = createMessageHistory(storage);
   history.sync("a", [record("reviewing")], [project]);
   const save = storage.setItem;
-  storage.setItem = () => { throw Error("offline storage"); };
+  storage.setItem = () => {
+    throw Error("offline storage");
+  };
   history.sync("a", [record("complete", { updatedAt: 2 })], [project]);
   history.sync("a", [record("upload_failed", { updatedAt: 3 })], [project]);
   assert.equal(history.items.length, 2);
-  storage.setItem = save; history.retry();
+  storage.setItem = save;
+  history.retry();
   const restored = createMessageHistory(storage);
   restored.sync("a", [record("upload_failed", { updatedAt: 3 })], [project]);
   assert.equal(restored.items.length, 2);
@@ -232,7 +236,10 @@ test("nine helps and contact work without ready personal records; shared drawer 
   s.recordsStore.ready = false;
   const content = createServiceContent();
   assert.equal(content.questions.length, 9);
-  assert.ok(content.questions.find((q) => q.id === "chsi").steps.length >= 4);
+  const tutorial = content.questions.find((q) => q.id === "chsi");
+  assert.equal(tutorial.url, "https://www.zhipai.com.cn/h5/bystxcj.html");
+  assert.equal(tutorial.steps.length, 0);
+  assert.equal(tutorial.body, "");
   const previous = globalThis.document;
   globalThis.document = { activeElement: null };
   try {
@@ -254,6 +261,7 @@ test("nine helps and contact work without ready personal records; shared drawer 
   assert.ok(!html.includes("mailto:"));
   s.panel = null;
   html = renderToStaticMarkup(React.createElement(Services, { scope: s }));
-  assert.equal((html.match(/aria-haspopup="dialog"/g) || []).length, 9);
+  assert.equal((html.match(/aria-haspopup="dialog"/g) || []).length, 8);
+  assert.match(html, /href="https:\/\/www.zhipai.com.cn\/h5\/bystxcj.html"/);
   assert.ok(html.indexOf("联系知拍客服") < html.indexOf("采集帮助</h2>"));
 });

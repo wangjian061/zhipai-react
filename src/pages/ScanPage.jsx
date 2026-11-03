@@ -62,14 +62,18 @@ function Guide({ s }) {
                 </span>
                 <Icon name="chevron" />
               </button>
-              <button onClick={() => s.showGuide("chsi")}>
+              <a
+                href={guideContent.chsi.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Icon name="collection-id" />
                 <span>
                   <strong>学信网图像采集码</strong>
-                  <small>进入本人学信档案获取</small>
+                  <small>查看采集码获取教程</small>
                 </span>
                 <Icon name="chevron" />
-              </button>
+              </a>
             </div>
           </>
         ) : (
@@ -91,11 +95,11 @@ function Guide({ s }) {
         {s.guidePage === "chsi" && (
           <a
             className="scan-primary"
-            href="https://my.chsi.com.cn/archive/index.jsp"
+            href={guideContent.chsi.url}
             target="_blank"
             rel="noopener noreferrer"
           >
-            打开学信档案
+            查看获取教程
             <Icon name="arrow" />
           </a>
         )}

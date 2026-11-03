@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { parse } from "@babel/parser";
 import generateModule from "@babel/generator";
 import { transformWithOxc } from "vite";
+import { collectionCodeHelp } from "../src/domain/collection-code-help.js";
 const generate = generateModule.default || generateModule;
 async function compile(file, name, deps) {
   const ast = parse(fs.readFileSync(file, "utf8"), {
@@ -39,6 +40,7 @@ const View = await compile("src/runtime/components.jsx", "View", {
 });
 let currentState;
 const ScanPage = await compile("src/pages/ScanPage.jsx", "ScanPage", {
+  guideContent: collectionCodeHelp,
   View,
   Controller: ({ children }) => children(currentState),
   Portal: ({ children }) => children,
@@ -72,7 +74,7 @@ test("main scan markup keeps camera, album and help in approved order without an
   assert.ok(html.includes("image/jpeg,image/png,image/webp"));
   assert.ok(render({ ready: true, torchSupported: true }).includes("手电筒"));
 });
-test("help directory and both details are one dialog with complete inline copy and fixed footer, no iframe", () => {
+test("help retains institution copy and opens the shared CHSI tutorial instead of duplicate steps", () => {
   for (const guidePage of ["", "institution", "chsi"]) {
     const html = render({ guideOpen: true, guidePage });
     assert.equal((html.match(/role="dialog"/g) || []).length, 1);
@@ -82,11 +84,11 @@ test("help directory and both details are one dialog with complete inline copy a
     assert.ok(html.includes("<footer>"));
     assert.ok(!html.includes("iframe"));
     if (guidePage === "institution")
-      assert.ok(html.includes("联系本次采集负责人"));
+      assert.ok(html.includes("联系知拍客服协助核实"));
     if (guidePage === "chsi") {
-      assert.ok(html.includes("学信档案"));
+      assert.ok(html.includes("https://www.zhipai.com.cn/h5/bystxcj.html"));
       assert.ok(html.includes("noopener noreferrer"));
-      assert.ok(html.includes("不会索取学信网账号密码"));
+      assert.ok(!html.includes("登录本人学信网账号"));
     }
   }
 });

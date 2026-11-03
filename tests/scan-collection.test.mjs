@@ -3,6 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { createController, getStore } from "../src/runtime/state.js";
+import { collectionCodeHelp } from "../src/domain/collection-code-help.js";
 import {
   collectionCodeAdapter,
   collectionScanService,
@@ -438,12 +439,16 @@ test("one shared 15MB image rule distinguishes type and size, and closing a fail
   assert.equal(current.searchParams.get("page"), "home");
   ctx.close();
 });
-test("help has two local bodies, official external link, fixed actions and shared typography; missing iframe and false verification removed", () => {
+test("help uses one shared CHSI tutorial URL while retaining institution help and existing controls", () => {
   const page = fs.readFileSync("src/pages/ScanPage.jsx", "utf8"),
     css = fs.readFileSync("src/styles/scan.css", "utf8");
   assert.match(page, /机构／院校二维码/);
-  assert.match(page, /学信档案/);
-  assert.match(page, /my\.chsi\.com\.cn\/archive\/index\.jsp/);
+  assert.match(page, /guideContent\.chsi\.url/);
+  assert.equal(
+    collectionCodeHelp.chsi.url,
+    "https://www.zhipai.com.cn/h5/bystxcj.html",
+  );
+  assert.equal(collectionCodeHelp.chsi.steps.length, 0);
   assert.ok(!page.includes("iframe"));
   assert.ok(!page.includes("collection-code-guide.html"));
   assert.ok(!page.includes("验证采集码"));

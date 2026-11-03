@@ -1,8 +1,9 @@
-/* Solid status-color canvas; the translucent ticket, not the page, carries the fade. */
+/* Status color stays on the canvas and artwork; task copy sits on opaque white. */
 .collection-page:is([data-view="detail"], [data-view="complete"]) {
   --task-accent: var(--collection-status-blue, #1677ff);
+  --task-title-ink: #1d1d1f;
   --task-heading: #123d78;
-  --task-description: #27476d;
+  --task-description: #3f4248;
   --task-art-light: #69a9ff;
   --task-art-paper: #eff6ff;
   --task-outline: #a1c3ef;
@@ -20,7 +21,6 @@
   )[data-task-tone="orange"] {
   --task-accent: var(--collection-status-orange, #f97316);
   --task-heading: #9a3412;
-  --task-description: #7c401e;
   --task-art-light: #fbb477;
   --task-art-paper: #fff7ed;
   --task-outline: #f4c49d;
@@ -31,7 +31,6 @@
   )[data-task-tone="green"] {
   --task-accent: var(--collection-status-green, #16a34a);
   --task-heading: #14532d;
-  --task-description: #31563d;
   --task-art-light: #68cb8c;
   --task-art-paper: #f0fdf4;
   --task-outline: #9edbb4;
@@ -42,7 +41,6 @@
   )[data-task-tone="red"] {
   --task-accent: var(--collection-status-red, #ef4444);
   --task-heading: #881b1b;
-  --task-description: #753333;
   --task-art-light: #f78c8c;
   --task-art-paper: #fff1f2;
   --task-outline: #efb2b2;
@@ -100,21 +98,11 @@
   margin: 10px 16px 16px;
   padding: 0;
   min-width: 0;
-  border: 1px solid #ffffff9c;
+  border: 1px solid #fff;
   border-radius: 24px;
   overflow: hidden;
-  background: linear-gradient(
-    180deg,
-    #ffffffb3 0px,
-    #ffffffd9 100px,
-    #fffffff5 230px,
-    #fffffffa 360px
-  );
-  -webkit-backdrop-filter: blur(24px) saturate(115%);
-  backdrop-filter: blur(24px) saturate(115%);
-  box-shadow:
-    0 12px 30px -15px #20385829,
-    inset 0 1px 0 #ffffff70;
+  background: #fff;
+  box-shadow: 0 12px 30px -15px #20385829;
   animation: collection-section-enter 220ms ease-out;
 }
 .collection-task-status {
@@ -136,7 +124,7 @@
   line-height: 1.35;
   letter-spacing: 0.01em;
   font-weight: 750;
-  color: var(--task-accent);
+  color: var(--task-title-ink);
   margin: 0;
   overflow-wrap: anywhere;
 }

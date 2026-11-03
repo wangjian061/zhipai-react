@@ -60,10 +60,20 @@ export default function CollectionServices({ scope: s }) {
           ) : s.serviceContent.questions.length ? (
             s.serviceContent.questions.map((q) => (
               <div className="collection-faq" key={q.id}>
-                <button aria-haspopup="dialog" onClick={() => s.openHelp(q.id)}>
-                  <span>{q.title}</span>
-                  <CollectionIcon name="chevron" />
-                </button>
+                {q.url ? (
+                  <a href={q.url} target="_blank" rel="noopener noreferrer">
+                    <span>{q.title}</span>
+                    <CollectionIcon name="chevron" />
+                  </a>
+                ) : (
+                  <button
+                    aria-haspopup="dialog"
+                    onClick={() => s.openHelp(q.id)}
+                  >
+                    <span>{q.title}</span>
+                    <CollectionIcon name="chevron" />
+                  </button>
+                )}
               </div>
             ))
           ) : (

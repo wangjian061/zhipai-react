@@ -16,11 +16,7 @@ export function createServiceContent() {
         "如何获取机构／院校二维码？",
         "二维码由组织本次采集的机构或院校提供，通常随采集通知发送。查看已有采集通知，保存的二维码图片可从相册识别，现场二维码可直接扫描。仍未找到时，可联系知拍客服协助核实。",
       ],
-      [
-        "chsi",
-        "如何获取学信网图像采集码？",
-        "使用本人账号进入学信档案，查看本次采集对应学籍的图像采集码，保存完整清晰的图片，再返回知拍识别并核对信息。外部页面以学信网当前界面为准。",
-      ],
+      ["chsi", "如何获取学信网图像采集码？", ""],
       [
         "identity",
         "身份信息无法匹配或资料有误怎么办？",
@@ -56,6 +52,7 @@ export function createServiceContent() {
       title,
       body,
       steps: collectionCodeHelp[id]?.steps || [],
+      url: collectionCodeHelp[id]?.url || "",
     })),
   };
 }

@@ -74,9 +74,9 @@
 .collection-notification>svg{width:13px;height:13px;margin-top:9px;color:#9daabd;flex:none}
 .collection-faq{border-bottom:1px solid #edf1f7}
 .collection-faq:last-child{border:0}
-.collection-faq>button{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;width:100%;min-height:52px;font-size:13px;line-height:1.6;color:#344c6a}
+.collection-faq>:is(button,a){text-decoration:none;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;width:100%;min-height:52px;font-size:13px;line-height:1.6;color:#344c6a}
 .collection-faq svg{width:15px;height:15px;flex:none;color:#8b9bb1;transition:transform 180ms ease}
-.collection-faq>button[aria-expanded="true"] svg{transform:rotate(90deg)}
+.collection-faq>:is(button,a)[aria-expanded="true"] svg{transform:rotate(90deg)}
 .collection-faq>p{font-size:13px;line-height:1.8;color:#6b809e;padding:0 0 14px}
 .collection-contact-card{display:flex;align-items:center;gap:12px;border-radius:18px;background:#e2eaff;padding:20px 15px}
 .collection-contact-card>svg{width:37px;height:37px;padding:8px;color:#0032ff;background:#fff;border-radius:12px;flex:none}

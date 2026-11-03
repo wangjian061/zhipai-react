@@ -44,9 +44,21 @@ export default function CollectionSupportDrawer({
       <div className="collection-auth-body collection-support-body">
         {help ? (
           <>
-            <p>
-              {s.helpArticle?.body || "帮助内容暂时无法读取，请关闭后重试。"}
-            </p>
+            {s.helpArticle?.url ? (
+              <p>
+                <a
+                  href={s.helpArticle.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  查看获取教程
+                </a>
+              </p>
+            ) : (
+              <p>
+                {s.helpArticle?.body || "帮助内容暂时无法读取，请关闭后重试。"}
+              </p>
+            )}
             {!!s.helpArticle?.steps?.length && (
               <ol>
                 {s.helpArticle.steps.map((step) => (
