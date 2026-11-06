@@ -78,7 +78,7 @@ export default function OrderReceiptDialog({ s }) {
           onKeyDown={trap}
         >
           <header className="ui-sheet-header">
-            <h2 id="order-receipt-title">确认已收到照片？</h2>
+            <h2 id="order-receipt-title">{order.type === "print" ? "确认已收到照片？" : "确认已收到商品？"}</h2>
             <button
               className="order-payment-close"
               aria-label="关闭收货确认"

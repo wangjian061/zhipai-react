@@ -142,10 +142,9 @@ test("crop flows through real reactive routing into both layout previews and che
         type: "image/jpeg",
       }),
     };
+    await settle();
     await s.choosePhoto(oldPhoto, "phone");
-    assert.equal(s.view, "select");
-    assert.equal(s.layoutOptions.length, 0);
-    s.nextLayouts();
+    assert.equal(s.view, "layouts");
     await settle();
     const oldURLs = s.layoutOptions.map((p) => p.previewURL);
     const photo = {
@@ -159,8 +158,16 @@ test("crop flows through real reactive routing into both layout previews and che
       }),
     };
     await s.choosePhoto(photo, "phone");
-    assert.equal(s.view, "select");
-    s.nextLayouts();
+    assert.equal(s.view, "crop");
+    await s.previousStep();
+    await settle();
+    assert.equal(s.view, "layouts");
+    assert.equal(
+      s.draft.photo.id,
+      oldPhoto.id,
+      "cancel restores the previous valid input",
+    );
+    await s.choosePhoto(photo, "phone");
     assert.equal(s.view, "crop");
     s.setCrop({ scale: 1.5, offsetX: 50, offsetY: 30 });
     await s.applyCrop();
@@ -208,10 +215,10 @@ test("crop flows through real reactive routing into both layout previews and che
 
 test("layout markup has a sized preview stage and uses the current draft for all previews", () => {
   const page = fs.readFileSync(
-    new URL("../src/pages/PrintPage.jsx", import.meta.url),
+    new URL("../src/components/PrintWorkspace.jsx", import.meta.url),
     "utf8",
   );
-  assert.match(page, /className="print-paper-stage"/);
+  assert.match(page, /className="print-workspace-sheet"/);
   assert.doesNotMatch(page, /className="print-source-strip"/);
   assert.doesNotMatch(page, /href=\{s\.(selectedLayout\?|item)\.previewURL/);
   const css = fs.readFileSync(

@@ -1,3 +1,5 @@
+import {faceInFrame} from "./collection-shooting.js";
+import { captureDayAt, photoCaptureDate } from "./photo-date.js";
 import {
   CAMERA_DETECTION_CONFIG,
   CAMERA_DETECTION_SCENARIOS,
@@ -40,6 +42,25 @@ import {
 } from "./photo-making.js";
 // Personal photo production owns its stream and durable unlock session.
 import { paymentResult } from "./order-status.js";
+// These pages share the file picker but own their own selected photo and navigation.
+const externalPhotoIntents = new Set(["print", "toolStudio", "keepsake"]);
+// Capture a still at the sensor's native ratio. The caller decides where it is saved.
+export async function captureCameraPhoto(video) {
+  if (!video?.videoWidth || !video.videoHeight) throw Error("相机尚未就绪。");
+  const shutterTime = Date.now();
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+  const blob = await new Promise((resolve, reject) =>
+    canvas.toBlob(image => image ? resolve(image) : reject(Error("拍摄未完成，请重试。")), "image/jpeg", 0.95)
+  );
+  return {
+    id: "capture-" + albumPhotoId(), name: "拍摄照片.jpg", width: canvas.width, height: canvas.height,
+    type: blob.type, size: blob.size, blob, origin: "camera",
+    createdAt: shutterTime, captureDate: captureDayAt(shutterTime),
+  };
+}
 let liveCameraStream = null;
 let cameraDatabase;
 function openCameraDatabase() {
@@ -118,7 +139,10 @@ async function writeCameraSession(record, retiredOrder = null) {
             " × " +
             record.draft.outputHeight +
             " px",
-          photo: { blob: record.output || record.photo?.blob },
+          photo: {
+            blob: record.output || record.photo?.blob,
+            captureDate: record.photo?.captureDate,
+          },
         }),
       );
     t.oncomplete = () => {
@@ -219,6 +243,8 @@ registerController("cameraStudio", () => ({
   cameraStarting: false,
   cameraError: "",
   cameraGeneration: 0,
+  framingTimer: null,
+  framingState: "waiting",
   captureBusy: false,
   sourcePhoto: null,
   sourceURL: "",
@@ -285,6 +311,8 @@ registerController("cameraStudio", () => ({
         });
     };
     this.intentHandler = (e) => {
+      if (e.detail.intent === "collectionCapture" && ["front","rear"].includes(e.detail.captureMode))
+        this.lens = e.detail.captureMode === "rear" ? "back" : "front";
       this.editingFrom =
         e.detail.intent === "toolStudio"
           ? "tool-create"
@@ -295,7 +323,7 @@ registerController("cameraStudio", () => ({
     };
     this.chosenHandler = (e) => {
       const { context, photo, kind } = e.detail;
-      if (["print", "toolStudio"].includes(context.intent)) return;
+      if (externalPhotoIntents.has(context.intent)) return;
       if (
         context.replaceSession &&
         (context.replaceSession !== this.draft?.id ||
@@ -1318,7 +1346,7 @@ registerController("cameraStudio", () => ({
           this.busy)
       )
         return;
-      if (["print", "toolStudio"].includes(context.intent)) {
+      if (externalPhotoIntents.has(context.intent)) {
         window.dispatchEvent(
           new CustomEvent("zhipai-photo-chosen", {
             detail: {
@@ -1346,7 +1374,7 @@ registerController("cameraStudio", () => ({
       );
     } catch (_) {
       const message = "照片无法读取，请选择30 MB以内的 JPG、PNG 或 WebP。";
-      if (["toolStudio", "print"].includes(context.intent))
+      if (externalPhotoIntents.has(context.intent))
         window.dispatchEvent(
           new CustomEvent("zhipai-phone-error", {
             detail: {
@@ -1357,6 +1385,40 @@ registerController("cameraStudio", () => ({
         );
       else this.toast(message);
     }
+  },
+  get guidedLens() {
+    const mode=this.creationContext?.captureMode;
+    return this.collectionCapture && ["front","rear"].includes(mode) ? mode : null;
+  },
+  startFraming(video,generation) {
+    if(!this.guidedLens) return;
+    this.framingState="waiting";
+    let detector;
+    try { detector=new window.FaceDetector({maxDetectedFaces:2}); }
+    catch { this.framingState="demo"; return; }
+    let consecutive=0;
+    const check=async()=>{
+      if(this.cameraGeneration!==generation || !this.cameraReady || this.captureBusy) return;
+      try {
+        const faces=await detector.detect(video);
+        if(this.cameraGeneration!==generation || !this.cameraReady) return;
+        consecutive=faceInFrame(faces,video.videoWidth,video.videoHeight) ? consecutive+1 : 0;
+        this.framingState=consecutive>=2 ? "ready" : "waiting";
+        if(this.framingState==="ready" && this.guidedLens==="front") {
+          await this.capture();
+          if(this.cameraGeneration!==generation || this.step!=="capture") return;
+        }
+        this.framingTimer=setTimeout(check,450);
+      } catch {
+        if(this.cameraGeneration===generation) this.framingState="demo";
+      }
+    };
+    this.framingTimer=setTimeout(check,450);
+  },
+  demoFramingPass() {
+    if(!this.guidedLens || !this.cameraReady || this.framingState!=="demo") return;
+    this.framingState="ready";
+    if(this.guidedLens==="front") this.capture();
   },
   async startCamera() {
     if (
@@ -1398,7 +1460,10 @@ registerController("cameraStudio", () => ({
       const video = this.$refs.liveVideo;
       video.srcObject = stream;
       await video.play();
-      if (generation === this.cameraGeneration) this.cameraReady = true;
+      if (generation === this.cameraGeneration) {
+        this.cameraReady = true;
+        this.startFraming(video,generation);
+      }
     } catch (e) {
       if (generation === this.cameraGeneration) {
         this.stopCamera();
@@ -1412,6 +1477,8 @@ registerController("cameraStudio", () => ({
     }
   },
   stopCamera() {
+    clearTimeout(this.framingTimer);
+    this.framingState="waiting";
     this.cameraGeneration++;
     liveCameraStream?.getTracks().forEach((t) => t.stop());
     liveCameraStream = null;
@@ -1441,35 +1508,15 @@ registerController("cameraStudio", () => ({
     this.$refs.captureInput.click();
   },
   async capture() {
-    if (!this.cameraReady || this.busy) return;
+    if (!this.cameraReady || this.busy || (this.guidedLens && this.framingState!=="ready")) return;
     const video = this.$refs.liveVideo;
     if (!video.videoWidth || !video.videoHeight) return;
     this.captureBusy = true;
     const generation = this.cameraGeneration;
     try {
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext("2d").drawImage(video, 0, 0);
-      const blob = await new Promise((resolve, reject) =>
-        canvas.toBlob(
-          (b) => (b ? resolve(b) : reject(Error("capture"))),
-          "image/jpeg",
-          0.95,
-        ),
-      );
+      const photo = await captureCameraPhoto(video);
       if (generation !== this.cameraGeneration || !this.active) return;
-      await this.newDraft("camera", {
-        id: "capture-" + albumPhotoId(),
-        name: "拍摄照片.jpg",
-        width: canvas.width,
-        height: canvas.height,
-        type: blob.type,
-        size: blob.size,
-        blob,
-        origin: "camera",
-        createdAt: Date.now(),
-      });
+      await this.newDraft("camera", photo);
     } catch (_) {
       this.toast("拍摄未完成，请再试一次。");
     } finally {
@@ -2588,6 +2635,7 @@ registerController("cameraStudio", () => ({
         blob: this.outputBlob,
         rawBlob: this.sourcePhoto.blob,
         sourceId: this.sourcePhoto.id,
+        captureDate: await photoCaptureDate(this.sourcePhoto),
         origin: "made",
         ...(draft.order?.versionId
           ? {
@@ -2635,7 +2683,11 @@ registerController("cameraStudio", () => ({
     window.dispatchEvent(new Event("zhipai-route"));
   },
   finish() {
-    if (this.editingFrom === "tool-create" && this.creationContext) {
+    const keepsake = this.editingFrom === "keepsake";
+    if (
+      (keepsake || this.editingFrom === "tool-create") &&
+      this.creationContext
+    ) {
       const context = {
           ...this.creationContext,
         },
@@ -2649,15 +2701,14 @@ registerController("cameraStudio", () => ({
         u.origin === location.origin ? u : "/?page=home",
       );
       window.dispatchEvent(new Event("zhipai-route"));
-      if (photo)
+      if (photo || keepsake)
         window.dispatchEvent(
-          new CustomEvent("zhipai-photo-chosen", {
-            detail: {
-              context,
-              kind: "finished",
-              photo,
+          new CustomEvent(
+            keepsake ? "zhipai-keepsake-created" : "zhipai-photo-chosen",
+            {
+              detail: { context, kind: "finished", photo },
             },
-          }),
+          ),
         );
       return;
     }

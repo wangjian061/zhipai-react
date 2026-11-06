@@ -13,6 +13,8 @@ import * as tools from "./tools.js";
 import * as account from "./account.js";
 import * as collection from "./collection.js";
 import * as orders from "./orders.js";
+import "./keepsakes.js";
+import "./photo-actions.js";
 import { setDomainGlobals } from "../runtime/state.js";
 setDomainGlobals(
   Object.assign(

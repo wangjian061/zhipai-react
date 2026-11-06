@@ -119,7 +119,7 @@ function notificationSession(id, onExit) {
       type: "project",
       title: "采集安排调整",
       text: "请阅读本项目最新采集安排。",
-      body: "这是项目公告演示。请核对项目采集安排，并在项目开放期间完成拍摄和提交。\n\n已经提交审核的用户，可在采集记录查看当前办理进度。",
+      body: "这是项目公告演示。请核对项目采集安排，并在项目开放期间完成拍摄和提交。\n\n已经提交审核的用户，可在对应项目的当前采集任务中查看办理进度。",
       projectId: project.id,
       projectName: project.name,
       time: "昨天",

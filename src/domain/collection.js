@@ -1,3 +1,7 @@
+import {
+  collectionHistoryState,
+  returnCollectionHistory,
+} from "./collection-history.js";
 import { createMessageHistory } from "./collection-messages.js";
 import {
   createServiceContent,
@@ -17,7 +21,8 @@ import {
   resolveCollectionCode,
   validateCollectionCodeFile,
 } from "./collection-code.js";
-import { decodePhotoBlob, downloadAlbumBlob } from "./album.js";
+import {shootingGuides, skipShootingGuide, rememberShootingGuide} from "./collection-shooting.js";
+import { uploadedPhoto, decodePhotoBlob, downloadAlbumBlob } from "./album.js";
 import { readCollectionQRCode } from "./scan.js";
 import {
   COLLECTION_CATEGORIES,
@@ -269,6 +274,8 @@ const collectionAdapter = {
     };
   },
 };
+const APP_HOME_SECTION = "app-home";
+
 function collectionNavigate(
   view = "home",
   project = "",
@@ -276,6 +283,18 @@ function collectionNavigate(
   replace = false,
   context = {},
 ) {
+  // Aggregate pages remain retired; personal records require an explicit category.
+  if (view === "home" || (view === "records" && !COLLECTION_CATEGORIES.some(item => item.id === context.category))) {
+    if (COLLECTION_CATEGORIES.some(item => item.id === context.category)) {
+      view = "projects";
+      project = record = "";
+      context = { category: context.category };
+    } else {
+      history[replace ? "replaceState" : "pushState"]({page:"home"}, "", "/?page=home");
+      window.dispatchEvent(new Event("zhipai-route"));
+      return;
+    }
+  }
   const u = new URL(location.href);
   const orderBack = u.searchParams.get("orderBack");
   u.search = "";
@@ -285,9 +304,20 @@ function collectionNavigate(
   if (view !== "home") u.searchParams.set("view", view);
   if (project) u.searchParams.set("project", project);
   if (record) u.searchParams.set("record", record);
-  for (const key of ["category", "q", "from", "section", "message"])
+  for (const key of ["category", "q", "from", "section", "message", "search"])
     if (context[key]) u.searchParams.set(key, context[key]);
-  history[replace ? "replaceState" : "pushState"]({}, "", u);
+  const state = collectionHistoryState(u.href, location.href, history.state, replace);
+  if (context.section === APP_HOME_SECTION) {
+    const previous = new URL(location.href);
+    const page = previous.searchParams.get("page") || previous.searchParams.get("state") || "home";
+    const depth = history.state?.homeNotificationDepth;
+    if (page === "home" && view === "notifications" && !replace) {
+      state.homeNotificationDepth = 1;
+    } else if (page === "collection" && previous.searchParams.get("section") === APP_HOME_SECTION && Number.isSafeInteger(depth) && depth > 0) {
+      state.homeNotificationDepth = depth + (replace ? 0 : 1);
+    }
+  }
+  history[replace ? "replaceState" : "pushState"](state, "", u);
   window.dispatchEvent(new Event("zhipai-route"));
 }
 registerStore("collectionMessages", createMessageHistory());
@@ -416,13 +446,24 @@ registerController("collectionFlow", () => ({
   recordId: "",
   keyword: "",
   searchTerm: "",
+  dedicatedSearch: false,
   projectSearchReturnId: "",
   projectCategory: "all",
   helpOpen: "",
   sectionScroll: { home: 0, records: 0, services: 0 },
   category: "all",
-  recordFilter: "all",
+  recordCategory: "",
+  recordQuery: "",
+  recordFilters: {},
+  get recordFilter() {
+    return this.recordFilters[this.recordCategory || "all"] || "all";
+  },
+  set recordFilter(value) {
+    this.recordFilters[this.recordCategory || "all"] = value;
+  },
   panel: null,
+  shootingMode: "",
+  skipShootingPrompt: false,
   method: "id",
   identity: {
     name: "",
@@ -466,6 +507,7 @@ registerController("collectionFlow", () => ({
     );
   },
   get current() {
+    if (!this.recordId) return null;
     return this.records.find((r) => r.id === this.recordId) || null;
   },
   get statusKey() {
@@ -546,9 +588,22 @@ registerController("collectionFlow", () => ({
           )
       : [];
   },
+  get scopedRecords() {
+    return this.view === "records" && !!this.recordCategory;
+  },
+  get categoryRecordCountLabel() {
+    if (!this.account.session) return "登录后查看";
+    if (this.recordsStore.error) return "读取失败";
+    if (!this.recordsStore.ready) return "读取中…";
+    return this.recordsInCategory(this.projectCategory).length + " 条";
+  },
+  get recordListTitle() {
+    return this.categories.find(c => c.id === this.recordCategory)?.recordsTitle || "采集记录";
+  },
   get scrollKey() {
+    if (this.scopedRecords) return "records:" + this.recordCategory;
     return this.view === "projects"
-      ? "projects:" + this.projectCategory + ":" + this.searchTerm
+      ? (this.dedicatedSearch && this.projectCategory !== "all" ? "search:" : "projects:") + this.projectCategory + ":" + this.searchTerm
       : this.view;
   },
   get scrollHost() {
@@ -565,10 +620,10 @@ registerController("collectionFlow", () => ({
             : this.$refs.collectionScroll;
   },
   get isSection() {
-    return ["home", "records", "services"].includes(this.view);
+    return ["home", "records", "services"].includes(this.view) && !this.scopedRecords;
   },
   get isProjectSearch() {
-    return this.view === "projects" && this.projectCategory === "all";
+    return this.view === "projects" && (this.projectCategory === "all" || this.dedicatedSearch);
   },
   get actionableRecords() {
     return this.records.filter((r) => canEditCollectionPhoto(r.status));
@@ -675,30 +730,23 @@ registerController("collectionFlow", () => ({
   retryServiceContent() {
     this.serviceContent = createServiceContent();
   },
+  recordsInCategory(category) {
+    if (!category || category === "all") return this.records;
+    return this.records.filter(record =>
+      this.projects.find(project => project.id === record.projectId)?.type === category
+    );
+  },
   get filteredRecords() {
-    return this.records.filter(
-      (r) =>
-        (this.category === "all" ||
-          this.projects.find((p) => p.id === r.projectId)?.type ===
-            this.category) &&
-        (this.recordFilter === "all" ||
-          (this.recordFilter === "complete"
-            ? isCollectionFinished(r.status)
-            : !isCollectionFinished(r.status))),
+    return this.recordsInCategory(this.recordCategory || this.category).filter(
+      record => this.recordFilter === "all" ||
+        (isCollectionFinished(record.status) ? this.recordFilter === "complete" : this.recordFilter === "ongoing")
     );
   },
   get recordStatistics() {
-    const records = this.records;
     return [
-      { id: "all", name: "全部", count: records.length },
+      { id: "all", name: "全部", count: this.records.length },
       ...this.categories.map((category) => ({
-        id: category.id,
-        name: category.name,
-        count: records.filter(
-          (record) =>
-            this.projects.find((project) => project.id === record.projectId)
-              ?.type === category.id,
-        ).length,
+        id: category.id, name: category.name, count: this.recordsInCategory(category.id).length,
       })),
     ];
   },
@@ -729,7 +777,14 @@ registerController("collectionFlow", () => ({
     if (canEditCollectionPhoto(this.current?.status) && !this.canCollect)
       return this.projectState.label;
     if (this.needsPayment) return "支付并开始采集";
-    return this.busy ? "正在处理…" : this.status.primary;
+    if(!this.busy && this.statusKey==="pending" && this.current?.payment?.status==="paid") return "开始采集";
+    if (this.busy) return "正在处理…";
+    if (this.status.action === "records") return this.taskReturnLabel;
+    return this.status.primary;
+  },
+  get taskReturnLabel() {
+    return this.projectFrom === "notifications" ? "返回通知中心" :
+      this.projectFrom === "records" ? "返回采集记录" : "返回项目";
   },
   get needsPayment() {
     return (
@@ -742,7 +797,7 @@ registerController("collectionFlow", () => ({
   guardCollectionPayment() {
     if (this.current?.payment?.status === "paid") return true;
     if (this.needsPayment) this.openPayment();
-    else this.error = "采集任务状态异常，请返回采集记录后重试。";
+    else this.error = "采集任务状态异常，请返回项目后重试。";
     return false;
   },
   get collectionPrice() {
@@ -841,7 +896,6 @@ registerController("collectionFlow", () => ({
     }
     if (valid() && this.current?.payment?.status === "paid") {
       if (this.status.action === "submit") await this.submit();
-      else await this.capture();
     }
   },
   get identityMethods() {
@@ -958,7 +1012,7 @@ registerController("collectionFlow", () => ({
         employee: "身份认证",
         existing: "已有采集记录",
         requirements: "采集要求",
-        projectRecords: "当前采集记录",
+        projectRecords: "当前采集任务",
         reviewReason: this.failureReasonTitle,
         taskSupport: "客服支持",
         confirm: "确认提交",
@@ -991,6 +1045,9 @@ registerController("collectionFlow", () => ({
         this.resumeScan();
     };
     this.$watch?.("account.session.phone", () => {
+      this.recordFilters = {};
+      for (const key of Object.keys(this.sectionScroll))
+        if (key === "records" || key.startsWith("records:")) this.sectionScroll[key] = 0;
       this.panel = null;
       this.syncMessages();
       this.sync();
@@ -1053,10 +1110,19 @@ registerController("collectionFlow", () => ({
       this.releaseIdentity();
       return;
     }
+    const validRecords = q.get("view") === "records" && this.categories.some(c => c.id === q.get("category"));
+    if (!validRecords && !["projects", "project", "notifications", "announcement", "services", "detail", "complete"].includes(q.get("view"))) {
+      const linkedRecord = this.records.find(item => item.id === q.get("record"));
+      const linkedProject = this.projects.find(item => item.id === (linkedRecord?.projectId || q.get("project")));
+      collectionNavigate("home", "", "", true, {category: linkedProject?.type || q.get("category")});
+      return;
+    }
     this.task++;
     this.busy = false;
     this.dismissNotice();
     this.releaseIdentity();
+    const leftSearch = this.isProjectSearch;
+    const previousPanel = this.panel;
     this.view = [
       "project",
       "projects",
@@ -1069,9 +1135,13 @@ registerController("collectionFlow", () => ({
     ].includes(q.get("view"))
       ? q.get("view")
       : "home";
-    this.projectId = this.projects.some((p) => p.id === q.get("project"))
-      ? q.get("project")
-      : this.projectId;
+    this.dedicatedSearch = q.get("search") === "1" || (q.has("q") && ["projects","project"].includes(this.view));
+    this.recordCategory = validRecords ? q.get("category") : "";
+    if (validRecords) this.projectCategory = this.recordCategory;
+    this.recordQuery = "";
+    const linkedRecord = this.records.find(item => item.id === q.get("record"));
+    const linkedProject = this.projects.find(item => item.id === (linkedRecord?.projectId || q.get("project")));
+    if (linkedProject) this.projectId = linkedProject.id;
     if (this.view === "projects") {
       this.projectCategory = this.categories.some(
         (c) => c.id === q.get("category"),
@@ -1095,10 +1165,11 @@ registerController("collectionFlow", () => ({
       return;
     }
     const sections = ["home", "records", "services"];
-    this.notificationFrom = sections.includes(q.get("section"))
+    this.notificationFrom = [...sections, APP_HOME_SECTION].includes(q.get("section"))
       ? q.get("section")
       : "home";
     this.projectFrom = [
+      "project",
       "projects",
       "notifications",
       "announcement",
@@ -1106,18 +1177,21 @@ registerController("collectionFlow", () => ({
     ].includes(q.get("from"))
       ? q.get("from")
       : "home";
-    if (this.view === "project") {
-      this.projectCategory = this.categories.some(
-        (c) => c.id === q.get("category"),
-      )
-        ? q.get("category")
-        : "all";
+    if (["project", "detail", "complete"].includes(this.view)) {
+      this.projectCategory = this.dedicatedSearch && q.get("category") === "all"
+        ? "all" : linkedProject?.type || (this.categories.some(c => c.id === q.get("category")) ? q.get("category") : "all");
       this.projectQuery = q.get("q") || "";
     }
     this.recordId = q.get("record") || "";
     this.messageId = q.get("message") || "";
     this.error = "";
     this.panel = null;
+    const layer = history.state?.collectionCaptureLayer;
+    if (layer?.record === this.recordId && this.canChooseCapture) {
+      this.shootingMode = layer.mode || "";
+      this.panel = layer.guide && shootingGuides[layer.mode] ? "shootingGuide" : "captureMethod";
+      this.skipShootingPrompt = false;
+    }
     const syncToken = this.task;
     this.$nextTick(() => {
       if (syncToken !== this.task) return;
@@ -1125,6 +1199,9 @@ registerController("collectionFlow", () => ({
       this.markNotificationViewed();
       if (this.scrollHost)
         this.scrollHost.scrollTop = this.sectionScroll[this.scrollKey] || 0;
+      if (["captureMethod","shootingGuide"].includes(previousPanel) && !this.panel && this.isRecordView)
+        (this.previousFocus?.isConnected ? this.previousFocus : this.$refs.collectionScroll?.closest?.(".collection-page")?.querySelector(".collection-task-footer button"))?.focus?.({preventScroll:true});
+      if (leftSearch && !this.isProjectSearch && ["projects","home"].includes(this.view)) this.$refs.projectSearchEntry?.focus?.({preventScroll:true});
       if (
         this.view === "notifications" &&
         this.lastMessageId &&
@@ -1250,13 +1327,19 @@ registerController("collectionFlow", () => ({
     this.rememberScroll();
     collectionNavigate(view, "", "", true);
   },
-  openNotifications() {
+  openNotifications(fromAppHome = false) {
     if (this.busy || this.panel) return;
     if (!this.entryEnabled("notifications")) {
       this.showNotice("暂未开放这个功能");
       return;
     }
     this.notificationFilter = "all";
+    if (fromAppHome) {
+      this.lastMessageId = "";
+      this.sectionScroll.notifications = 0;
+      collectionNavigate("notifications", "", "", false, { section: APP_HOME_SECTION });
+      return;
+    }
     this.route("notifications", "", "", {
       section: this.isSection ? this.view : this.notificationFrom,
     });
@@ -1278,7 +1361,7 @@ registerController("collectionFlow", () => ({
       const record = this.records.find((item) => item.id === message.recordId);
       if (!record || !this.projects.some((p) => p.id === record.projectId)) {
         this.showNotice(
-          "该任务暂时无法查看，请在采集记录核实或联系客服。",
+          "该任务暂时无法查看，请进入对应项目核实或联系客服。",
           "warning",
           "manual",
         );
@@ -1343,48 +1426,34 @@ registerController("collectionFlow", () => ({
     this.rememberScroll();
     this.go("home");
   },
+  enterProjectSearch(term = "") {
+    if (this.busy || this.panel) return;
+    const category = this.view === "projects" ? this.projectCategory : "all";
+    this.projectSearchReturnId = "";
+    this.focusNewSearch = true;
+    this.sectionScroll[(category === "all" ? "projects:" : "search:") + category + ":" + term] = 0;
+    this.route("projects", "", "", { category, q:term, search:"1", section:this.notificationFrom });
+  },
   searchProjects() {
     if (this.busy || this.panel) return;
     const term = this.keyword.trim();
+    if (!this.isProjectSearch) return this.enterProjectSearch(term);
     this.keyword = term;
-    if (this.isProjectSearch) {
-      this.projectSearchReturnId = "";
-      if (term === this.searchTerm) {
-        this.sectionScroll[this.scrollKey] = 0;
-        if (this.scrollHost) this.scrollHost.scrollTop = 0;
-        return;
-      }
-      this.sectionScroll["projects:all:" + term] = 0;
-      this.rememberScroll();
-      collectionNavigate("projects", "", "", true, {
-        category: "all",
-        q: term,
-      });
+    this.projectSearchReturnId = "";
+    if (term === this.searchTerm) {
+      this.sectionScroll[this.scrollKey] = 0;
+      if (this.scrollHost) this.scrollHost.scrollTop = 0;
       return;
-    } else if (this.view !== "projects") {
-      this.projectSearchReturnId = "";
-      this.sectionScroll["projects:all:" + term] = 0;
     }
-    this.route("projects", "", "", {
-      category: this.view === "projects" ? this.projectCategory : "all",
-      q: term,
-    });
+    this.rememberScroll();
+    const category = this.projectCategory;
+    this.sectionScroll[(category === "all" ? "projects:" : "search:") + category + ":" + term] = 0;
+    collectionNavigate("projects", "", "", true, {category, search:"1", q:term, section:this.notificationFrom});
   },
   clearSearch() {
     if (this.busy || this.panel) return;
-    if (this.view === "projects") {
-      this.projectSearchReturnId = "";
-      if (this.isProjectSearch) {
-        this.rememberScroll();
-        this.sectionScroll["projects:all:"] = 0;
-        collectionNavigate("projects", "", "", true, { category: "all" });
-        return;
-      }
-      this.route("projects", "", "", { category: this.projectCategory });
-      return;
-    }
     this.keyword = "";
-    this.searchTerm = "";
+    if (this.isProjectSearch) this.searchProjects();
   },
   loginForRecords() {
     const view = ["services", "notifications"].includes(this.view)
@@ -1396,28 +1465,50 @@ registerController("collectionFlow", () => ({
       (view === "notifications"
         ? "&section=" + encodeURIComponent(this.notificationFrom)
         : "");
-    accountRoute("welcome", target);
+    accountRoute("welcome", this.scopedRecords ? location.pathname + location.search : target);
+  },
+  openCategoryRecords() {
+    if (this.busy || this.panel || this.view !== "projects" || this.isProjectSearch) return;
+    this.route("records", "", "", {
+      category: this.projectCategory, from: "projects", section: this.notificationFrom,
+    });
   },
   openProject(id) {
     this.releaseIdentity();
     if (!this.projects.some((p) => p.id === id)) return;
     this.route("project", id, "", {
       from: this.view,
+      search: this.isProjectSearch ? "1" : "",
       category: this.projectCategory,
       q: this.searchTerm,
       section: this.notificationFrom,
     });
   },
   openRecord(record) {
+    const owned = this.records.find(item => item.id === record?.id);
+    if (!owned) return;
     this.route(
-      isCollectionFinished(record.status) ? "complete" : "detail",
-      record.projectId,
-      record.id,
+      isCollectionFinished(owned.status) ? "complete" : "detail",
+      owned.projectId, owned.id,
       {
-        from: this.view === "notifications" ? "notifications" : "records",
+        from: this.view === "notifications" ? "notifications" : this.scopedRecords ? "records" : "project",
+        category: this.projects.find(item => item.id === owned.projectId)?.type,
         section: this.notificationFrom,
       },
     );
+  },
+  returnToProject() {
+    if (returnCollectionHistory("task")) return;
+    const q = new URLSearchParams(location.search);
+    const project = this.projects.find(item => item.id === (this.current?.projectId || q.get("project")));
+    if (this.projectFrom === "records" && (project || this.categories.some(c => c.id === q.get("category")))) {
+      collectionNavigate("records", "", "", true, {
+        category: project?.type || q.get("category"), from: "projects", section: this.notificationFrom,
+      });
+      return;
+    }
+    if (project) collectionNavigate("project", project.id, "", true, {from:"projects", category:project.type});
+    else collectionNavigate("home", "", "", true, {category:q.get("category")});
   },
   back() {
     if (!this.busy && !this.modal && !this.panel && returnToOrderCenter())
@@ -1437,11 +1528,40 @@ registerController("collectionFlow", () => ({
     }
     if (this.view === "notifications") {
       this.dismissNotice();
+      if (this.notificationFrom === APP_HOME_SECTION) {
+        const depth = history.state?.homeNotificationDepth;
+        if (Number.isSafeInteger(depth) && depth > 0 && depth < history.length) {
+          history.go(-depth);
+        } else {
+          // A direct link or a restored login has no known home history entry.
+          history.replaceState({ page: "home" }, "", "/?page=home");
+          window.dispatchEvent(new Event("zhipai-route"));
+        }
+        return;
+      }
       this.route(this.notificationFrom, "");
       return;
     }
+    if (this.isProjectSearch) {
+      this.rememberScroll();
+      if (!returnCollectionHistory("search"))
+        collectionNavigate(this.projectCategory === "all" ? "home" : "projects", "", "", true, {
+          category:this.projectCategory === "all" ? "" : this.projectCategory, section:this.notificationFrom,
+        });
+      return;
+    }
+    if (this.scopedRecords) {
+      this.rememberScroll();
+      if (!returnCollectionHistory("records"))
+        collectionNavigate("projects", "", "", true, {category:this.recordCategory, section:this.notificationFrom});
+      return;
+    }
     if (this.view === "projects") {
-      this.route("home", "");
+      if (this.projectCategory !== "all") {
+        this.rememberScroll();
+        if (!returnCollectionHistory("category"))
+          collectionNavigate("home", "", "", true);
+      } else this.route("home", "");
       return;
     }
     if (this.view === "project") {
@@ -1457,7 +1577,6 @@ registerController("collectionFlow", () => ({
               "album",
               "my",
               "collection",
-              "search",
               "specifications",
               "orders",
             ].includes(target.searchParams.get("page")) &&
@@ -1469,12 +1588,19 @@ registerController("collectionFlow", () => ({
           }
         } catch (_) {}
       }
-      this.route(this.projectFrom, "", "", {
-        category: this.projectCategory,
-        q: this.projectQuery,
-        section: this.notificationFrom,
-        message: this.messageId,
-      });
+      if (this.projectFrom === "projects" && (this.projectCategory !== "all" || this.dedicatedSearch)) {
+        this.rememberScroll();
+        if (returnCollectionHistory("project")) return;
+      }
+      if(this.projectFrom==="projects" && this.dedicatedSearch) {
+        collectionNavigate("projects","","",true,{category:this.projectCategory,search:"1",q:this.projectQuery,section:this.notificationFrom});
+        return;
+      }
+      if (["notifications", "announcement"].includes(this.projectFrom)) {
+        this.route(this.projectFrom, "", "", { section:this.notificationFrom, message:this.messageId });
+      } else {
+        collectionNavigate("projects", "", "", true, {category:this.project.type});
+      }
       return;
     }
     if (
@@ -1484,12 +1610,8 @@ registerController("collectionFlow", () => ({
       this.route("notifications", "", "", { section: this.notificationFrom });
       return;
     }
-    if (
-      isCollectionFinished(this.current?.status) &&
-      this.recordFilter === "ongoing"
-    )
-      this.recordFilter = "complete";
-    this.route(["project", "records"].includes(this.view) ? "home" : "records");
+    if (["detail", "complete"].includes(this.view)) this.returnToProject();
+    else collectionNavigate("home", "", "", true);
   },
   openRequirements() {
     if (this.busy || this.panel || this.view !== "project") return;
@@ -1584,6 +1706,13 @@ registerController("collectionFlow", () => ({
   },
   closePanel() {
     if (this.busy) return;
+    if (["captureMethod","shootingGuide"].includes(this.panel)) {
+      this.skipShootingPrompt=false;
+      if (history.state?.collectionCaptureLayer && typeof history.back === "function") {
+        history.back();
+      } else this.panel=this.panel==="shootingGuide" ? "captureMethod" : null;
+      return;
+    }
     this.releaseIdentity();
     this.panel = null;
     this.contactNotice = "";
@@ -1830,7 +1959,7 @@ registerController("collectionFlow", () => ({
       if (token !== this.task) return;
       this.releaseIdentity();
       this.busy = false;
-      this.route("detail", project.id, record.id);
+      this.openRecord(record);
     } catch (e) {
       if (token === this.task)
         this.error = /[\u4e00-\u9fff]/.test(e.message)
@@ -1853,28 +1982,64 @@ registerController("collectionFlow", () => ({
       return;
     }
     if (!this.guardCollectionPayment()) return;
-    const context = {
-      intent: "collectionCapture",
-      recordId: this.current.id,
-      returnTo:
-        "/?page=collection&view=detail&project=" +
-        this.projectId +
-        "&record=" +
-        this.current.id,
-    };
-    window.dispatchEvent(
-      new CustomEvent("zhipai-camera-open", {
-        detail: {
-          returnTo: context.returnTo,
-        },
-      }),
-    );
-    window.dispatchEvent(
-      new CustomEvent("zhipai-camera-intent", {
-        detail: context,
-      }),
-    );
-    this.go("camera");
+    if (this.panel || !this.canChooseCapture) return;
+    this.previousFocus = document.activeElement;
+    this.shootingMode = "";
+    this.setCaptureLayer(false);
+  },
+  get canChooseCapture() {
+    return this.isRecordView && !this.disabled && !!this.current && !this.current.fixture &&
+      this.current.payment?.status === "paid" && this.canCollect && canEditCollectionPhoto(this.current.status);
+  },
+  setCaptureLayer(guide) {
+    this.skipShootingPrompt = false;
+    this.error = "";
+    const layer = { record:this.recordId, mode:this.shootingMode, guide };
+    history.pushState({...history.state,collectionCaptureLayer:layer}, "", location.href);
+    this.panel = guide ? "shootingGuide" : "captureMethod";
+  },
+  chooseShootingMode(mode) {
+    if (this.panel !== "captureMethod" || !this.canChooseCapture || !Object.hasOwn(shootingGuides,mode)) return;
+    this.shootingMode = mode;
+    if (skipShootingGuide(mode)) this.launchCollectionCamera(mode);
+    else {
+      const picker=history.state?.collectionCaptureLayer;
+      if(picker) history.replaceState({...history.state,collectionCaptureLayer:{...picker,mode}},"",location.href);
+      this.setCaptureLayer(true);
+    }
+  },
+  acceptShootingGuide() {
+    if (this.panel !== "shootingGuide" || !this.canChooseCapture) return;
+    if (this.skipShootingPrompt) rememberShootingGuide(this.shootingMode);
+    this.launchCollectionCamera(this.shootingMode);
+  },
+  async useCaptureFile(file) {
+    if (this.panel !== "captureMethod" || !this.canChooseCapture) return;
+    const record = this.recordId, token=this.task;
+    try {
+      if (!file.size || file.size > 30*1048576 || !["image/jpeg","image/png","image/webp"].includes(file.type)) throw Error();
+      const photo = await uploadedPhoto(file);
+      if (this.task === token && this.panel === "captureMethod" && this.recordId === record && this.canChooseCapture)
+        this.launchCollectionCamera("album",photo);
+    } catch {
+      if(this.task === token && this.panel === "captureMethod") this.error="照片无法读取，请选择30 MB以内的 JPG、PNG 或 WebP。";
+    }
+  },
+  launchCollectionCamera(mode, photo=null) {
+    if(!this.canChooseCapture) return;
+    const context={intent:"collectionCapture", recordId:this.current.id, captureMode:mode,
+      returnTo:location.pathname+location.search};
+    const state={...history.state};
+    delete state.collectionCaptureLayer;
+    history.replaceState(state,"",location.href);
+    this.panel=null;
+    window.dispatchEvent(new CustomEvent("zhipai-camera-open",{detail:{returnTo:context.returnTo}}));
+    window.dispatchEvent(new CustomEvent("zhipai-camera-intent",{detail:context}));
+    if(photo) {
+      window.dispatchEvent(new CustomEvent("zhipai-photo-chosen",{detail:{
+        photo,kind:"phone",context:{intent:"camera",exitTo:context.returnTo,cameraCaller:"collectionCapture",cameraCreationContext:context}
+      }}));
+    } else this.go("camera");
   },
   async acceptPhoto(detail) {
     const record = this.recordsStore.items.find(
@@ -1997,7 +2162,7 @@ registerController("collectionFlow", () => ({
     else if (this.status.action === "submit") this.submit();
     else if (this.status.action === "download") this.download();
     else if (this.status.action === "support") this.openTaskSupport();
-    else this.route("records");
+    else this.back();
   },
   trap(e) {
     if (e.key === "Escape") {

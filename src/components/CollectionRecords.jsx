@@ -20,15 +20,15 @@ export default function CollectionRecords({ scope: s }) {
   useLayoutEffect(() => {
     if (list.current)
       list.current.scrollTop = s.sectionScroll[s.scrollKey] || 0;
-  }, [s, s.view, s.account.session?.phone]);
+  }, [s, s.view, s.scrollKey, s.account.session?.phone]);
   if (s.view !== "records") return null;
   return (
     <>
       <CollectionHeader
-        title="采集记录"
+        title={s.recordListTitle}
         subtitle="进度追踪 · 照片归档"
         image="assets/collection-icon-records.webp"
-        onBack={() => s.exitCollection()}
+        onBack={() => (s.scopedRecords ? s.back() : s.exitCollection())}
       />
       <div className="collection-inner collection-records-inner collection-section-container">
         {!s.account.session ? (
@@ -43,45 +43,47 @@ export default function CollectionRecords({ scope: s }) {
           </div>
         ) : (
           <>
-            <nav
-              className="collection-record-statistics"
-              aria-label="采集记录类型"
-            >
-              {s.recordStatistics.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={
-                    (s.category === item.id ? "is-selected " : "") +
-                    (item.count === 0 ? "is-empty" : "")
-                  }
-                  aria-pressed={s.category === item.id}
-                  aria-label={`${item.name}，${item.count}条记录`}
-                  onClick={() => {
-                    s.category = item.id;
-                    if (list.current) list.current.scrollTop = 0;
-                    s.sectionScroll.records = 0;
-                  }}
-                >
-                  <span className="collection-stat-art" aria-hidden="true">
-                    <img
-                      src={
-                        item.id === "all"
-                          ? "assets/collection-icon-records.webp"
-                          : s.categories.find(
-                              (category) => category.id === item.id,
-                            )?.iconImage
-                      }
-                      alt=""
-                      width="38"
-                      height="38"
-                    />
-                    <strong>{item.count}</strong>
-                  </span>
-                  <span className="collection-stat-label">{item.name}</span>
-                </button>
-              ))}
-            </nav>
+            {!s.scopedRecords && (
+              <nav
+                className="collection-record-statistics"
+                aria-label="采集记录类型"
+              >
+                {s.recordStatistics.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={
+                      (s.category === item.id ? "is-selected " : "") +
+                      (item.count === 0 ? "is-empty" : "")
+                    }
+                    aria-pressed={s.category === item.id}
+                    aria-label={`${item.name}，${item.count}条记录`}
+                    onClick={() => {
+                      s.category = item.id;
+                      if (list.current) list.current.scrollTop = 0;
+                      s.sectionScroll[s.scrollKey] = 0;
+                    }}
+                  >
+                    <span className="collection-stat-art" aria-hidden="true">
+                      <img
+                        src={
+                          item.id === "all"
+                            ? "assets/collection-icon-records.webp"
+                            : s.categories.find(
+                                (category) => category.id === item.id,
+                              )?.iconImage
+                        }
+                        alt=""
+                        width="38"
+                        height="38"
+                      />
+                      <strong>{item.count}</strong>
+                    </span>
+                    <span className="collection-stat-label">{item.name}</span>
+                  </button>
+                ))}
+              </nav>
+            )}
             <div
               className="collection-record-filters"
               role="group"
@@ -99,7 +101,7 @@ export default function CollectionRecords({ scope: s }) {
                     onClick={() => {
                       s.toggleRecordFilter(filter.id);
                       if (list.current) list.current.scrollTop = 0;
-                      s.sectionScroll.records = 0;
+                      s.sectionScroll[s.scrollKey] = 0;
                     }}
                   >
                     <span
@@ -121,6 +123,21 @@ export default function CollectionRecords({ scope: s }) {
               tabIndex={0}
               aria-label="采集记录列表"
             >
+              {s.recordsStore.error ? (
+                <div className="collection-service-empty" role="alert">
+                  <p>采集记录读取失败，请重试。</p>
+                  <button
+                    className="account-text"
+                    onClick={() => s.recordsStore.load()}
+                  >
+                    重新读取
+                  </button>
+                </div>
+              ) : !s.recordsStore.ready ? (
+                <p className="collection-service-empty" role="status">
+                  正在读取采集记录…
+                </p>
+              ) : null}
               {s.filteredRecords.map((record) => (
                 <CollectionRecordCard
                   key={record.id}
@@ -136,7 +153,9 @@ export default function CollectionRecords({ scope: s }) {
                     <p>还没有这类采集记录</p>
                     <button
                       className="account-text"
-                      onClick={() => s.route("home")}
+                      onClick={() =>
+                        s.scopedRecords ? s.back() : s.route("home")
+                      }
                     >
                       查看采集项目
                     </button>

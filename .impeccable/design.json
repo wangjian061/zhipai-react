@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-22T06:26:04.042Z",
+  "generatedAt": "2026-11-04T12:02:56Z",
   "title": "Design System: 知拍",
   "extensions": {
     "colorMeta": {
@@ -269,6 +269,20 @@
           "oklch(84% 0.06773 160.08)",
           "oklch(95% 0.06773 160.08)"
         ]
+      },
+      "body-ink": {
+        "role": "neutral",
+        "displayName": "通用正文蓝灰（复用既有#53637B）",
+        "tonalRamp": [
+          "oklch(15% 0.04331 258.35)",
+          "oklch(26% 0.04331 258.35)",
+          "oklch(38% 0.04331 258.35)",
+          "oklch(49% 0.04331 258.35)",
+          "oklch(61% 0.04331 258.35)",
+          "oklch(72% 0.04331 258.35)",
+          "oklch(84% 0.04331 258.35)",
+          "oklch(95% 0.04331 258.35)"
+        ]
       }
     },
     "typographyMeta": {
@@ -313,12 +327,7 @@
       {
         "name": "公共内容卡",
         "value": "0 2px 8px #29496b06,0 6px 18px -10px #29496b0d",
-        "purpose": "普通内容卡与首页专项卡，来自ui-foundations.css。"
-      },
-      {
-        "name": "连贯宫格内容卡当前覆盖",
-        "value": "0 4px 14px -7px #26344a1c",
-        "purpose": "utility-grid.css当前生效；与已确认公共卡阴影存在差异，待单独统一。"
+        "purpose": "普通内容卡、首页专项、宫格及照片纪念品双入口白卡共同复用--ui-card-shadow；两项产品并排，上为浅薄荷／浅米灰底产品图，下为白底产品名；字号和字重同其它采集，省略箭头与角标。邮折内页正视，商品图使用3D人物；纪念品选图复用常用工具抽屉，照片单选确认与独立制作入口分开；2026-11-04已移除utility-grid旧硬编码覆盖。"
       },
       {
         "name": "底部容器",
@@ -372,7 +381,378 @@
         "name": "订单胶囊局部换行排列",
         "value": "(max-width: 370px)"
       }
-    ]
+    ],
+    "freeToolWorkspace": {
+      "confirmedAt": "2026-11-04",
+      "status": "local implementation; awaiting acceptance",
+      "mode": "operate",
+      "tools": [
+        "crop",
+        "background",
+        "format",
+        "resize"
+      ],
+      "navigation": "Existing ToolNavigation, no stepper or previous-step action",
+      "photo": {
+        "component": "ToolWorkspacePlaceholder",
+        "asset": "/assets/photo-placeholder-3d-20261105.webp",
+        "ratio": "5/7",
+        "maxWidth": "200px",
+        "fit": "contain",
+        "ground": "portrait-ground",
+        "purpose": "Selection affordance only; never a processing input",
+        "palette": "pale blue photo ground; natural-material 3D adult",
+        "shadows": "none",
+        "outerContainer": "transparent; no fill, border or shadow",
+        "maxHeight": "280px",
+        "selectionCaption": "请选择您的照片",
+        "realPhotoMaxWidth": "250px"
+      },
+      "settings": "Reuse each tool existing settings card; allow preselection without a photo",
+      "actions": {
+        "component": "PhotoSelectionActions",
+        "empty": "选取照片",
+        "selected": [
+          "更换照片",
+          "保存到设备"
+        ],
+        "retry": "重试保存"
+      },
+      "portraitCheck": "Only background, automatically in this workspace; pass opens options silently; failure and error stay here",
+      "scope": "Default-photo refinement shared by all seven workspaces; real-photo geometry and processing are unchanged"
+    },
+    "personalBusiness": {
+      "confirmedAt": "2026-11-04",
+      "status": "local_pending_user_acceptance",
+      "sources": [
+        "docs/product/personal-business-upgrade-20261104.md",
+        "docs/reviews/personal-business-upgrade-20261104/approved/README.md"
+      ],
+      "workspaces": {
+        "services": [
+          "repair",
+          "outfit",
+          "crop",
+          "background",
+          "format",
+          "resize",
+          "print"
+        ],
+        "independentSelectionPage": false,
+        "topStepper": false,
+        "portraitCheck": [
+          "repair",
+          "outfit",
+          "background"
+        ],
+        "ratioCheck": {
+          "print": "5:7"
+        },
+        "resizePrimary": "确认修改"
+      },
+      "sharedComponents": [
+        "ToolNavigation",
+        "PhotoSelectionPreview",
+        "PhotoSelectionActions",
+        "ToolResult",
+        "SharedSheet",
+        "PhotoOperations",
+        "ShippingAddressFields"
+      ],
+      "photoOperations": [
+        "print",
+        "repair",
+        "outfit",
+        "crop",
+        "background",
+        "format",
+        "resize",
+        "postcard",
+        "stamp"
+      ],
+      "home": {
+        "personalToolSearch": false,
+        "brandHeader": {
+          "brandSizePx": 17,
+          "brandWeight": 600,
+          "brandMark": {
+            "tilePx": 23,
+            "imageWidthPx": 15,
+            "gapPx": 7
+          },
+          "tagline": {
+            "text": "拍照片，用知拍！",
+            "asset": "public/assets/home-brand-tagline.svg",
+            "lettering": "Long Cang Regular",
+            "designSizePx": 23,
+            "maxArtWidthPx": 172,
+            "outlineWidthAtMaxSizePx": 0.18,
+            "maxAreaWidthPx": 184,
+            "areaHeightPx": 44,
+            "align": "center both axes",
+            "licenseRecord": "docs/assets/home-brand-tagline.md"
+          },
+          "background": "diffuse light blue, slight violet at right, blending into the page",
+          "pageSurface": "#F1F5FD",
+          "outerContentCard": false,
+          "taglineAreaToCollectionPx": 4,
+          "mascot": "zhipai-mascot.webp, chest-up with camera, aligned with collection card top edge",
+          "notification": {
+            "touchSizePx": 44,
+            "surfacePx": 38,
+            "unreadDotPx": 8,
+            "source": "app-home"
+          },
+          "bodyPx": 92,
+          "sticky": {
+            "extent": "status area through the mascot lower edge",
+            "contentAlwaysVisible": [
+              "logo",
+              "brand",
+              "tagline",
+              "mascot",
+              "notifications"
+            ],
+            "whenOverContent": "order masthead",
+            "lowerShadow": "0 3px 8px -4px rgb(32 56 88 / .18)",
+            "whenClear": "brand background, no shadow",
+            "reducedTransparency": "solid"
+          }
+        },
+        "collectionCategories": [
+          "graduate",
+          "enrollment",
+          "association"
+        ],
+        "otherDisplayName": "其它采集",
+        "assetProvenance": "docs/assets/home-collection-cards-20261105.json",
+        "collectionCards": {
+          "heading": "证照采集",
+          "layout": "native horizontal scroll with seamless motion",
+          "railInsetStartPx": 16,
+          "railInsetEndPx": 0,
+          "keywordInk": {
+            "毕业生": "#395F92",
+            "新生": "#8D581B"
+          },
+          "initialView": "2 full cards + half of third",
+          "gapPx": 8,
+          "radiusPx": 14,
+          "paddingPx": 12,
+          "art": "centered waist-up portrait cropped at the edge of a themed image area",
+          "themes": {
+            "graduate": [
+              "#EAF4FF",
+              "#C7DDF8"
+            ],
+            "enrollment": [
+              "#FFF7D8",
+              "#FFE1B0"
+            ],
+            "association": [
+              "#EAF6EF",
+              "#C8E4D6"
+            ]
+          },
+          "caption": "live DOM text in a separate white region",
+          "motion": {
+            "autoplay": false,
+            "currentBehavior": "manual horizontal scroll only; retain position after release",
+            "implementationRetained": true,
+            "speedPxPerSec": 8,
+            "initialHoldMs": 2000,
+            "manualRestMs": 5000,
+            "playButton": false,
+            "reducedMotion": "manual",
+            "indicator": false
+          },
+          "title": {
+            "fontSizePx": 12,
+            "lineHeightPx": 18,
+            "weight": 650,
+            "wrap": false
+          },
+          "subtitle": {
+            "fontSizePx": 12,
+            "lineHeightPx": 18,
+            "weight": 400,
+            "wrap": false
+          }
+        },
+        "afterTools": [
+          "postcard",
+          "stamp"
+        ],
+        "collectionNavigation": {
+          "categoryPage": [
+            "themed header",
+            "scoped search entry",
+            "personal category-record entry with truthful count",
+            "project list"
+          ],
+          "recordEntry": {
+            "component": "collection-center-entry collection-record-entry",
+            "minHeightPx": 52,
+            "titles": {
+              "graduate": "毕业生采集记录",
+              "enrollment": "新生采集记录",
+              "association": "其它采集记录"
+            },
+            "states": [
+              "signed-out login hint",
+              "loading",
+              "read error",
+              "successful count including zero"
+            ]
+          },
+          "taskEntry": "personal category records, specific project current-tasks sheet or notification",
+          "return": "task → originating category records with filters and scroll, project or notification; records → originating category; project → source category or scoped search",
+          "legacy": "valid category record routes stay active; replace aggregate home/unscoped record-list routes with category projects or app home"
+        }
+      },
+      "profileHeader": {
+        "bodyPx": 92,
+        "accountLayout": "avatar beside account and security",
+        "bear": "waving, upper body",
+        "photoCardOverlapPx": 16
+      },
+      "recentPhotos": {
+        "maxItems": 6,
+        "order": "createdAt_desc",
+        "scroll": "horizontal",
+        "presentation": "clipped matte photo paper on sagging line",
+        "motion": {
+          "periodMs": 5800,
+          "windDegrees": 4,
+          "returnDegrees": -3,
+          "reducedMotion": "static"
+        },
+        "retainAlbumTab": true
+      },
+      "keepsakes": {
+        "postcard": {
+          "templates": 4,
+          "photosPerOrder": 1,
+          "templatesPerOrder": 1,
+          "setsPerOrder": 1,
+          "itemsPerSet": 1
+        },
+        "stamp": {
+          "templates": 1,
+          "photosPerOrder": 1,
+          "templatesPerOrder": 1,
+          "setsPerOrder": 1,
+          "sheetsPerSet": 1,
+          "slotsPerSheet": 5,
+          "productGallery": {
+            "assetVersion": "20261106",
+            "defaultView": "inner",
+            "views": [
+              "inner",
+              "open",
+              "cover",
+              "back"
+            ],
+            "source": "docs/assets/stamp-product-20261106/README.md",
+            "format": "lossless WebP with alpha, identical to generated PNG pixels",
+            "homeArtWidth": "82% including built-in transparent margin; no rectangular canvas shadow",
+            "scope": "home entry and product gallery only; editable pane and order output unchanged"
+          },
+          "compositionGroups": [
+            "center",
+            "corners"
+          ],
+          "eligibility": "student ID required before checkout; reviewed after payment",
+          "rejection": "cancel and refund full amount to original method"
+        },
+        "pricing": "replaceable_demo_config",
+        "production": "not_connected"
+      },
+      "verification": {
+        "browserUsed": false,
+        "screenshotsTaken": false,
+        "visualAcceptance": "pending",
+        "nativeCapabilities": "pending"
+      },
+      "readability": {
+        "sharedBy": [
+          "photoActions",
+          "albumStudio"
+        ],
+        "requiresDecode": true,
+        "failureAction": "重新读取",
+        "blockActionsUntilReady": true,
+        "ignoreStaleCompletion": true,
+        "repeatedImageErrorDoesNotRemount": true
+      },
+      "shippingAddress": {
+        "sharedContract": "src/domain/shipping-address.js",
+        "fields": [
+          "name",
+          "phone",
+          "region",
+          "street",
+          "postal",
+          "default"
+        ],
+        "readOrderSnapshotForProtectedOrder": true
+      },
+      "downloadFeedback": "request_started_only",
+      "refinedAt": "2026-11-05",
+      "photoSheet": {
+        "heading": "精选服务",
+        "columns": 3,
+        "rows": 3,
+        "footer": [
+          "下载电子照片"
+        ],
+        "photoSize": "112×156.8px",
+        "gap": "16px",
+        "metadata": "inline label/value rows; natural wrap; right aligned values"
+      },
+      "outfitCatalogue": {
+        "source": "用户提供：统一图片.zip",
+        "men": 14,
+        "women": 20,
+        "children": 17,
+        "snapshot": true,
+        "legacyOrderCompatibility": true
+      },
+      "printPresentation": {
+        "name": "照片冲印",
+        "exampleOnlyWhenEmpty": true,
+        "previewDoesNotSelect": true,
+        "sourceAfterSelection": "current actual/cropped input",
+        "viewer": "existing dark image viewer",
+        "systemBack": "close layer before page"
+      },
+      "menuBacking": "All floating menus use masthead fill and blur only where visible content intersects their safe area.",
+      "homeRecommendation": "red 推荐 on repair, postcard and stamp only; no independent action",
+      "projectAndHelpSearch": "dedicated page scoped to its source; results and empty state share that page",
+      "recentPhotoLine": "manual horizontal scrolling only; keep position after release; individual prints gently sway unless reduced motion is enabled",
+      "collectionShootingGuide": "300px center dialog after capture-method sheet; opt out independently for front and rear on confirmation; album bypasses guide",
+      "albumSpaces": {
+        "tabs": [
+          "我的照片",
+          "家人照片",
+          "证件照片"
+        ],
+        "family": "per member ID; one required display name, trimmed and max 30 chars; avatar and photo count; no relationship field or label; legacy names and associations preserved, legacy relationship is name fallback only; member opens SharedSheet with the existing three-column dated photo grid and fixed add-photo footer; returning from detail restores grid position",
+        "addPhoto": "shared picker: device multi-select, My Photos single copy, ordinary camera with retake and confirmation into that member",
+        "documentIcons": "identity card, medical card, car, passport globe, general document; shared SpecificationIcon geometry, blue-grey palette, 24px in existing 44px holder",
+        "documents": "document types expand/collapse inline, at most one open; doctype persists expanded state, no secondary type page; keep semantic icons and existing rows; record opens existing SharedSheet; view/delete only, no replace or supplement; per-side and whole deletion require confirmation, retain remaining side and holder; missing face shows 未添加; final-side/whole deletion returns to expanded type and updates count/focus; failed writes retain record and confirmation for retry; stale snapshots rejected transactionally",
+        "detail": "Shared bottom sheet for mine, family, documents and personal center; mine, personal center and single family photo reuse the existing left-photo/right-facts summary, featured services and fixed download footer; document per-side layout stays unchanged; photos enlarge separately; preserve list, source and focus",
+        "date": "YYYY/MM/DD only; capture day first, else known addition day, source in accessible label",
+        "storage": "family and document spaces local per signed-in account",
+        "finishedActions": "direct delete-photo action below featured services in the body, fixed download footer unchanged; shared confirmation, cancel, busy guard and retry on failure; unreadable records remain deletable; keep library batch management; family deletion affects that member copy only and retains an empty member"
+      },
+      "keepsakeComposition": {
+        "entry": "full-width selected preview; postcard 点击调整照片; stamp 点击调整照片",
+        "sheet": "shared crop controls, apply on 完成, discard on dismiss",
+        "postcard": "one window; 90° CCW/CW turns of the photo, stationary paper and type, same crop used at checkout",
+        "stamp": "center and corners"
+      }
+    }
   },
   "components": [
     {
@@ -387,8 +767,8 @@
       "name": "浅底次按钮",
       "kind": "button",
       "refersTo": "button-secondary",
-      "description": "浅底次要操作；仅流程允许回退的工作步骤使用，终态不显示上一步。",
-      "html": "<button type=\"button\" class=\"ds-button-secondary\">上一步</button>",
+      "description": "公共次要动作；工作页用于更换照片，确认页可回到原工作页，终态不显示上一步。",
+      "html": "<button type=\"button\" class=\"ds-button-secondary\">更换照片</button>",
       "css": ".ds-button-secondary{display:flex;align-items:center;justify-content:center;width:100%;min-height:var(--ui-button-height, 48px);border-radius:var(--ui-button-radius, 14px);padding:0 16px;font-size:var(--ui-button-font, 15px);line-height:1.4;font-weight:600;}.ds-button-secondary{background:#eef2fa;color:#334d78;margin-top:12px;}.ds-button-secondary{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-button-secondary{border:0;cursor:pointer;transition:transform 160ms var(--ease,cubic-bezier(.2,.75,.25,1)),color 180ms var(--ease,cubic-bezier(.2,.75,.25,1));}.ds-button-secondary:focus-visible{outline:3px solid var(--brand-blue,#0032ff);outline-offset:3px;}.ds-button-secondary:not(:disabled):active{transform:scale(.98);}.ds-button-secondary:disabled{cursor:default;}@media(prefers-reduced-motion:reduce){.ds-button-secondary{transition:none;}}"
     },
     {
@@ -416,34 +796,32 @@
       "css": ".ds-status-tabs{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-status-tabs button{--filter-ink:#425878;--filter-fill:#edf2fa;--filter-selected:#dbe6f8;--filter-stroke:#91a8ca;display:grid;place-items:center;min-height:44px;min-width:44px;padding:10px 0;border:0;background:transparent;color:var(--filter-ink);}.ds-status-tabs [data-status=\"paid\"]{--filter-ink:#216449;--filter-fill:#ebf6ef;--filter-selected:#d5ecdf;--filter-stroke:#80b397;}.ds-status-tabs span{display:block;padding:2px 10px;border:1px solid transparent;border-radius:16px;background:var(--filter-fill);font-size:12px;line-height:18px;white-space:nowrap;font-weight:500;}.ds-status-tabs .ds-active span{border-color:var(--filter-stroke);background:var(--filter-selected);color:var(--filter-ink);font-weight:600;}.ds-status-tabs button:active span{background:var(--filter-selected);}.ds-status-tabs button{font-family:inherit;cursor:pointer;}.ds-status-tabs button:focus-visible{outline:2px solid var(--brand-blue,#0032ff);outline-offset:2px;}"
     },
     {
-      "name": "个人中心快捷卡",
+      "name": "个人中心近期照片卡",
       "kind": "card",
-      "refersTo": "content-card",
-      "description": "实际普通16px内容卡实例：白底、16px留白、公共极轻阴影。示例数量为静态示意，不读取账号数据。",
-      "html": "<button type=\"button\" class=\"ds-quick-card\"><span class=\"ds-quick-heading\"><strong>我的相册</strong></span><span class=\"ds-quick-count\"><b>8</b><span>张照片</span></span></button>",
-      "css": ".ds-quick-card{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-quick-card{display:flex;flex-direction:column;gap:20px;text-align:left;min-width:0;background:#fff;border-radius:var(--ui-card-radius, 16px);padding:16px;box-shadow:var(--card-shadow, var(--ui-card-shadow, 0 2px 8px #29496b06,0 6px 18px -10px #29496b0d));}.ds-quick-heading{display:flex;align-items:center;gap:7px;width:100%;color:var(--ui-heading, #203858);}.ds-quick-heading strong{font-size:14px;font-weight:600;white-space:nowrap;}.ds-quick-count{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;}.ds-quick-count b{font-size:28px;line-height:1;font-weight:650;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--ui-heading, #203858);}.ds-quick-count>span{font-size:11px;color:var(--ui-muted, #73849a);}.ds-quick-card{border:0;cursor:pointer;}.ds-quick-card:focus-visible{outline:2px solid var(--brand-blue,#0032ff);outline-offset:3px;border-radius:12px;}.ds-quick-card:active{transform:scale(.96);}@media(prefers-reduced-motion:reduce){.ds-quick-card{transition:none;}}"
+      "description": "账号区下最多6张真实近期照片横向列表；本面板用中性照片位示意结构，不读取本地照片或编造用户记录。公共白卡、16px留白及标题沿用现有组件。完整相册的缩略图下左对齐显示真实拍摄日（YYYY/MM/DD，12px字、18px行高、上距4px），拍摄日未知且有添加日时仅显示日期数字，读屏保留来源，两者均未知时省略。相册详情及个人中心照片抽屉将拍摄日期排在制作时间之前。",
+      "html": "<section class=\"ds-recent-card\"><header><h2>我的照片</h2><button type=\"button\">进入相册 <span aria-hidden=\"true\">›</span></button></header><div class=\"ds-recent-strip\" aria-label=\"照片位置示意\"><div></div><div></div><div></div></div></section>",
+      "css": ".ds-recent-card{padding:16px;background:#fff;border-radius:var(--ui-card-radius);color:var(--ui-heading);max-width:370px}.ds-recent-card header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.ds-recent-card h2{margin:0;font-size:16px;font-weight:650;line-height:24px}.ds-recent-card button{border:0;background:transparent;color:var(--ui-heading);min-height:44px;font-size:13px;cursor:pointer}.ds-recent-card button:hover{color:var(--brand-blue)}.ds-recent-card button:focus-visible{outline:2px solid var(--brand-blue);outline-offset:3px}.ds-recent-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:12px}.ds-recent-strip>div{flex:none;width:80px;height:112px;background:#F1F2F4}"
     },
     {
       "name": "首页连贯八宫格",
       "kind": "custom",
       "refersTo": "utility-grid",
-      "description": "复用首页真实图形与宫格CSS。四列两行、极淡连线，规格页使用相同组件三列并独立承载名称和数字尺寸。",
-      "html": "<section class=\"ds-utility-card\"><h2>常用工具</h2><div class=\"ds-grid\"><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path fill=\"var(--tool-icon-light)\" d=\"M6 3h12v7H6z\"/><path fill=\"currentColor\" d=\"M5 8h14a3 3 0 0 1 3 3v6h-4v-4H6v4H2v-6a3 3 0 0 1 3-3Z\"/><path fill=\"var(--tool-icon-accent)\" d=\"M7 14h10v7H7z\"/><circle fill=\"var(--tool-icon-light)\" cx=\"18.5\" cy=\"11\" r=\"1\"/></svg></span><span>冲印照片</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><rect fill=\"var(--tool-icon-light)\" x=\"3\" y=\"4\" width=\"16\" height=\"17\" rx=\"3\"/><path fill=\"currentColor\" d=\"m11 6 1.8 5.2L18 13l-5.2 1.8L11 20l-1.8-5.2L4 13l5.2-1.8Z\"/><path fill=\"var(--tool-icon-accent)\" d=\"m19 1 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z\"/></svg></span><span>照片精修</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path fill=\"currentColor\" d=\"m8 3-6 4 3 5 3-1v10h12V11l2 1 2-5-6-4c-1.2 2.7-5.5 2.7-7 0Z\" transform=\"translate(-1 0)\"/><path fill=\"var(--tool-icon-light)\" d=\"m9 3 3 4 3-4-3 1Z\"/><path fill=\"var(--tool-icon-accent)\" d=\"M11.3 7h1.4v12h-1.4z\"/></svg></span><span>照片换装</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><rect fill=\"var(--tool-icon-light)\" x=\"2\" y=\"4\" width=\"20\" height=\"16\" rx=\"3\"/><circle fill=\"currentColor\" cx=\"8\" cy=\"10\" r=\"2.3\"/><path fill=\"currentColor\" d=\"M4.5 17v-1a3.5 3.5 0 0 1 7 0v1Z\"/><path fill=\"var(--tool-icon-accent)\" d=\"M14 9h5v1.5h-5zm0 4h5v1.5h-5z\"/></svg></span><span>证照规格</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path fill=\"var(--tool-icon-light)\" d=\"M7 7h11v11H7z\"/><path fill=\"currentColor\" d=\"M5 2h2v15h15v2H5Z\"/><path fill=\"var(--tool-icon-accent)\" d=\"M2 5h17v17h-2V7H2Z\"/></svg></span><span>照片裁剪</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><rect fill=\"var(--tool-icon-light)\" x=\"2\" y=\"2\" width=\"16\" height=\"17\" rx=\"3\"/><rect fill=\"var(--tool-icon-accent)\" x=\"6\" y=\"6\" width=\"16\" height=\"16\" rx=\"3\"/><circle fill=\"var(--tool-icon-light)\" cx=\"17.5\" cy=\"10.5\" r=\"1.5\"/><path fill=\"currentColor\" d=\"m7 19 5-6 4 4 2-2 4 4v1H7Z\"/></svg></span><span>更换背景</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path fill=\"var(--tool-icon-light)\" d=\"M5 2h9l5 5v14H5z\"/><path fill=\"currentColor\" d=\"M14 2v5h5ZM3 11h12v2H3zm6-3 4 4-4 4-1.4-1.4 2.6-2.6-2.6-2.6Z\"/><path fill=\"var(--tool-icon-accent)\" d=\"M11 17h10v2H11zm4-3 1.4 1.4-2.6 2.6 2.6 2.6L15 22l-4-4Z\"/></svg></span><span>格式转换</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"var(--tool-icon-light)\" d=\"M6 2h9l5 5v15H6z\" />\n        <path\n          fill=\"currentColor\"\n          d=\"M15 2v5h5ZM2 10h2v4h4v2H2Zm1.7 4.3 6-6L11 9.7l-6 6Z\"\n        />\n        <path\n          fill=\"var(--tool-icon-accent)\"\n          d=\"M22 19h-6v-2h4v-4h2Zm-8.7-8.7 1.4-1.4 6 6-1.4 1.4Z\"\n        /></svg></span><span>修改体积</span></button></div></section>",
-      "css": ".ds-utility-card{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-utility-card{padding:16px;border-radius:20px;background:#fff;box-shadow:0 4px 14px -7px #26344a1c;}.ds-grid{--utility-columns:4;--utility-divider:#f1f4f8;display:grid;grid-template-columns:repeat(var(--utility-columns), minmax(0, 1fr));grid-auto-rows:1fr;gap:0;margin-top:16px;border:1px solid var(--utility-divider);border-radius:12px;overflow:hidden;}.ds-grid[data-columns=\"3\"]{--utility-columns:3;}.ds-grid > .ds-grid-item{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:76px;gap:6px;padding:8px 4px;border:0;border-radius:0;background:transparent;box-shadow:none;font-size:13px;font-weight:500;line-height:20px;color:#4f5f76;text-align:center;overflow-wrap:anywhere;}.ds-grid:not([data-columns=\"3\"]) > .ds-grid-item:not(:nth-child(4n)),\n.ds-grid[data-columns=\"3\"] > .ds-grid-item:not(:nth-child(3n)){border-inline-end:1px solid var(--utility-divider);}.ds-grid:not([data-columns=\"3\"]) > .ds-grid-item:nth-child(n + 5),\n.ds-grid[data-columns=\"3\"] > .ds-grid-item:nth-child(n + 4){border-block-start:1px solid var(--utility-divider);}.ds-grid > .ds-grid-item:focus-visible{position:relative;z-index:1;outline-offset:-3px;}.ds-grid > .ds-grid-item:active{transform:none;}.ds-grid > .ds-grid-item:not([aria-disabled=\"true\"]):active{background:#f4f7ff;}.ds-grid .ds-grid-icon{--tool-icon-light:#e5ebf4;--tool-icon-accent:#6583bc;position:relative;display:grid;place-items:center;flex:none;width:32px;height:32px;color:#7488a3;}.ds-grid .ds-grid-icon svg{width:24px;height:24px;stroke:none;}.ds-grid > .ds-grid-item > span:not(.ds-grid-icon){width:100%;}.ds-grid-detail{display:block;flex:none;min-height:18px;font-size:12px;font-weight:400;line-height:18px;color:#59677a;}.ds-grid-label{display:flex;flex:none;align-items:center;justify-content:center;min-height:40px;line-height:20px;white-space:normal;overflow-wrap:anywhere;}.ds-utility-card>h2{margin:0;font-size:16px;font-weight:650;line-height:24px;color:var(--ui-heading,#203858);}.ds-grid-item{font-family:inherit;cursor:pointer;}.ds-grid-item:focus-visible{outline:3px solid var(--brand-blue,#0032ff);}"
+      "description": "首页四列两行，保留八项入口与四个免费角标；标题至宫格8px，单格最小60px，图形24px、标签13px。蓝灰主体与小面积品牌蓝紫点缀。规格、相册宫格保留各自密度。",
+      "html": "<section class=\"ds-utility-card\"><h2>常用工具</h2><div class=\"ds-grid\"><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg class=\"home-tool-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path fill=\"var(--tool-icon-light)\" d=\"M6 3h12v7H6z\"></path><path fill=\"currentColor\" d=\"M5 8h14a3 3 0 0 1 3 3v6h-4v-4H6v4H2v-6a3 3 0 0 1 3-3Z\"></path><path fill=\"var(--tool-icon-accent)\" d=\"M7 14h10v7H7z\"></path><circle fill=\"var(--tool-icon-detail, var(--tool-icon-light))\" cx=\"18.5\" cy=\"11\" r=\"1.35\"></circle></svg></span><span>照片冲印</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg class=\"home-tool-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><rect fill=\"var(--tool-icon-light)\" x=\"3\" y=\"4\" width=\"16\" height=\"17\" rx=\"3\"></rect><path fill=\"currentColor\" d=\"m11 6 1.8 5.2L18 13l-5.2 1.8L11 20l-1.8-5.2L4 13l5.2-1.8Z\"></path><path fill=\"var(--tool-icon-detail, var(--tool-icon-accent))\" d=\"m19 1 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z\"></path></svg></span><span>照片精修</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg class=\"home-tool-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path fill=\"currentColor\" d=\"m8 3-6 4 3 5 3-1v10h12V11l2 1 2-5-6-4c-1.2 2.7-5.5 2.7-7 0Z\" transform=\"translate(-1 0)\"></path><path fill=\"var(--tool-icon-light)\" d=\"m9 3 3 4 3-4-3 1Z\"></path><path fill=\"var(--tool-icon-detail, var(--tool-icon-accent))\" d=\"M11.3 7h1.4v12h-1.4z\"></path></svg></span><span>照片换装</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg class=\"home-tool-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><rect fill=\"var(--tool-icon-light)\" x=\"2\" y=\"4\" width=\"20\" height=\"16\" rx=\"3\"></rect><circle fill=\"currentColor\" cx=\"8\" cy=\"10\" r=\"2.3\"></circle><path fill=\"currentColor\" d=\"M4.5 17v-1a3.5 3.5 0 0 1 7 0v1Z\"></path><path fill=\"var(--tool-icon-detail, var(--tool-icon-accent))\" d=\"M14 9h5v1.5h-5zm0 4h5v1.5h-5z\"></path></svg></span><span>照片规格</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg class=\"home-tool-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path fill=\"var(--tool-icon-light)\" d=\"M7 7h11v11H7z\"></path><path fill=\"currentColor\" d=\"M5 2h2v15h15v2H5Z\"></path><path fill=\"var(--tool-icon-detail, var(--tool-icon-accent))\" d=\"M2 5h17v17h-2V7H2Z\"></path></svg><small aria-label=\"免费\">免</small></span><span>修改尺寸</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg class=\"home-tool-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><rect fill=\"var(--tool-icon-light)\" x=\"2\" y=\"2\" width=\"16\" height=\"17\" rx=\"3\"></rect><rect fill=\"var(--tool-icon-accent)\" x=\"6\" y=\"6\" width=\"16\" height=\"16\" rx=\"3\"></rect><circle fill=\"var(--tool-icon-detail, var(--tool-icon-light))\" cx=\"17.5\" cy=\"10.5\" r=\"1.8\"></circle><path fill=\"currentColor\" d=\"m7 19 5-6 4 4 2-2 4 4v1H7Z\"></path></svg><small aria-label=\"免费\">免</small></span><span>更换背景</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg class=\"home-tool-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path fill=\"var(--tool-icon-light)\" d=\"M5 2h9l5 5v14H5z\"></path><path fill=\"currentColor\" d=\"M14 2v5h5ZM3 11h12v2H3zm6-3 4 4-4 4-1.4-1.4 2.6-2.6-2.6-2.6Z\"></path><path fill=\"var(--tool-icon-detail, var(--tool-icon-accent))\" d=\"M11 17h10v2H11zm4-3 1.4 1.4-2.6 2.6 2.6 2.6L15 22l-4-4Z\"></path></svg><small aria-label=\"免费\">免</small></span><span>格式转换</span></button><button class=\"ds-grid-item\" type=\"button\"><span class=\"ds-grid-icon\"><svg class=\"home-tool-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path fill=\"var(--tool-icon-light)\" d=\"M6 2h9l5 5v15H6z\"></path><path fill=\"currentColor\" d=\"M15 2v5h5ZM2 10h2v4h4v2H2Zm1.7 4.3 6-6L11 9.7l-6 6Z\"></path><path fill=\"var(--tool-icon-detail, var(--tool-icon-accent))\" d=\"M22 19h-6v-2h4v-4h2Zm-8.7-8.7 1.4-1.4 6 6-1.4 1.4Z\"></path></svg><small aria-label=\"免费\">免</small></span><span>修改大小(kb)</span></button></div></section>",
+      "css": ".ds-utility-card{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-utility-card{padding:16px;border-radius:20px;background:#fff;box-shadow:var(--ui-card-shadow);}.ds-grid{--utility-columns:4;--utility-divider:#f1f4f8;display:grid;grid-template-columns:repeat(var(--utility-columns), minmax(0, 1fr));grid-auto-rows:1fr;gap:0;margin-top:8px;border:1px solid var(--utility-divider);border-radius:12px;overflow:hidden;}.ds-grid[data-columns=\"3\"]{--utility-columns:3;}.ds-grid > .ds-grid-item{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:60px;gap:3px;padding:5px 3px;border:0;border-radius:0;background:transparent;box-shadow:none;font-size:13px;font-weight:500;line-height:20px;color:#4f5f76;text-align:center;overflow-wrap:anywhere;}.ds-grid:not([data-columns=\"3\"]) > .ds-grid-item:not(:nth-child(4n)),\n.ds-grid[data-columns=\"3\"] > .ds-grid-item:not(:nth-child(3n)){border-inline-end:1px solid var(--utility-divider);}.ds-grid:not([data-columns=\"3\"]) > .ds-grid-item:nth-child(n + 5),\n.ds-grid[data-columns=\"3\"] > .ds-grid-item:nth-child(n + 4){border-block-start:1px solid var(--utility-divider);}.ds-grid > .ds-grid-item:focus-visible{position:relative;z-index:1;outline-offset:-3px;}.ds-grid > .ds-grid-item:active{transform:none;}.ds-grid > .ds-grid-item:not([aria-disabled=\"true\"]):active{background:#f4f7ff;}.ds-grid .ds-grid-icon{--tool-icon-light:#e5ebf4;--tool-icon-accent:#6583bc;position:relative;display:grid;place-items:center;flex:none;width:26px;height:26px;color:#7488a3;}.ds-grid .ds-grid-icon svg{width:24px;height:24px;stroke:none;}.ds-grid > .ds-grid-item > span:not(.ds-grid-icon){width:100%;}.ds-grid-detail{display:block;flex:none;min-height:18px;font-size:12px;font-weight:400;line-height:18px;color:#59677a;}.ds-grid-label{display:flex;flex:none;align-items:center;justify-content:center;min-height:40px;line-height:20px;white-space:normal;overflow-wrap:anywhere;}.ds-utility-card>h2{margin:0;font-size:16px;font-weight:650;line-height:24px;color:var(--ui-heading,#203858);}.ds-grid-item{font-family:inherit;cursor:pointer;}.ds-grid-item:focus-visible{outline:3px solid var(--brand-blue,#0032ff);}.ds-grid-icon{--tool-icon-detail:color-mix(in srgb,var(--brand-blue,#0032ff) 57%,#8192bb)}.ds-grid-item:nth-child(even) .ds-grid-icon{--tool-icon-detail:color-mix(in srgb,var(--brand-purple,#7323fa) 50%,#8595bd)}.ds-grid-icon small{position:absolute;right:-4px;bottom:-2px;width:16px;height:12px;text-align:center;border-radius:3px;background:#f3ead6;color:#806329;font-size:9px;line-height:12px}"
     },
     {
-      "name": "工具步骤进度",
-      "kind": "nav",
-      "refersTo": "tool-stepper",
-      "description": "仅显示进度；示例第二步为当前，不支持点击跳步。完成、当前、未开始同时呈现。",
-      "html": "<nav class=\"ds-stepper\" aria-label=\"制作步骤\"><ol style=\"grid-template-columns:repeat(3,minmax(0,1fr))\"><li class=\"ds-done\"><span class=\"ds-step-number\">1</span><span class=\"ds-step-label\">选择照片</span></li><li class=\"ds-current\" aria-current=\"step\"><span class=\"ds-step-number\">2</span><span class=\"ds-step-label\">照片精修</span></li><li><span class=\"ds-step-number\">3</span><span class=\"ds-step-label\">保存照片</span></li></ol></nav>",
-      "css": ".ds-stepper{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-stepper{flex:none;margin:0 16px 4px;padding:8px 0;background:transparent;}.ds-stepper > ol{display:grid;list-style:none;margin:0;padding:0;}.ds-stepper li{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;color:#73849a;text-align:center;}.ds-stepper li:not(:first-child)::before{content:\"\";position:absolute;top:12px;left:calc(-50% + 12px);right:calc(50% + 12px);height:1px;background:#dce3ee;pointer-events:none;}.ds-stepper li:is(.ds-current, .ds-done)::before{background:#b9c7ff;}.ds-step-number{position:relative;display:grid;place-items:center;flex:none;width:24px;height:24px;border:1px solid #dce3ee;border-radius:50%;background:transparent;font-size:12px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;}.ds-step-label{max-width:100%;padding-inline:4px;font-size:12px;line-height:18px;}.ds-stepper .ds-current .ds-step-number{border-color:var(--brand-blue, #0032ff);background:var(--brand-blue, #0032ff);color:#fff;}.ds-stepper .ds-done .ds-step-number{border-color:var(--brand-blue, #0032ff);color:var(--brand-blue, #0032ff);}.ds-stepper .ds-current .ds-step-label{color:var(--brand-blue, #0032ff);font-weight:600;}.ds-stepper .ds-done .ds-step-label{color:#415574;}@media (max-width: 360px){.ds-stepper{margin-inline:14px;}}"
+      "name": "固定头尾公共抽屉",
+      "kind": "custom",
+      "description": "SharedSheet复用ui-sheet的标题、右上关闭、独立滚动正文与固定底栏。用于照片详情、纪念品地址、付款及原单查询；示例不执行真实关闭或交易。 邮票调整构图采用此抽屉，邮票纸面独立预览，中央／四角分组，缩放、左右、上下常显；完成应用，关闭或返回放弃草稿。",
+      "html": "<section class=\"ds-sheet\" role=\"group\" aria-label=\"照片详情抽屉结构\"><header><h2>照片详情</h2><button type=\"button\" aria-label=\"关闭\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m6 6 12 12M18 6 6 18\"/></svg></button></header><div class=\"ds-sheet-body\"><p>照片与真实信息</p><p>精选服务：三列九项，包含照片冲印</p></div><footer><button type=\"button\">下载电子照片</button></footer></section>",
+      "css": ".ds-sheet{width:100%;max-width:402px;background:#fff;border-radius:var(--ui-sheet-radius) var(--ui-sheet-radius) 0 0;color:var(--ui-heading);overflow:hidden;box-shadow:var(--ui-sheet-shadow)}.ds-sheet header{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:76px;padding:20px 20px 12px;border-bottom:1px solid #edf1f6}.ds-sheet h2{flex:1;font-size:var(--ui-sheet-title);line-height:1.45;margin:0;font-weight:650}.ds-sheet header button{display:grid;place-items:center;flex:none;width:44px;height:44px;background:transparent;border:0;color:var(--ui-muted)}.ds-sheet svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.8;fill:none}.ds-sheet-body{max-height:180px;overflow:auto;padding:20px;font-size:14px;line-height:1.7}.ds-sheet footer{padding:14px 20px var(--device-nav-bottom,29px);border-top:1px solid #edf1f6}.ds-sheet footer button{width:100%;min-height:48px;border:0;border-radius:14px;font-size:15px;background:var(--brand-blue);color:#fff}.ds-sheet button:hover{filter:brightness(.96)}.ds-sheet button:focus-visible{outline:2px solid var(--brand-blue);outline-offset:3px}"
     },
     {
       "name": "精修必选背景色",
       "kind": "custom",
       "refersTo": "repair-background",
-      "description": "第二步四种底色单选，初始不预选；原图不实时换底。白色设置卡独立于无边框／圆角／阴影的照片预览。原生radio可在面板体验勾选，面板不模拟付款或生成成片。",
+      "description": "直接工作页四种底色单选，初始不预选；原图不实时换底。白色设置卡独立于无边框／圆角／阴影的照片预览。原生radio可在面板体验勾选，面板不模拟付款或生成成片。",
       "html": "<section class=\"ds-repair-background\"><div class=\"ds-options-heading\"><h2 id=\"ds-background-title\">背景颜色</h2><span>请选择一种</span></div><div class=\"ds-background-options\" role=\"radiogroup\" aria-labelledby=\"ds-background-title\" aria-required=\"true\"><label><input type=\"radio\" name=\"ds-repair-background\" value=\"blue\"/><i style=\"background:#438bc6\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"m6 12 4 4 8-9\"/></svg></i><span>蓝色</span></label><label><input type=\"radio\" name=\"ds-repair-background\" value=\"white\"/><i style=\"background:#fff\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"m6 12 4 4 8-9\"/></svg></i><span>白色</span></label><label><input type=\"radio\" name=\"ds-repair-background\" value=\"red\"/><i style=\"background:#d6383d\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"m6 12 4 4 8-9\"/></svg></i><span>红色</span></label><label><input type=\"radio\" name=\"ds-repair-background\" value=\"gray\"/><i style=\"background:#d9e0e8\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"m6 12 4 4 8-9\"/></svg></i><span>浅灰</span></label></div></section>",
       "css": ".ds-repair-background{font-family:\"Source Han Sans SC\", \"Noto Sans CJK SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;}.ds-repair-background{--tool-muted:#53637b;}.ds-repair-background{background:#fff;border-radius:16px;padding:12px;margin-bottom:12px;}.ds-options-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 14px;}.ds-options-heading h2{font-size:15px;font-weight:650;}.ds-options-heading h2{margin:0;line-height:1.5;color:var(--ui-heading,#203858);}.ds-options-heading>span{font-size:12px;color:var(--tool-muted);}.ds-background-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}.ds-background-options label{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-width:44px;min-height:76px;padding:6px 0;color:var(--tool-muted);font-size:12px;cursor:pointer;border-radius:8px;}.ds-background-options input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:inherit;}.ds-background-options i{display:grid;place-items:center;width:32px;height:32px;border:1px solid #bdc8d9;border-radius:50%;pointer-events:none;}.ds-background-options i>svg{width:18px;height:18px;color:#fff;stroke-width:2.4;}.ds-background-options input[value=\"white\"]+i>svg,.ds-background-options input[value=\"gray\"]+i>svg{color:var(--brand-blue, #0032ff);}.ds-background-options input:checked+i{outline:2px solid var(--brand-blue, #0032ff);outline-offset:3px;}.ds-background-options label:has(input:checked)>span{color:var(--ui-heading,#203858);font-weight:600;}.ds-background-options label:has(input:focus-visible){outline:2px solid var(--brand-blue, #0032ff);outline-offset:2px;}.ds-background-options label:has(input:disabled){cursor:default;opacity:.65;}.ds-background-options label:has(input:not(:disabled)):active{background:#edf2ff;}.ds-background-options label:has(input:not(:disabled)):hover{background:#f3f5fc;}.ds-background-options svg{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;}.ds-background-options input:not(:checked)+i>svg{display:none;}"
     },

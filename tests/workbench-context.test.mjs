@@ -30,7 +30,7 @@ test("page, tool step and same-address drawers resolve their own document contex
   const tool = { action: "repair", step: 0, panel: null };
   assert.equal(
     resolve("?page=tool&tool=repair", { toolStudio: tool }).guide,
-    "tool.repair.select",
+    "tool.repair.settings",
   );
   tool.step = 1;
   assert.equal(
@@ -53,7 +53,12 @@ test("page address display excludes personal, photo, record and login-return dat
   assert.equal(resolve("?page=unexpected").page, "home");
 });
 test("current helpers, scanner guide, color drawer and photo picker follow actual flags", () => {
-  const s = { view: "services", helpOpen: "review", panel: "serviceHelp", helpArticle: { title: "照片审核未通过怎么办？" } };
+  const s = {
+    view: "services",
+    helpOpen: "review",
+    panel: "serviceHelp",
+    helpArticle: { title: "照片审核未通过怎么办？" },
+  };
   assert.match(
     resolve("?page=collection", { collectionFlow: s }).state,
     /审核未通过/,
@@ -165,4 +170,69 @@ test("controller observation cleans up and detached controllers never start real
   one.stop();
   assert.equal(getControllerScopes()["workbench-contract"], undefined);
   assert.equal(stopped, 2);
+});
+
+test("new physical-template pages and personal photo sheets resolve complete owner documentation", () => {
+  for (const kind of ["postcard", "stamp"])
+    for (const view of ["templates", "work", "confirm", "result"]) {
+      const c = resolve(`?page=keepsake&kind=${kind}&view=${view}`);
+      const target =
+        view === "templates" ? "work" : view;
+      assert.equal(c.guide, `keepsake.${kind}.${target}`);
+      assert.equal(c.source, "personal-business-upgrade-20261104.md");
+    }
+  const crop = resolve("?page=keepsake&kind=stamp&view=work", { keepsakeStudio: { kind: "stamp", view: "work", panel: "keepsakeCrop" } });
+  assert.equal(crop.section, "调整构图");
+  assert.equal(crop.guide, "keepsake.stamp.work");
+  const sheet = resolve("?page=my&photoAction=private-photo-id");
+  assert.equal(sheet.guide, "my");
+  assert.equal(sheet.section, "照片详情抽屉");
+  assert.ok(!sheet.address?.includes("private-photo-id"));
+  for (const alias of ["select", "preview"])
+    assert.equal(resolve(`?page=print&print=${alias}`).guide, "print.layouts");
+});
+
+test("each category record page resolves its own title and shared record documentation", () => {
+  for (const category of ["graduate", "enrollment", "association"]) {
+    const c = resolve("?page=collection&view=records&category=" + category);
+    assert.equal(c.title, ({graduate:"毕业生采集记录",enrollment:"新生采集记录",association:"其它采集记录"})[category]);
+    assert.equal(c.guide,"collection.records");
+  }
+});
+test("print layout preview keeps its page document and points to the preview section", () => {
+  const c = resolve("?page=print&print=layouts", {
+    printStudio: { view: "layouts", modal: "layoutPreview" },
+  });
+  assert.equal(c.guide, "print.layouts");
+  assert.equal(c.state, "排版预览");
+  assert.equal(c.section, "排版示例与独立预览");
+});
+
+test("archive form routing exposes the page guide without member or document IDs",()=>{
+  for (const [space,sheet,section] of [["family","member","家人照片"],["documents","document","证件照片"]]) {
+    const c=resolve("?page=album&space="+space+"&sheet="+sheet+"&member=private-id");
+    assert.equal(c.section,section);
+    assert.ok(!c.address.includes("private-id"));
+  }
+});
+
+test("archive member list, established photo detail and delete confirmation have matching documentation", () => {
+  const documents=resolve("?page=album&space=documents&doctype=identity");
+  assert.equal(documents.guide,"album.library");
+  assert.equal(documents.state,"证件类型展开");
+  assert.equal(documents.section,"证件照片");
+  const list = resolve("?page=album&space=family&member=private-member");
+  assert.equal(list.guide, "album.library");
+  assert.equal(list.state, "家人照片列表");
+  assert.equal(list.section, "家人照片");
+  for (const space of ["family", "documents"]) {
+    const path = "?page=album&space=" + space + "&member=private-member&doctype=identity&item=private-photo";
+    const detail = resolve(path);
+    assert.equal(detail.guide, "album.detail");
+    assert.equal(detail.section, space === "family" ? "照片信息" : "证件图片管理");
+    const deletion = resolve(path + "&sheet=delete-" + (space === "family" ? "photo" : "front"));
+    assert.equal(deletion.guide, "album.detail");
+    assert.equal(deletion.section, space === "family" ? "删除照片" : "证件图片管理");
+    assert.ok(!deletion.address.includes("private-"));
+  }
 });

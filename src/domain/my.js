@@ -12,7 +12,7 @@ function zhipaiShareEntry(key) {
   if (key === "print")
     return {
       key,
-      title: "冲印服务",
+      title: "照片冲印",
       subtitle: "证件照冲印，送到你手中",
       headline: ["专业冲印", "配送到家"],
       mascot: "assets/bear-print.webp",

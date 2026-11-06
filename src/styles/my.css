@@ -1,14 +1,30 @@
 .my-page{padding:0;background:var(--background);}/* Personal hub: a compact account hero, then photos, orders and grouped services. */
 .my-overview{min-height:100%;background:var(--ui-canvas);padding:0}
-.my-personal-hero{position:relative;height:240px;overflow:hidden;background:radial-gradient(ellipse at 12% 12%,#d8ebffb3,transparent 66%),radial-gradient(ellipse at 94% 72%,#e0efff99,transparent 60%),#f5f9fd}
-.my-profile-entry{position:absolute;left:24px;top:calc(var(--device-status-height,62px) + 24px);z-index:1;display:flex;flex-direction:column;align-items:flex-start;gap:12px;max-width:210px;text-align:left}
-.my-profile-avatar{display:grid;place-items:center;width:44px;height:44px;border-radius:16px;background:#ffffffd9;color:#718cb1;box-shadow:var(--card-shadow)}
+.my-personal-hero {
+  position: relative;
+  min-height: calc(var(--brand-safe-top) + var(--brand-expanded-body));
+  padding: calc(var(--brand-safe-top) + 14px) 16px 32px;
+  overflow: hidden;
+  background: var(--brand-header-fill);
+}
+.my-profile-entry {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100% - min(30%, 116px) - 20px);
+  min-height: 44px;
+  text-align: left;
+}
+.my-profile-avatar{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:16px;background:#ffffffd9;color:#718cb1;box-shadow:var(--card-shadow)}
 .my-profile-avatar svg{width:24px;height:24px;fill:none}
-.my-profile-copy h1{font-size:22px;line-height:1.35;letter-spacing:-.02em;color:var(--ui-heading);font-weight:700;margin:0 0 7px}
-.my-profile-copy>span{display:flex;align-items:center;gap:5px;font-size:12px;line-height:1.6;color:var(--ui-muted)}
+.my-profile-copy { min-width:0; }
+.my-profile-copy h1{font-size:18px;line-height:24px;color:var(--ui-heading);font-weight:650;margin:0 0 2px}
+.my-profile-copy>span{display:flex;align-items:center;gap:5px;font-size:12px;line-height:18px;color:var(--ui-body)}
 .my-profile-copy>span svg{width:12px;height:12px}
-.my-personal-bear{position:absolute;right:8px;bottom:0;width:160px;height:170px;object-fit:contain;pointer-events:none}
-.my-personal-content{position:relative;margin-top:-18px;border-radius:24px 24px 0 0;padding:18px 16px calc(var(--device-nav-bottom,29px) + 58px + 16px);background:var(--ui-canvas);box-shadow:var(--ui-container-shadow)}
+.my-personal-bear{position:absolute;right:8%;top:calc(var(--brand-safe-top) + 4px);width:min(30%,116px);height:auto;pointer-events:none}
+.my-personal-content{position:relative;margin-top:-16px;padding:0 16px calc(var(--device-nav-bottom,29px) + 58px + 16px)}
 .my-quick-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .my-quick-card{display:flex;flex-direction:column;gap:20px;text-align:left;min-width:0;background:#fff;border-radius:var(--ui-card-radius);padding:16px;box-shadow:var(--card-shadow)}
 .my-quick-heading{display:flex;align-items:center;gap:7px;width:100%;color:var(--ui-heading)}

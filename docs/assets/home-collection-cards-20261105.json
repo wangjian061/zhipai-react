@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-05",
+  "method": "builtin image_gen",
+  "usage": "首页专项采集分类白底半身人物插画。网页在主题色人物区下方绘制独立白底的标题与副标题。",
+  "reference": "exec-0178a0d1-0831-4b36-8e1c-49e7ea224559.png",
+  "assets": [
+    {
+      "id": "graduate",
+      "prompt": "Extract the LEFT: the exact female graduate with full navy mortarboard, gold tassel, navy gown with gold stole, holding rolled white diploma with navy ribbon at upper chest. Use the supplied approved board strictly as reference: export only that ONE existing character as a clean production illustration for a native UI, no UI whatsoever. Preserve the approved face, expression, proportions, hair, materials and lighting and original clothing color. Render a single 5:6 portrait canvas with FULL EDGE-TO-EDGE PURE WHITE BACKGROUND. The top of the head or graduation cap has a modest 4-6% top margin. Front view, centered, natural medium half-length portrait cropping at the natural waist at the very bottom of the image. The character occupies about 80% of the image width at the widest part. Keep all the essential identifying prop at chest level fully above the lower 25% of the canvas, since live text will later overlay that bottom region. Clothing MUST extend cleanly to the exact bottom edge, with normal opaque fabric all the way down. Remove ALL previous card titles, subtitles, labels, UI text, card outlines, borders, shadows, frost, fog, glows, fades, gradients, bluish canvas, ground, corners, neighboring portraits and scenery from the reference. Absolutely no bottom translucent / blur band, no milky-white haze on the clothes. The image must be just the single 3D person with crisp edges on pure white. Designer adds live titles and a live blur later. No decorative writing or branding.",
+      "source": "/Users/jianwang/.codex/generated_images/01a11fa2-c319-7931-bfc6-0598b402d2dd/exec-e1df800d-37cd-4d36-86ef-73dd68d55b71.png",
+      "output": "public/assets/home-collection-graduate-20261105.webp",
+      "width": 600,
+      "height": 720,
+      "bytes": 39738,
+      "sha256": "f3b30410d2d7fb1086df304b1fe9005e8d02b5c104901a705e9e9eb426d1ee63"
+    },
+    {
+      "id": "enrollment",
+      "prompt": "Extract the MIDDLE: the exact new male student in butter-yellow overshirt and backpack, holding an ivory admission letter upright at upper chest with readable Chinese '入学通知书' and a modest red seal. This lettering on his paper prop is essential and is the ONLY lettering in this asset. Use the supplied approved board strictly as reference: export only that ONE existing character as a clean production illustration for a native UI, no UI whatsoever. Preserve the approved face, expression, proportions, hair, materials and lighting and original clothing color. Render a single 5:6 portrait canvas with FULL EDGE-TO-EDGE PURE WHITE BACKGROUND. The top of the head or graduation cap has a modest 4-6% top margin. Front view, centered, natural medium half-length portrait cropping at the natural waist at the very bottom of the image. The character occupies about 80% of the image width at the widest part. Keep all the essential identifying prop at chest level fully above the lower 25% of the canvas, since live text will later overlay that bottom region. Clothing MUST extend cleanly to the exact bottom edge, with normal opaque fabric all the way down. Remove ALL previous card titles, subtitles, labels, UI text, card outlines, borders, shadows, frost, fog, glows, fades, gradients, bluish canvas, ground, corners, neighboring portraits and scenery from the reference. Absolutely no bottom translucent / blur band, no milky-white haze on the clothes. The image must be just the single 3D person with crisp edges on pure white. Designer adds live titles and a live blur later. No decorative writing or branding.",
+      "source": "/Users/jianwang/.codex/generated_images/01a11fa2-c319-7931-bfc6-0598b402d2dd/exec-715670c5-b326-4a04-9c93-f3f0704f9c1b.png",
+      "output": "public/assets/home-collection-enrollment-20261105.webp",
+      "width": 600,
+      "height": 720,
+      "bytes": 41072,
+      "sha256": "74c5ebb11e25d4305503f212054d70f6224c94b2a56a6f498d0bbf45ba072559"
+    },
+    {
+      "id": "other",
+      "prompt": "Extract the RIGHT: the exact female professional in teal blazer with an ivory shirt and blue lanyard holding a plain visible employee ID badge at mid-chest. Use the supplied approved board strictly as reference: export only that ONE existing character as a clean production illustration for a native UI, no UI whatsoever. Preserve the approved face, expression, proportions, hair, materials and lighting and original clothing color. Render a single 5:6 portrait canvas with FULL EDGE-TO-EDGE PURE WHITE BACKGROUND. The top of the head or graduation cap has a modest 4-6% top margin. Front view, centered, natural medium half-length portrait cropping at the natural waist at the very bottom of the image. The character occupies about 80% of the image width at the widest part. Keep all the essential identifying prop at chest level fully above the lower 25% of the canvas, since live text will later overlay that bottom region. Clothing MUST extend cleanly to the exact bottom edge, with normal opaque fabric all the way down. Remove ALL previous card titles, subtitles, labels, UI text, card outlines, borders, shadows, frost, fog, glows, fades, gradients, bluish canvas, ground, corners, neighboring portraits and scenery from the reference. Absolutely no bottom translucent / blur band, no milky-white haze on the clothes. The image must be just the single 3D person with crisp edges on pure white. Designer adds live titles and a live blur later. No decorative writing or branding.",
+      "source": "/Users/jianwang/.codex/generated_images/01a11fa2-c319-7931-bfc6-0598b402d2dd/exec-2a5c211e-c339-44ad-80bb-39b8a2b98004.png",
+      "output": "public/assets/home-collection-other-20261105.webp",
+      "width": 600,
+      "height": 720,
+      "bytes": 33744,
+      "sha256": "ffdc23e976f5fbbb47be7b33e00ee520bcdfcd9b59dbfb16d532c1cff7d483fc"
+    }
+  ]
+}

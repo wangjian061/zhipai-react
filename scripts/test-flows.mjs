@@ -82,6 +82,14 @@ const adaptedFs = {
           "\n" +
           code;
       }
+      if (["album", "camera", "tools"].includes(match[1])) {
+        const helpers = match[1] === "album" ? ["photo-date", "photo-readability"] : ["photo-date"];
+        for (const name of helpers) {
+          const helper = parse(fs.readFileSync(path.join(root, "src/domain", name + ".js"), "utf8"), { sourceType: "module" });
+          helper.program.body = helper.program.body.map((n) => n.type === "ExportNamedDeclaration" ? n.declaration : n);
+          code = generate(helper).code + "\n" + code;
+        }
+      }
       if (match[1] === "camera") {
         const versions = parse(
           fs.readFileSync(

@@ -5,6 +5,7 @@ import { CollectionProjectRow } from "./CollectionProjectRows.jsx";
 export default function CollectionProjectSearch({ scope: s }) {
   const input = useRef(null);
   const content = useRef(null);
+  const scopeName = s.projectCategory === "all" ? "" : s.categoryInfo.name;
   const hasQuery = !!s.searchTerm.trim();
   const projects = hasQuery ? s.projectsShown : [];
   const attach = useCallback(
@@ -18,6 +19,7 @@ export default function CollectionProjectSearch({ scope: s }) {
   useLayoutEffect(() => {
     if (!content.current) return;
     content.current.scrollTop = s.sectionScroll[s.scrollKey] || 0;
+    if(s.focusNewSearch) {s.focusNewSearch=false;input.current?.focus({preventScroll:true});}
     if (s.projectSearchReturnId) {
       const source = Array.from(
         content.current.querySelectorAll("[data-project-id]"),
@@ -39,7 +41,7 @@ export default function CollectionProjectSearch({ scope: s }) {
         <button
           className="collection-project-search-back"
           type="button"
-          aria-label="返回专项列表"
+          aria-label="返回来源列表"
           onClick={() => {
             input.current?.blur();
             s.back();
@@ -62,7 +64,7 @@ export default function CollectionProjectSearch({ scope: s }) {
             ref={input}
             type="search"
             aria-label="搜索项目名称或机构"
-            placeholder="搜索项目名称或机构"
+            placeholder={scopeName ? "搜索" + scopeName + "项目或机构" : "搜索项目名称或机构"}
             maxLength={60}
             autoComplete="off"
             enterKeyHint="search"
@@ -105,7 +107,7 @@ export default function CollectionProjectSearch({ scope: s }) {
         {!hasQuery ? (
           <div className="collection-project-search-empty">
             <CollectionIcon name="search" />
-            <h2>查找采集项目</h2>
+            <h2>{scopeName ? "查找" + scopeName + "项目" : "查找采集项目"}</h2>
             <p>输入项目名称或机构名称</p>
           </div>
         ) : projects.length ? (

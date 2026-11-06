@@ -15,7 +15,18 @@ function accountRoute(view = "welcome", back = "/?page=my") {
   u.searchParams.set("page", "account");
   u.searchParams.set("account", view);
   u.searchParams.set("back", back);
-  history.pushState({}, "", u);
+  const previous = new URL(location.href);
+  const source = previous.pathname + previous.search;
+  const priorLogin = history.state?.collectionRecordLogin;
+  let state = {};
+  if (source === back && previous.searchParams.get("page") === "collection" &&
+      previous.searchParams.get("view") === "records" && previous.searchParams.has("category")) {
+    state = { collectionRecordLogin: { back, depth: 1 } };
+  } else if (previous.searchParams.get("page") === "account" && priorLogin?.back === back &&
+      Number.isSafeInteger(priorLogin.depth) && priorLogin.depth > 0) {
+    state = { collectionRecordLogin: { back, depth: priorLogin.depth + 1 } };
+  }
+  history.pushState(state, "", u);
   window.dispatchEvent(new Event("zhipai-route"));
 }
 function accountSafeBack(path) {
@@ -365,6 +376,12 @@ registerController("accountFlow", () => ({
   },
   leave() {
     const u = new URL(accountSafeBack(this.returnTo), location.origin);
+    const login = history.state?.collectionRecordLogin;
+    if (login?.back === u.pathname + u.search && Number.isSafeInteger(login.depth) &&
+        login.depth > 0 && login.depth < history.length && typeof history.go === "function") {
+      history.go(-login.depth);
+      return;
+    }
     history.pushState({}, "", u);
     window.dispatchEvent(new Event("zhipai-route"));
   },

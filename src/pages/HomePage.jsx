@@ -1,6 +1,8 @@
 import React from "react";
+import HomeKeepsakes from "../components/HomeKeepsakes.jsx";
 import { View } from "../runtime/components.jsx";
-import ImageCarousel from "../components/ImageCarousel.jsx";
+// import ImageCarousel from "../components/ImageCarousel.jsx";
+import HomeBrandHeader from "../components/HomeBrandHeader.jsx";
 import HomeCollectionCard from "../components/HomeCollectionCard.jsx";
 import HomeToolIcon from "../components/HomeToolIcon.jsx";
 export default function HomePage({ scope: s }) {
@@ -18,7 +20,7 @@ export default function HomePage({ scope: s }) {
           type: "scroll",
           prevent: false,
           stop: false,
-          self: false,
+          self: true,
           passive: true,
           run: function (scope, $event, $el) {
             scope.scheduleHomeNavScrim();
@@ -31,312 +33,253 @@ export default function HomePage({ scope: s }) {
         end: "page-end",
       }}
     >
-      <ImageCarousel scope={s} args={["hero"]} />
-      <View as="div" scope={s} className="home-main-card">
-        <View as="div" scope={s} className="home-search">
-          <View
-            as="button"
-            scope={s}
-            className="search-form home-search-entry"
-            type="button"
-            aria-label="进入搜索页面，查找证照规格和照片工具"
-            events={[
-              {
-                type: "click",
-                prevent: false,
-                stop: false,
-                self: false,
-                passive: false,
-                run: function (scope, $event, $el) {
-                  scope.go("search");
+      {/* <ImageCarousel scope={s} args={["hero"]} /> */}
+      <HomeBrandHeader
+        overContent={s.homeHeaderOverContent}
+        unread={s.homeHasUnread}
+        onOpenNotifications={s.openHomeNotifications}
+      />
+      <View as="div" scope={s} className="home-content" refName="homeContent">
+        <HomeCollectionCard active={s.page === "home"} />
+        <View
+          as="div"
+          scope={s}
+          className="tools-card utility-card"
+        >
+          <View as="div" scope={s} className="tools-heading">
+            <View as="h2" scope={s}>
+              {"常用工具"}
+            </View>
+          </View>
+          <View as="div" scope={s} className="tools-grid utility-grid">
+            <View
+              as="button"
+              scope={s}
+              className="tool utility-grid-item"
+              events={[
+                {
+                  type: "click",
+                  prevent: false,
+                  stop: false,
+                  self: false,
+                  passive: false,
+                  run: function (scope, $event, $el) {
+                    scope.openPrint();
+                  },
                 },
-              },
-            ]}
-          >
-            <View as="svg" scope={s} aria-hidden="true">
-              <View as="use" scope={s} href="#i-search"></View>
-            </View>
-            <View as="span" scope={s} className="home-search-placeholder">
-              {"请输入搜索内容"}
-            </View>
-            <View as="span" scope={s} className="home-search-label">
-              {"搜索"}
-            </View>
-          </View>
-        </View>
-        <View as="div" scope={s} className="home-content">
-          <HomeCollectionCard scope={s} />
-          <View
-            as="div"
-            scope={s}
-            className="tools-card utility-card"
-            refName="homeTools"
-          >
-            <View as="div" scope={s} className="tools-heading">
-              <View as="h2" scope={s}>
-                {"常用工具"}
+              ]}
+            >
+              <View as="span" scope={s} className="tool-icon utility-item-icon">
+                <HomeToolIcon name="print" />
+              </View>
+              <View as="span" scope={s}>
+                {"照片冲印"}
               </View>
             </View>
-            <View as="div" scope={s} className="tools-grid utility-grid">
-              <View
-                as="button"
-                scope={s}
-                className="tool utility-grid-item"
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.openPrint();
-                    },
+            <View
+              as="button"
+              scope={s}
+              className="tool utility-grid-item"
+              events={[
+                {
+                  type: "click",
+                  prevent: false,
+                  stop: false,
+                  self: false,
+                  passive: false,
+                  run: function (scope, $event, $el) {
+                    scope.openPhotoTool("repair");
                   },
-                ]}
-              >
+                },
+              ]}
+            >
+              <View as="span" scope={s} className="tool-icon utility-item-icon">
+                <HomeToolIcon name="repair" />
+                <span className="home-recommend">推荐</span>
+              </View>
+              <View as="span" scope={s}>
+                {"照片精修"}
+              </View>
+            </View>
+            <View
+              as="button"
+              scope={s}
+              className="tool utility-grid-item"
+              events={[
+                {
+                  type: "click",
+                  prevent: false,
+                  stop: false,
+                  self: false,
+                  passive: false,
+                  run: function (scope, $event, $el) {
+                    scope.openPhotoTool("outfit");
+                  },
+                },
+              ]}
+            >
+              <View as="span" scope={s} className="tool-icon utility-item-icon">
+                <HomeToolIcon name="outfit" />
+              </View>
+              <View as="span" scope={s}>
+                {"照片换装"}
+              </View>
+            </View>
+            <View
+              as="button"
+              scope={s}
+              className="tool utility-grid-item"
+              events={[
+                {
+                  type: "click",
+                  prevent: false,
+                  stop: false,
+                  self: false,
+                  passive: false,
+                  run: function (scope, $event, $el) {
+                    scope.openPhotoTool("spec");
+                  },
+                },
+              ]}
+            >
+              <View as="span" scope={s} className="tool-icon utility-item-icon">
+                <HomeToolIcon name="spec" />
+              </View>
+              <View as="span" scope={s}>
+                {"照片规格"}
+              </View>
+            </View>
+            <View
+              as="button"
+              scope={s}
+              className="tool utility-grid-item"
+              events={[
+                {
+                  type: "click",
+                  prevent: false,
+                  stop: false,
+                  self: false,
+                  passive: false,
+                  run: function (scope, $event, $el) {
+                    scope.openPhotoTool("crop");
+                  },
+                },
+              ]}
+            >
+              <View as="span" scope={s} className="tool-icon utility-item-icon">
+                <HomeToolIcon name="crop" />
                 <View
-                  as="span"
+                  as="small"
                   scope={s}
-                  className="tool-icon utility-item-icon"
+                  className="free-corner"
+                  aria-label="免费"
                 >
-                  <HomeToolIcon name="print" />
-                </View>
-                <View as="span" scope={s}>
-                  {"冲印服务"}
+                  {"免"}
                 </View>
               </View>
-              <View
-                as="button"
-                scope={s}
-                className="tool utility-grid-item"
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.openPhotoTool("repair");
-                    },
+              <View as="span" scope={s}>
+                {"修改尺寸"}
+              </View>
+            </View>
+            <View
+              as="button"
+              scope={s}
+              className="tool utility-grid-item"
+              events={[
+                {
+                  type: "click",
+                  prevent: false,
+                  stop: false,
+                  self: false,
+                  passive: false,
+                  run: function (scope, $event, $el) {
+                    scope.openPhotoTool("background");
                   },
-                ]}
-              >
+                },
+              ]}
+            >
+              <View as="span" scope={s} className="tool-icon utility-item-icon">
+                <HomeToolIcon name="background" />
                 <View
-                  as="span"
+                  as="small"
                   scope={s}
-                  className="tool-icon utility-item-icon"
+                  className="free-corner"
+                  aria-label="免费"
                 >
-                  <HomeToolIcon name="repair" />
-                </View>
-                <View as="span" scope={s}>
-                  {"照片精修"}
+                  {"免"}
                 </View>
               </View>
-              <View
-                as="button"
-                scope={s}
-                className="tool utility-grid-item"
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.openPhotoTool("outfit");
-                    },
+              <View as="span" scope={s}>
+                {"更换背景"}
+              </View>
+            </View>
+            <View
+              as="button"
+              scope={s}
+              className="tool utility-grid-item"
+              events={[
+                {
+                  type: "click",
+                  prevent: false,
+                  stop: false,
+                  self: false,
+                  passive: false,
+                  run: function (scope, $event, $el) {
+                    scope.openPhotoTool("format");
                   },
-                ]}
-              >
+                },
+              ]}
+            >
+              <View as="span" scope={s} className="tool-icon utility-item-icon">
+                <HomeToolIcon name="format" />
                 <View
-                  as="span"
+                  as="small"
                   scope={s}
-                  className="tool-icon utility-item-icon"
+                  className="free-corner"
+                  aria-label="免费"
                 >
-                  <HomeToolIcon name="outfit" />
-                </View>
-                <View as="span" scope={s}>
-                  {"照片换装"}
+                  {"免"}
                 </View>
               </View>
-              <View
-                as="button"
-                scope={s}
-                className="tool utility-grid-item"
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.openPhotoTool("spec");
-                    },
+              <View as="span" scope={s}>
+                {"格式转换"}
+              </View>
+            </View>
+            <View
+              as="button"
+              scope={s}
+              className="tool utility-grid-item"
+              events={[
+                {
+                  type: "click",
+                  prevent: false,
+                  stop: false,
+                  self: false,
+                  passive: false,
+                  run: function (scope, $event, $el) {
+                    scope.openPhotoTool("resize");
                   },
-                ]}
-              >
+                },
+              ]}
+            >
+              <View as="span" scope={s} className="tool-icon utility-item-icon">
+                <HomeToolIcon name="resize" />
                 <View
-                  as="span"
+                  as="small"
                   scope={s}
-                  className="tool-icon utility-item-icon"
+                  className="free-corner"
+                  aria-label="免费"
                 >
-                  <HomeToolIcon name="spec" />
-                </View>
-                <View as="span" scope={s}>
-                  {"证照规格"}
+                  {"免"}
                 </View>
               </View>
-              <View
-                as="button"
-                scope={s}
-                className="tool utility-grid-item"
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.openPhotoTool("crop");
-                    },
-                  },
-                ]}
-              >
-                <View
-                  as="span"
-                  scope={s}
-                  className="tool-icon utility-item-icon"
-                >
-                  <HomeToolIcon name="crop" />
-                  <View
-                    as="small"
-                    scope={s}
-                    className="free-corner"
-                    aria-label="免费"
-                  >
-                    {"免"}
-                  </View>
-                </View>
-                <View as="span" scope={s}>
-                  {"照片裁剪"}
-                </View>
-              </View>
-              <View
-                as="button"
-                scope={s}
-                className="tool utility-grid-item"
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.openPhotoTool("background");
-                    },
-                  },
-                ]}
-              >
-                <View
-                  as="span"
-                  scope={s}
-                  className="tool-icon utility-item-icon"
-                >
-                  <HomeToolIcon name="background" />
-                  <View
-                    as="small"
-                    scope={s}
-                    className="free-corner"
-                    aria-label="免费"
-                  >
-                    {"免"}
-                  </View>
-                </View>
-                <View as="span" scope={s}>
-                  {"更换背景"}
-                </View>
-              </View>
-              <View
-                as="button"
-                scope={s}
-                className="tool utility-grid-item"
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.openPhotoTool("format");
-                    },
-                  },
-                ]}
-              >
-                <View
-                  as="span"
-                  scope={s}
-                  className="tool-icon utility-item-icon"
-                >
-                  <HomeToolIcon name="format" />
-                  <View
-                    as="small"
-                    scope={s}
-                    className="free-corner"
-                    aria-label="免费"
-                  >
-                    {"免"}
-                  </View>
-                </View>
-                <View as="span" scope={s}>
-                  {"格式转换"}
-                </View>
-              </View>
-              <View
-                as="button"
-                scope={s}
-                className="tool utility-grid-item"
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.openPhotoTool("resize");
-                    },
-                  },
-                ]}
-              >
-                <View
-                  as="span"
-                  scope={s}
-                  className="tool-icon utility-item-icon"
-                >
-                  <HomeToolIcon name="resize" />
-                  <View
-                    as="small"
-                    scope={s}
-                    className="free-corner"
-                    aria-label="免费"
-                  >
-                    {"免"}
-                  </View>
-                </View>
-                <View as="span" scope={s}>
-                  {"修改体积"}
-                </View>
+              <View as="span" scope={s}>
+                {"修改大小(kb)"}
               </View>
             </View>
           </View>
         </View>
+        <HomeKeepsakes />
       </View>
     </View>
   );

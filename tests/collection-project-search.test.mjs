@@ -83,6 +83,7 @@ test("empty all-project search renders its own search surface without pre-search
     assert.ok(!html.includes('class="collection-project-row"'));
     assert.ok(!html.includes("collection-home-hero"));
     assert.ok(!html.includes("collection-floating-nav"));
+    assert.ok(!html.includes("collection-record-entry"));
     assert.ok(!html.includes("搜索结果</h2>"));
   } finally {
     flow.stop();
@@ -97,6 +98,12 @@ test("all three category lists keep their header, unsearched projects and catego
       assert.equal(s.isProjectSearch, false);
       const html = render(s);
       assert.ok(html.includes("collection-category-page"));
+      assert.match(html, /collection-record-entry/);
+      assert.ok(html.includes(s.categoryInfo.recordsTitle));
+      assert.match(html, /登录后查看/);
+      assert.ok(html.indexOf('role="search"') < html.indexOf("collection-record-entry"));
+      assert.ok(html.indexOf("collection-record-entry") < html.indexOf("采集项目</h2>"));
+      assert.ok(html.indexOf('role="search"') < html.indexOf("采集项目</h2>"));
       assert.ok(html.includes("collection-home-hero"));
       assert.ok(!html.includes('class="collection-project-search"'));
       assert.ok(s.projectsShown.length > 0);
@@ -162,7 +169,7 @@ test("project detail returns to the submitted search and its independent scroll 
     assert.equal(s.projectSearchReturnId, "graduate-degree");
     assert.equal(current.searchParams.get("q"), "毕业");
     s.back();
-    assert.equal(s.view, "home");
+    assert.equal(current.searchParams.get("page"), "home");
   } finally {
     flow.stop();
   }
@@ -256,4 +263,32 @@ test("project searching does not require a signed-in account or successful perso
   } finally {
     flow.stop();
   }
+});
+
+test("category browsing remains available while its personal-record count represents login, loading and failure truthfully", () => {
+  const {s,flow,records}=setup("/?page=collection&view=projects&category=enrollment");
+  try {
+    for (const [ready,error] of [[false,""],[true,"读取错误"],[true,""]]) {
+      records.ready=ready; records.error=error;
+      const html=render(s);
+      assert.match(html,/collection-record-entry|登录后查看/);
+      assert.doesNotMatch(html,/读取失败|读取中/);
+      assert.match(html,/采集项目/);
+    }
+    getStore("account").session={phone:"count-test"};
+    records.ready=false; records.error="";
+    assert.match(render(s),/读取中…/);
+    records.error="failed";
+    assert.match(render(s),/读取失败/);
+    records.ready=true; records.error="";
+    assert.match(render(s),/0 条/);
+    current=new URL("/?page=collection&view=records&category=enrollment",current);
+    s.sync();
+    assert.equal(s.scopedRecords,true);
+    assert.equal(current.searchParams.get("view"),"records");
+    assert.equal(current.searchParams.get("category"),"enrollment");
+    current=new URL("/?page=collection&view=records",current);
+    s.sync();
+    assert.equal(current.searchParams.get("page"),"home");
+  } finally {flow.stop();}
 });

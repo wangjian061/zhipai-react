@@ -1,0 +1,369 @@
+{
+  "source": "用户提供：统一图片.zip",
+  "archiveSha256": "cf596b5aa8f033febcf4000ce7008ac3aff1d668b3310859d9fc7fc8278e0d0c",
+  "counts": {
+    "men": 14,
+    "women": 20,
+    "children": 17
+  },
+  "conversion": "cwebp q88, width600, preserve full original composition; no crop/recolor/background removal",
+  "items": [
+    {
+      "id": "men-97fb77d525",
+      "sourceEntry": "统一图片/男/01_雾灰正装.jpg",
+      "sourceSha256": "3777b6933d1cc4a7b82980fe931e6ece7997949565b0da780bc98cb1235b4a77",
+      "asset": "public/assets/outfits-20261105/men-97fb77d525.webp",
+      "assetSha256": "92673989d484ded4834f1035f8127bdcbe18e023bee64c545d7c1897fda9f861"
+    },
+    {
+      "id": "men-483daef9a8",
+      "sourceEntry": "统一图片/男/02_雅黑西装.jpg",
+      "sourceSha256": "3bcf799b75248fb19cf5ca4c7584e9606bd5fc3eddf23cb32d0d05a12862e9a0",
+      "asset": "public/assets/outfits-20261105/men-483daef9a8.webp",
+      "assetSha256": "7d17a6c39b7875eb57fbd013b732f28dc05165adc865efb6af2f6ec36969eec2"
+    },
+    {
+      "id": "men-054e8d0d7d",
+      "sourceEntry": "统一图片/男/03_深蓝西装.jpg",
+      "sourceSha256": "a5050fcdbd75e2b04240af2311babe63b936c3c4682b07eafc8d6e03d0a169b8",
+      "asset": "public/assets/outfits-20261105/men-054e8d0d7d.webp",
+      "assetSha256": "9e28346b2326070d319f1e11b24b9b8475eff8ebb1b53b2755dc83dbf8c7d963"
+    },
+    {
+      "id": "men-e21bed21b8",
+      "sourceEntry": "统一图片/男/04_红领西装.jpg",
+      "sourceSha256": "14c811fc6c7eedfe961587c7d127429bb64835539e314a908a696a3e86a96d99",
+      "asset": "public/assets/outfits-20261105/men-e21bed21b8.webp",
+      "assetSha256": "a9ba3158982644e3ebced5f15a4307b6bcfab03668caa8908371e727770b2491"
+    },
+    {
+      "id": "men-a7da8d3f38",
+      "sourceEntry": "统一图片/男/05_纯黑西装.jpg",
+      "sourceSha256": "3a0c4ca204fc832afb55435daf077700e76689e6c481961db578bd34bdae0a99",
+      "asset": "public/assets/outfits-20261105/men-a7da8d3f38.webp",
+      "assetSha256": "8b969d3821b8b1766b734ad551ba94fccba206cee4d98764d9089482f66668f0"
+    },
+    {
+      "id": "men-f5a89ee184",
+      "sourceEntry": "统一图片/男/06_白衬衫.jpg",
+      "sourceSha256": "56300c4c3087e42bf45027e29df9ffbf075d4fa3cf0ea4ef5360778725fc6d51",
+      "asset": "public/assets/outfits-20261105/men-f5a89ee184.webp",
+      "assetSha256": "7f56498106ca95763550a448e377aad0002513091ae7f123132042f018b21bcc"
+    },
+    {
+      "id": "men-00102b6ccb",
+      "sourceEntry": "统一图片/男/7.浅蓝衬衫.jpg",
+      "sourceSha256": "8e6dc5e08f9fa068edca13f67ec927a973b4c2f5e0ecb2cb38378c4e711f6423",
+      "asset": "public/assets/outfits-20261105/men-00102b6ccb.webp",
+      "assetSha256": "ef8261d1ee6e522ad246d5e491a77bfff11cb526f980b344ec22be29e7fe4193"
+    },
+    {
+      "id": "men-26d7485d13",
+      "sourceEntry": "统一图片/男/08_蓝Polo衫.jpg",
+      "sourceSha256": "f5f4d37ae7e987dd796b7d852b507f08a4de4733238c627cf63e320892ce0d9b",
+      "asset": "public/assets/outfits-20261105/men-26d7485d13.webp",
+      "assetSha256": "3c08da4f502ba30d8379d98e14a9914cdeb8ec9cc14b9982d4cecfb2b7f6d891"
+    },
+    {
+      "id": "men-e04d56a5bd",
+      "sourceEntry": "统一图片/男/8.立领西装.jpg",
+      "sourceSha256": "736f090660fea05333c0795c6695add644476ce10c7dc0c35bb6749c91faa094",
+      "asset": "public/assets/outfits-20261105/men-e04d56a5bd.webp",
+      "assetSha256": "39d7eb23bb1c474a8b620d887f8f0a64b020e9595e79400bfec57efd662fcdda"
+    },
+    {
+      "id": "men-94f3494668",
+      "sourceEntry": "统一图片/男/09_白大褂.jpg",
+      "sourceSha256": "5393441bad12b2bfb38f7597a16802e56d11ceeb886ba2f0dc21912b06231646",
+      "asset": "public/assets/outfits-20261105/men-94f3494668.webp",
+      "assetSha256": "02612ec20fe4d7946043a63c297b8a149fa50050213a3d8cc9a130ecd5ded9b1"
+    },
+    {
+      "id": "men-6b90576fe6",
+      "sourceEntry": "统一图片/男/10_律师袍.jpg",
+      "sourceSha256": "c64dc41b29f0b3450ba734dc907fa941bbf851cf9a94d8cc1d505b0e0214a21b",
+      "asset": "public/assets/outfits-20261105/men-6b90576fe6.webp",
+      "assetSha256": "95aa6db2abff247dcb25de4b847bba0f82637b4c4e1979db96635bde70349079"
+    },
+    {
+      "id": "men-b554a97c8f",
+      "sourceEntry": "统一图片/男/11_双排扣.jpg",
+      "sourceSha256": "46fd9ca772b88620da46d691b0bd579193ee874fe54e1ba16bc12bd4e7313811",
+      "asset": "public/assets/outfits-20261105/men-b554a97c8f.webp",
+      "assetSha256": "d908648a281ace73ddbdb4144945c622fbf27923379b31ceac6feda669acf1ce"
+    },
+    {
+      "id": "men-4b62c6134d",
+      "sourceEntry": "统一图片/男/11米灰西装.jpg",
+      "sourceSha256": "81d86d7a8da3f5ca590d505579d537ed208527cb91d3b6209fc076151ce3006c",
+      "asset": "public/assets/outfits-20261105/men-4b62c6134d.webp",
+      "assetSha256": "0484e0b7a62ac29f742b4c75c32d07f844af1baa8bd717f4dfb2a76bbffa3679"
+    },
+    {
+      "id": "men-d079af8e1c",
+      "sourceEntry": "统一图片/男/13.白衬蓝领.jpg",
+      "sourceSha256": "934f9325b518d8691b0771b321001c5952b4bfeabbbcb8e157a4e79ceade3109",
+      "asset": "public/assets/outfits-20261105/men-d079af8e1c.webp",
+      "assetSha256": "10faf2ed655332462cf4ae19d40d17c400f5af241822c63dc048950a29e106f0"
+    },
+    {
+      "id": "women-98d09f40a2",
+      "sourceEntry": "统一图片/女/01_经典西装.jpg",
+      "sourceSha256": "d1f644fe71e022696de61e310ca245ee8ec5be1e262ce6825559f90d59aaf2df",
+      "asset": "public/assets/outfits-20261105/women-98d09f40a2.webp",
+      "assetSha256": "31d609b47a803482a0d6a4c8390a53a573b7291a66463297ed720bfe3ee64b02"
+    },
+    {
+      "id": "women-4a3c30285a",
+      "sourceEntry": "统一图片/女/02_浅灰通勤西装.jpg",
+      "sourceSha256": "41a0b261815bb882ca1f453f6ecf6fb8f5b0871936fd488885e4963cccf793e1",
+      "asset": "public/assets/outfits-20261105/women-4a3c30285a.webp",
+      "assetSha256": "e39f219e8638494b3731a665a3101c3448e57268d86c038af80f9364d0d25cae"
+    },
+    {
+      "id": "women-0c85e7a487",
+      "sourceEntry": "统一图片/女/02_粉黑领结.jpg",
+      "sourceSha256": "8be32cc6f4241e1621ebcfecde9b9aeba978bd5cc414016c7c66577660c647e3",
+      "asset": "public/assets/outfits-20261105/women-0c85e7a487.webp",
+      "assetSha256": "ea4204b36af2b4e20ef3e052e82ba2c380ea3c4f337be8bd14d025164af80225"
+    },
+    {
+      "id": "women-db5d3d99d5",
+      "sourceEntry": "统一图片/女/03_深灰制服.jpg",
+      "sourceSha256": "9f669d5837cd9001a494792ef0ab03f3c52bc100e55570466e44f3467ae716c7",
+      "asset": "public/assets/outfits-20261105/women-db5d3d99d5.webp",
+      "assetSha256": "9ac60db44af9bdca35658335a36a6c8be078137d9be6ff0b5707f91e85517c21"
+    },
+    {
+      "id": "women-cbed5a93b1",
+      "sourceEntry": "统一图片/女/03_米白西装.jpg",
+      "sourceSha256": "45b7c665a4445c76dfa624a3324a6aaa8bf9832f3900d06e652eca1147f77976",
+      "asset": "public/assets/outfits-20261105/women-cbed5a93b1.webp",
+      "assetSha256": "b12512f1833f3db714df6cd1053d7bd48e1febfa8937d78fa97067f7b01ec1fd"
+    },
+    {
+      "id": "women-c51a2b0ff6",
+      "sourceEntry": "统一图片/女/04_通勤西装.jpg",
+      "sourceSha256": "a61a5bec04824abe47d3b8ec924439de6df9be6b10884df1f2b6608490549b49",
+      "asset": "public/assets/outfits-20261105/women-c51a2b0ff6.webp",
+      "assetSha256": "1b5a09941f26fc41e71f94e411872592835a76c7a51b8a198a9c52d449343c97"
+    },
+    {
+      "id": "women-eeeb62b92f",
+      "sourceEntry": "统一图片/女/05_小香风.jpg",
+      "sourceSha256": "fa2d0b50c940d263f6be6b645e0a31f9d5ad1dcba014d4e7d7b08807fa45463d",
+      "asset": "public/assets/outfits-20261105/women-eeeb62b92f.webp",
+      "assetSha256": "866b0ac917c9ff943a49eae410c09781a272c8c712e586cd2d1d2b4d0ccb0f52"
+    },
+    {
+      "id": "women-17956119e7",
+      "sourceEntry": "统一图片/女/05_酒红西装.jpg",
+      "sourceSha256": "0ac6b1223540f2e74d29e7c52c65c9faa381779d5f6e5a1b98f7c7790e63d75c",
+      "asset": "public/assets/outfits-20261105/women-17956119e7.webp",
+      "assetSha256": "c7c16f3718906bb3ef58a4a30258c61ccde3ca40c221aa8807f432835c0558ac"
+    },
+    {
+      "id": "women-f566fab808",
+      "sourceEntry": "统一图片/女/06_学院风.jpg",
+      "sourceSha256": "e212424971297409bd33b5f3d5ed317e29f3a9e1ac112c7e90b08893386d7a92",
+      "asset": "public/assets/outfits-20261105/women-f566fab808.webp",
+      "assetSha256": "bc4e2ae06ab4c695c075238f6d53f90380a44975133e76ba534056c2e6a1184e"
+    },
+    {
+      "id": "women-e80a2f4d7f",
+      "sourceEntry": "统一图片/女/07_红领西装.jpg",
+      "sourceSha256": "460557ca0b6dd85655ad56d126d51c9a10569f6a2a285ec9d22fba13eeeba9e3",
+      "asset": "public/assets/outfits-20261105/women-e80a2f4d7f.webp",
+      "assetSha256": "fd7d1a47e1434955b537fdc432c44843bb762875ad017e5cc1b4e05d32619fa2"
+    },
+    {
+      "id": "women-f6c1e177e5",
+      "sourceEntry": "统一图片/女/08_浅蓝衬衫丝巾.jpg",
+      "sourceSha256": "f8b62564928fd6b616b3828115810632b925c0cab7b9a425b4c893a3f3fa0322",
+      "asset": "public/assets/outfits-20261105/women-f6c1e177e5.webp",
+      "assetSha256": "540aed73f6dfd3c37b268642fd2a47119027b97089ee8d12e7a427f128b9b74a"
+    },
+    {
+      "id": "women-826377e6da",
+      "sourceEntry": "统一图片/女/08_红领结.jpg",
+      "sourceSha256": "eaf8efac14d135339c3d983e4cb0a6be12afab1e61b6ad29b79e5981b4aa3b2d",
+      "asset": "public/assets/outfits-20261105/women-826377e6da.webp",
+      "assetSha256": "39a4a5cbcb1f8cbf6eed2375c132b9b73d47685678d28c27f375c7ad14b9f22a"
+    },
+    {
+      "id": "women-44251275af",
+      "sourceEntry": "统一图片/女/09_上岸西装.jpg",
+      "sourceSha256": "108dd794285618cf1591ecc19889a7a33e28bc62c0c7a043bcca1338a7186a5d",
+      "asset": "public/assets/outfits-20261105/women-44251275af.webp",
+      "assetSha256": "7b4100ace822fe5c99cd6f62ef479730e26625eab6625ee5d8b58c87d219d3c7"
+    },
+    {
+      "id": "women-cd8cd1677d",
+      "sourceEntry": "统一图片/女/09_医生白大褂.jpg",
+      "sourceSha256": "2ba79992fcf8ed47c0f6fe54ef62d43d14e17a9bc55608d506c762777a927026",
+      "asset": "public/assets/outfits-20261105/women-cd8cd1677d.webp",
+      "assetSha256": "d6d3562e7d68f1a5f90505d0dd2f339c49bb5284f52c42bddd00ef4cd8151403"
+    },
+    {
+      "id": "women-8cc04d52bd",
+      "sourceEntry": "统一图片/女/10_白衬衫.jpg",
+      "sourceSha256": "fe6fee84c630aa65665a9643e87922dfd33ae5e13c8db495180a6e828829a50e",
+      "asset": "public/assets/outfits-20261105/women-8cc04d52bd.webp",
+      "assetSha256": "2ef5aa60c0b0fd281130b9f0dc872a8a6ac6cc4d4b7cfc794da4eb7b80813edb"
+    },
+    {
+      "id": "women-18a896aecd",
+      "sourceEntry": "统一图片/女/11_蓝衬衫.jpg",
+      "sourceSha256": "8793c231f593e09f95036aadb4470fadac09557833aff2f5ffb2a2a516fa9a64",
+      "asset": "public/assets/outfits-20261105/women-18a896aecd.webp",
+      "assetSha256": "95d8658c6fcad8d34325c520cff592946f6cb8964659a94e645bb0119520090c"
+    },
+    {
+      "id": "women-2579fd7302",
+      "sourceEntry": "统一图片/女/12_红V毛衣.jpg",
+      "sourceSha256": "50e48f42a2de81cd2b50b0f84dc004c5548722d60fb69e0f7bea023867e48da7",
+      "asset": "public/assets/outfits-20261105/women-2579fd7302.webp",
+      "assetSha256": "522c27e76b53742ff092730eb684bb33badb432aefbb4b875bae8ca93d772c3b"
+    },
+    {
+      "id": "women-acc054be05",
+      "sourceEntry": "统一图片/女/13_浅蓝衬衫.jpg",
+      "sourceSha256": "bf916b01b66c0ebe8d093bd1654f54f9e7166aaee92ad1f9695ad382e7db1ca3",
+      "asset": "public/assets/outfits-20261105/women-acc054be05.webp",
+      "assetSha256": "8eab23fb5e45eb6b24e8c504932c506e646f39ae0565177aa85a05360e0e2e17"
+    },
+    {
+      "id": "women-b5ac6df826",
+      "sourceEntry": "统一图片/女/14_律师袍.jpg",
+      "sourceSha256": "05d9a5cca9e7e58bcec762aaf73e2f742ee8041071b224ad2ff1bb3aecacccd3",
+      "asset": "public/assets/outfits-20261105/women-b5ac6df826.webp",
+      "assetSha256": "863d5bd5c8310637988a9b569d00fd236db86c19009dfe12b8a21d247d46b811"
+    },
+    {
+      "id": "women-34b7e41c70",
+      "sourceEntry": "统一图片/女/15.藏青职业.jpg",
+      "sourceSha256": "c3b11f65495ed77c07cfe435a876a1803fac6cbebbfab66e621cf293ab442d15",
+      "asset": "public/assets/outfits-20261105/women-34b7e41c70.webp",
+      "assetSha256": "b7bbc8e816e6e6bdeb489049a48ee155a2d6d0c1a32a2465c59f0a912c0ba96f"
+    },
+    {
+      "id": "children-7599d31311",
+      "sourceEntry": "统一图片/童/01_格领马甲.jpg",
+      "sourceSha256": "9cc80629b77609769a2c8da4432793c788be9f1f0c855d613efa49bb8ba6a0b3",
+      "asset": "public/assets/outfits-20261105/children-7599d31311.webp",
+      "assetSha256": "ca92b142be0d46d28779594c57d5ede53ad26a4486fa429ced9b03af62c557fa"
+    },
+    {
+      "id": "children-3f4600cf12",
+      "sourceEntry": "统一图片/童/01_蓝色学院西装.jpg",
+      "sourceSha256": "0771e1d7be25d76bfe9f538b01f4c884d00dcbe1eef77c88565ad3e29fd71a7b",
+      "asset": "public/assets/outfits-20261105/children-3f4600cf12.webp",
+      "assetSha256": "b6272a9544a346a0beca55ba759acda1d20611b90a0550d11cf58a41967c1bf1"
+    },
+    {
+      "id": "children-6d0207f37d",
+      "sourceEntry": "统一图片/童/02_学院背心.jpg",
+      "sourceSha256": "35c5cc4776eb60718c0c3949d68c3dcd07ff969ce85252e4b5f438b31a2b9ecd",
+      "asset": "public/assets/outfits-20261105/children-6d0207f37d.webp",
+      "assetSha256": "32ec6fab3a42b41f12a0fdcaea3454b1d9ece074b104e903efad74d5d87f66de"
+    },
+    {
+      "id": "children-120fa16e8e",
+      "sourceEntry": "统一图片/童/02_灰色学院西装.jpg",
+      "sourceSha256": "e7b506c27af917db1b28d9dbb54109e5ba914e4fce2adbb31d43c4742711fdae",
+      "asset": "public/assets/outfits-20261105/children-120fa16e8e.webp",
+      "assetSha256": "45b2a1839683418735c91b37648c02c4d7f1bead55cfe8a61f98e7d0c0dc5908"
+    },
+    {
+      "id": "children-8124b2815f",
+      "sourceEntry": "统一图片/童/03_米白背心.jpg",
+      "sourceSha256": "1f514719ba934b8700a0353462d084326e32e2f32122fec40aa2331280206d10",
+      "asset": "public/assets/outfits-20261105/children-8124b2815f.webp",
+      "assetSha256": "edf88da1ab0812f23476164fafd82279e977d0fd27bc2923cd030f3b7b8b06ce"
+    },
+    {
+      "id": "children-23b9a66845",
+      "sourceEntry": "统一图片/童/04_蓝格领结.jpg",
+      "sourceSha256": "bcd1bd259ee48a14a2e21d359d778767ed95e8e64e341e77c5ed6c505712a67b",
+      "asset": "public/assets/outfits-20261105/children-23b9a66845.webp",
+      "assetSha256": "0b61d1256cb1cb9a46ae9d542ab67873c88829429223be22a2d622dabeeacf83"
+    },
+    {
+      "id": "children-5d2aae477c",
+      "sourceEntry": "统一图片/童/05_藏青外套.jpg",
+      "sourceSha256": "1a48345e53b3d5b490e4346186ac1d73e55086a3705acfb1abe0a7b760fd789d",
+      "asset": "public/assets/outfits-20261105/children-5d2aae477c.webp",
+      "assetSha256": "36bba9f37d5c842472f8d485c628bc8d78717809dbf3396f32c31089ec71bbea"
+    },
+    {
+      "id": "children-ac1166fce0",
+      "sourceEntry": "统一图片/童/06_红领巾.jpg",
+      "sourceSha256": "3ec35f400d6885752c00ddae3015f76405c2aea65011b0531a57cacc69a4aae4",
+      "asset": "public/assets/outfits-20261105/children-ac1166fce0.webp",
+      "assetSha256": "878f5e49953a394f6e1634483372c5508650d878f172e066ec21021c7b7ca045"
+    },
+    {
+      "id": "children-b16bd4a3b4",
+      "sourceEntry": "统一图片/童/07_条纹开衫.jpg",
+      "sourceSha256": "1a5c1d014923bca3694c385158d7f6d33b4d85ba57c8c9f720edacd456265eaa",
+      "asset": "public/assets/outfits-20261105/children-b16bd4a3b4.webp",
+      "assetSha256": "c86a43e5e01445c7175a0ed3ae8a9594c41c51b9414201f3e0ceabccfc646292"
+    },
+    {
+      "id": "children-94d595353f",
+      "sourceEntry": "统一图片/童/08_红色领结.jpg",
+      "sourceSha256": "f5d49f720513fec849884a89dc9b3aed2d17e48bc70d4bb39d08296cca070930",
+      "asset": "public/assets/outfits-20261105/children-94d595353f.webp",
+      "assetSha256": "038eee3282a318dc1fee90427373d32f0a67f4e9eb7c4882ff1e10106d7dc782"
+    },
+    {
+      "id": "children-b25cb945a6",
+      "sourceEntry": "统一图片/童/09_纯色背心.jpg",
+      "sourceSha256": "08f050fdf79821b2f8dc8ba7f84154d42fe34398f9209356b476678f2e5aa32f",
+      "asset": "public/assets/outfits-20261105/children-b25cb945a6.webp",
+      "assetSha256": "3e7f7642d2530967cb69f9473fbff04ccd5cdd012cef83fd18fad05a1c31ad15"
+    },
+    {
+      "id": "children-38d80c8680",
+      "sourceEntry": "统一图片/童/10_水手领结.jpg",
+      "sourceSha256": "c919a2cd204d50b7f43fb1da12a53d14371f8812debb507d103ed0cb2989f7a0",
+      "asset": "public/assets/outfits-20261105/children-38d80c8680.webp",
+      "assetSha256": "ceb82cc030c4df81c530b199471bc9dbff92be13c0ac1cea68c2e233b08df1a9"
+    },
+    {
+      "id": "children-787b261564",
+      "sourceEntry": "统一图片/童/11_白色绅士.jpg",
+      "sourceSha256": "5ab68d1a4af71d53c5cc3db02f2c7e6c861a2047158d33f790e3568c9c2fd7c9",
+      "asset": "public/assets/outfits-20261105/children-787b261564.webp",
+      "assetSha256": "9ba603fdc37a1c1e7be87b81b933b6c5b08dc8eef9ac969b8210bdb477aa8291"
+    },
+    {
+      "id": "children-402d5bb99c",
+      "sourceEntry": "统一图片/童/12_西装领结.jpg",
+      "sourceSha256": "78679ae7209c4adfb49086b4a5deb5c76cf95abef3fa4a84715ce177521d5c7d",
+      "asset": "public/assets/outfits-20261105/children-402d5bb99c.webp",
+      "assetSha256": "50eafc3440f625c13a3915c66649f25c5dcc1c0226dbb9b2170e68aea6cf310c"
+    },
+    {
+      "id": "children-19a301db52",
+      "sourceEntry": "统一图片/童/12_象牙白高级礼服.jpg",
+      "sourceSha256": "e9b72520eea61b41284d54970d35f148a0d4e106baefa89545cf362ac2cd12ab",
+      "asset": "public/assets/outfits-20261105/children-19a301db52.webp",
+      "assetSha256": "3ba3c3eb7ad4ce25613980e268a7395a8089980e9e88bd93764d77cb917995fc"
+    },
+    {
+      "id": "children-53c86d5d71",
+      "sourceEntry": "统一图片/童/14_酒红丝绒学院装.jpg",
+      "sourceSha256": "806546fd4c6fb0dbecea2b57b72c6910439392e19e15019d303c44faeeaeaa12",
+      "asset": "public/assets/outfits-20261105/children-53c86d5d71.webp",
+      "assetSha256": "c7163a574b06fac206e60ed2abefd38b6c23b9f1b06a9572e94f0c9efee51703"
+    },
+    {
+      "id": "children-e3c8cac2a6",
+      "sourceEntry": "统一图片/童/15_午夜蓝双排扣礼服.jpg",
+      "sourceSha256": "f307c3a50807b0218cb0995391c3d71fc65d9875c3001fe0dbfb1d220f4e616f",
+      "asset": "public/assets/outfits-20261105/children-e3c8cac2a6.webp",
+      "assetSha256": "6105167b51cf5f00a8be09241742751b594f8d9a45ba0307776c75778ced0501"
+    }
+  ]
+}

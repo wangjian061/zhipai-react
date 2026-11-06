@@ -24,6 +24,9 @@ export function createMessageHistory(storage = globalThis.localStorage) {
     storageKey: "",
     reminders: [],
     writeFailed: false,
+    hasUnreadFor(owner) {
+      return !!owner && this.owner === owner && this.items.some((message) => message.read === false);
+    },
     sync(owner, records, projects, announcements = []) {
       const changedOwner = owner !== this.owner || !this.ready;
       if (changedOwner) {

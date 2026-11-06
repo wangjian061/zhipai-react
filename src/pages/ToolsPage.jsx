@@ -12,6 +12,7 @@ import PhotoSelectionActions from "../components/PhotoSelectionActions.jsx";
 import ToolPhotoSelection from "../components/ToolPhotoSelection.jsx";
 import PendingPhotoResults from "../components/PendingPhotoResults.jsx";
 import PhotoSelectionEmpty from "../components/PhotoSelectionEmpty.jsx";
+import ToolWorkspacePlaceholder from "../components/ToolWorkspacePlaceholder.jsx";
 import {
   PortraitCheckStatus,
   PortraitCheckPanel,
@@ -53,22 +54,31 @@ export default function ToolsPage({ scope, args = [] }) {
               disabled={s.busy}
               onBack={() => s.back()}
             />
-            <ToolStepper steps={s.config.steps} current={s.step} />
-            <View as="div" scope={s} className="tool-work-scroll">
+            {!s.isInlineWorkspace && (
+              <ToolStepper steps={s.config.steps} current={s.step} />
+            )}
+            <View
+              as="div"
+              scope={s}
+              className="tool-work-scroll"
+              tabIndex={s.isInlineWorkspace ? -1 : undefined}
+            >
               {s.page === "tool" && !s.photo && s.config.service && (
                 <PendingPhotoResults
                   type={s.action}
                   onResume={(order) => s.resumeOrder(order)}
                 />
               )}
-              {!s.photo && (
+              {!s.photo && s.isInlineWorkspace && (
+                <ToolWorkspacePlaceholder
+                  disabled={s.busy}
+                  onSelect={() => s.pick()}
+                />
+              )}
+              {!s.photo && !s.isInlineWorkspace && (
                 <PhotoSelectionEmpty
                   mascot={s.mascot}
-                  description={
-                    s.config.sources.includes("phone")
-                      ? "知拍相册 / 手机相册"
-                      : "从知拍相册选择"
-                  }
+                  description="请选择您的照片"
                   disabled={s.busy}
                   onSelect={() => s.pick()}
                 />
@@ -253,7 +263,10 @@ export default function ToolsPage({ scope, args = [] }) {
                 as="section"
                 scope={s}
                 className="tool-settings"
-                show={s.photo && !s.choosingPhoto && s.action === "crop"}
+                show={
+                  (s.isInlineWorkspace || (s.photo && !s.choosingPhoto)) &&
+                  s.action === "crop"
+                }
               >
                 <View as="div" scope={s} className="tool-options-heading">
                   <View as="h2" scope={s}>
@@ -311,10 +324,9 @@ export default function ToolsPage({ scope, args = [] }) {
                 scope={s}
                 className="tool-settings"
                 show={
-                  s.photo &&
-                  !s.choosingPhoto &&
                   s.action === "background" &&
-                  s.standardized
+                  (s.isInlineWorkspace ||
+                    (s.photo && !s.choosingPhoto && s.standardized))
                 }
               >
                 <View as="div" scope={s} className="tool-options-heading">
@@ -343,7 +355,11 @@ export default function ToolsPage({ scope, args = [] }) {
                           <View
                             as="button"
                             scope={s}
-                            disabled={s.busy}
+                            disabled={
+                              s.busy ||
+                              (!!s.photo &&
+                                (!s.portraitEligible || !s.standardized))
+                            }
                             aria-label={s.item.name}
                             aria-pressed={s.background === s.item.id}
                             events={[
@@ -382,7 +398,10 @@ export default function ToolsPage({ scope, args = [] }) {
                 as="section"
                 scope={s}
                 className="tool-settings"
-                show={s.photo && !s.choosingPhoto && s.action === "format"}
+                show={
+                  (s.isInlineWorkspace || (s.photo && !s.choosingPhoto)) &&
+                  s.action === "format"
+                }
               >
                 <View as="div" scope={s} className="tool-options-heading">
                   <View as="h2" scope={s}>
@@ -459,7 +478,10 @@ export default function ToolsPage({ scope, args = [] }) {
                 as="section"
                 scope={s}
                 className="tool-settings"
-                show={s.photo && !s.choosingPhoto && s.action === "resize"}
+                show={
+                  (s.isInlineWorkspace || (s.photo && !s.choosingPhoto)) &&
+                  s.action === "resize"
+                }
               >
                 <View as="div" scope={s} className="tool-options-heading">
                   <View as="h2" scope={s}>
@@ -546,7 +568,9 @@ export default function ToolsPage({ scope, args = [] }) {
                       as="b"
                       scope={s}
                       text={
-                        s.photo ? s.size(s.photo.size || s.photo.blob.size) : ""
+                        s.photo
+                          ? s.size(s.photo.size || s.photo.blob.size)
+                          : "—"
                       }
                     ></View>
                   </View>
@@ -566,26 +590,6 @@ export default function ToolsPage({ scope, args = [] }) {
                     ></View>
                   </View>
                 </View>
-                <View
-                  as="button"
-                  scope={s}
-                  className="tool-secondary"
-                  disabled={s.busy}
-                  events={[
-                    {
-                      type: "click",
-                      prevent: false,
-                      stop: false,
-                      self: false,
-                      passive: false,
-                      run: function (scope, $event, $el) {
-                        scope.preview();
-                      },
-                    },
-                  ]}
-                >
-                  {"应用体积"}
-                </View>
                 <View as="small" scope={s} className="tool-local-note">
                   {"像素尺寸不变，输出 JPG"}
                 </View>
@@ -594,13 +598,7 @@ export default function ToolsPage({ scope, args = [] }) {
                 as="section"
                 scope={s}
                 className="tool-settings outfit-clothes-card"
-                show={
-                  s.photo &&
-                  !s.choosingPhoto &&
-                  s.action === "outfit" &&
-                  s.standardized &&
-                  !s.outfitResult
-                }
+                show={s.action === "outfit" && !s.outfitResult}
               >
                 <View as="div" scope={s} className="outfit-clothes-heading">
                   <View as="h2" scope={s}>
@@ -690,6 +688,8 @@ export default function ToolsPage({ scope, args = [] }) {
                               as="img"
                               scope={s}
                               src={s.item.image}
+                              loading="lazy"
+                              decoding="async"
                               alt={s.item.name}
                             ></View>
                             <View as="span" scope={s} text={s.item.name}></View>
@@ -734,9 +734,11 @@ export default function ToolsPage({ scope, args = [] }) {
               as="footer"
               scope={s}
               className="tool-footer tool-work-footer"
-              dynamicClass={{ "photo-selection-footer": s.step === 0 }}
+              dynamicClass={{
+                "photo-selection-footer": s.isInlineWorkspace || s.step === 0,
+              }}
             >
-              {s.step === 0 ? (
+              {s.isInlineWorkspace || s.step === 0 ? (
                 <PhotoSelectionActions
                   hasPhoto={!!s.photo?.blob}
                   disabled={s.busy}
@@ -1048,6 +1050,7 @@ export default function ToolsPage({ scope, args = [] }) {
                       s.choosePortraitOutcome(outcome, reason)
                     }
                     onClose={() => s.closePanel()}
+                    closeLabel={s.isInlineWorkspace ? "返回调整" : "返回选照片"}
                   />
                   {s.panel === "album" ? (
                     <ToolPhotoSelection

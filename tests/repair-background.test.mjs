@@ -27,6 +27,7 @@ const source = new Blob(
 );
 const photo = {
   id: "input",
+  captureDate: "2024-02-29",
   blob: source,
   width: 3,
   height: 3,
@@ -144,7 +145,7 @@ after(() => {
 
 test("fresh repair requires an explicit valid color at UI, payment and processing gates", async () => {
   const s = studio();
-  assert.equal(s.config.steps[1], "照片精修");
+  assert.deepEqual(s.config.steps, []);
   assert.equal(s.step, 1);
   assert.equal(
     s.background,
@@ -167,30 +168,23 @@ test("fresh repair requires an explicit valid color at UI, payment and processin
   assert.equal(s.sourceURL && s.photo.blob, source);
 });
 
-test("previous/same photo preserves selection, new photo clears it and checks again", async () => {
-  const s = studio();
+test("same-page replacement retains a compatible color while invalidating checks and old output", async () => {
+  const s=studio();
   s.selectRepairBackground("gray");
   s.previousStep();
-  assert.equal(s.step, 0);
-  assert.equal(s.primaryEnabled, true);
-  await s.primary();
-  assert.equal(s.step, 1);
-  assert.equal(s.repairColor.id, "gray");
-  await s.accept({ photo, kind: "phone", context: { action: "repair" } });
-  assert.equal(s.repairColor.id, "gray");
-  await s.accept({
-    photo: { ...photo, id: "another" },
-    kind: "phone",
-    context: { action: "repair" },
-  });
-  assert.equal(s.repairColor, null);
-  assert.equal(s.step, 0);
-  assert.equal(s.primaryEnabled, true);
-  await s.primary();
-  assert.equal(s.step, 1);
-  assert.equal(s.primaryEnabled, false);
-  assert.equal(s.output, null);
-  assert.equal(s.orderId, null);
+  assert.equal(s.step,1);
+  assert.equal(s.repairColor.id,"gray");
+  await s.accept({photo,kind:"phone",context:{action:"repair"}});
+  assert.equal(s.repairColor.id,"gray");
+  let checks=0;
+  s.validatePortraitPhoto=async()=>{checks++;s.portraitCheck={status:"rejected",reasons:[]};};
+  await s.accept({photo:{...photo,id:"another"},kind:"phone",context:{action:"repair"}});
+  assert.equal(checks,1);
+  assert.equal(s.repairColor.id,"gray");
+  assert.equal(s.step,1);
+  assert.equal(s.primaryEnabled,false);
+  assert.equal(s.output,null);
+  assert.equal(s.orderId,null);
 });
 
 test("cancel/change/retry keeps one order; chosen color reaches output, receipt and completion", async () => {
@@ -214,6 +208,7 @@ test("cancel/change/retry keeps one order; chosen color reaches output, receipt 
   assert.equal(orders.items[0].purchaseSnapshot.backgroundName, "红色");
   assert.equal(s.view, "saved");
   assert.equal(library.finished.length, 1);
+  assert.equal(library.finished[0].captureDate, photo.captureDate);
   assert.equal(s.resultSummary, "照片精修 · 红色背景");
   const decoded = JSON.parse(await s.output.text());
   assert.deepEqual(decoded.pixels.slice(0, 4), [214, 56, 61, 255]);

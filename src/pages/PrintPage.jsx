@@ -1,6 +1,8 @@
+import PrintLayoutViewer from "../components/PrintLayoutViewer.jsx";
+import ShippingAddressFields from "../components/ShippingAddressFields.jsx";
 import React from "react";
 import ToolNavigation from "../components/ToolNavigation.jsx";
-import ToolStepper from "../components/ToolStepper.jsx";
+import PrintWorkspace from "../components/PrintWorkspace.jsx";
 import ToolPhotoSelection from "../components/ToolPhotoSelection.jsx";
 import PhotoSelectionEmpty from "../components/PhotoSelectionEmpty.jsx";
 import PhotoSelectionPreview from "../components/PhotoSelectionPreview.jsx";
@@ -25,13 +27,6 @@ export default function PrintPage({ scope: s }) {
         disabled={s.processing || s.store.busy}
         onBack={() => s.back()}
       />
-      {["select", "crop", "layouts", "confirm"].includes(s.view) && (
-        <ToolStepper
-          steps={["选照片", "选排版", "确认订单"]}
-          current={s.view === "confirm" ? 2 : s.view === "layouts" ? 1 : 0}
-          label="冲印步骤"
-        />
-      )}
       <View
         as="div"
         scope={s}
@@ -117,290 +112,7 @@ export default function PrintPage({ scope: s }) {
           </footer>
         </div>
       )}
-      <View
-        as="div"
-        scope={s}
-        className="print-screen"
-        show={s.view === "select"}
-      >
-        <View as="div" scope={s} className="print-body print-selection-body">
-          {!s.draft.photo && (
-            <PhotoSelectionEmpty
-              mascot="assets/bear-print.webp"
-              description="知拍相册 / 手机相册"
-              disabled={s.disabled || s.library.busy}
-              onSelect={() => s.openAlbum()}
-            />
-          )}
-          {s.draft.photo && (
-            <PhotoSelectionPreview photo={s.draft.photo} src={s.photoURL} />
-          )}
-        </View>
-        <View
-          as="footer"
-          scope={s}
-          className="print-footer print-step-footer photo-selection-footer"
-        >
-          <PhotoSelectionActions
-            hasPhoto={!!s.draft.photo?.blob}
-            disabled={s.disabled || s.library.busy}
-            onSelect={() => s.openAlbum()}
-            onNext={() => s.nextLayouts()}
-          />
-        </View>
-      </View>
-      <View
-        as="div"
-        scope={s}
-        className="print-screen"
-        show={s.view === "layouts"}
-      >
-        <View as="div" scope={s} className="print-body print-layout-body">
-          <View as="section" scope={s} className="print-layout-panel">
-            <View as="div" scope={s} className="print-paper-stage">
-              <View
-                as="div"
-                scope={s}
-                className="print-paper-preview"
-                aria-label="所选照片的横向排版预览"
-                show={s.selectedLayout && !s.layoutsLoading}
-                html={
-                  s.selectedLayout
-                    ? s.sheet(s.selectedLayout.id, true, true)
-                    : ""
-                }
-              ></View>
-              <View
-                as="div"
-                scope={s}
-                className="print-layout-loading"
-                show={s.layoutsLoading}
-                role="status"
-              >
-                <View
-                  as="div"
-                  scope={s}
-                  className="print-layout-skeleton"
-                  aria-hidden="true"
-                >
-                  <Repeat
-                    scope={s}
-                    items={8}
-                    names={["slot"]}
-                    keyFor={function (scope, $event, $el) {
-                      return scope.slot;
-                    }}
-                  >
-                    {(s) => (
-                      <>
-                        <>
-                          <View as="span" scope={s}></View>
-                        </>
-                      </>
-                    )}
-                  </Repeat>
-                </View>
-                <View as="p" scope={s}>
-                  {"正在获取适用模板…"}
-                </View>
-              </View>
-              <View
-                as="div"
-                scope={s}
-                className="print-no-layout"
-                show={!s.layoutsLoading && !s.layouts.length}
-              >
-                <View as="svg" scope={s} aria-hidden="true">
-                  <View as="use" scope={s} href="#i-print"></View>
-                </View>
-                <View as="h3" scope={s}>
-                  {"暂时没有可用排版"}
-                </View>
-                <View
-                  as="p"
-                  scope={s}
-                  text={s.layoutError || "请重新获取，或换一张照片。"}
-                ></View>
-                <View as="div" scope={s}>
-                  <View
-                    as="button"
-                    scope={s}
-                    disabled={s.disabled}
-                    events={[
-                      {
-                        type: "click",
-                        prevent: false,
-                        stop: false,
-                        self: false,
-                        passive: false,
-                        run: function (scope, $event, $el) {
-                          scope.loadLayouts(true);
-                        },
-                      },
-                    ]}
-                  >
-                    {"重新获取"}
-                  </View>
-                </View>
-              </View>
-            </View>
-            <View
-              as="div"
-              scope={s}
-              className="print-paper-caption"
-              show={s.selectedLayout && !s.layoutsLoading}
-            >
-              <View
-                as="span"
-                scope={s}
-                text={s.selectedLayout?.paperLabel || ""}
-              ></View>
-              <View
-                as="span"
-                scope={s}
-                text={"每版 " + (s.selectedLayout?.count || 0) + " 张照片"}
-              ></View>
-            </View>
-          </View>
-          <View
-            as="section"
-            scope={s}
-            className="print-template-section"
-            show={!s.layoutsLoading && s.layouts.length}
-          >
-            <View
-              as="h3"
-              scope={s}
-              text={s.layouts.length === 1 ? "当前排版" : "排版模板"}
-            ></View>
-            <View
-              as="p"
-              scope={s}
-              className="print-single-layout"
-              show={s.layouts.length === 1}
-              text={s.selectedLayout?.name || ""}
-            ></View>
-            <View
-              as="div"
-              scope={s}
-              className="print-template-list"
-              show={s.layouts.length > 1}
-            >
-              <Repeat
-                scope={s}
-                items={s.layouts}
-                names={["item"]}
-                keyFor={function (scope, $event, $el) {
-                  return scope.item.id;
-                }}
-              >
-                {(s) => (
-                  <>
-                    <>
-                      <View
-                        as="button"
-                        scope={s}
-                        className="print-template-option"
-                        dynamicClass={{
-                          selected: s.draft.layout === s.item.id,
-                        }}
-                        aria-pressed={s.draft.layout === s.item.id}
-                        disabled={s.disabled}
-                        events={[
-                          {
-                            type: "click",
-                            prevent: false,
-                            stop: false,
-                            self: false,
-                            passive: false,
-                            run: function (scope, $event, $el) {
-                              scope.selectLayout(scope.item.id);
-                            },
-                          },
-                        ]}
-                      >
-                        <View
-                          as="div"
-                          scope={s}
-                          className="print-template-preview"
-                          aria-label={s.item.name + "横向排版"}
-                          html={s.sheet(s.item.id, true, true)}
-                        ></View>
-                        <View as="strong" scope={s} text={s.item.name}></View>
-                        <View
-                          as="small"
-                          scope={s}
-                          text={s.item.description}
-                        ></View>
-                        <View
-                          as="span"
-                          scope={s}
-                          className="print-selection-check"
-                          show={s.draft.layout === s.item.id}
-                        >
-                          <View as="svg" scope={s} aria-hidden="true">
-                            <View as="use" scope={s} href="#i-check"></View>
-                          </View>
-                        </View>
-                      </View>
-                    </>
-                  </>
-                )}
-              </Repeat>
-            </View>
-          </View>
-          <View
-            as="div"
-            scope={s}
-            className="print-quantity-row"
-            show={s.selectedLayout && !s.layoutsLoading}
-          >
-            <div>
-              <strong>固定1版 · 不支持加印</strong>
-              <p>冲印 ¥19.80 ＋ 运费 ¥10.00</p>
-            </div>
-            <span className="print-fixed-price">
-              ¥29.80<small>合计</small>
-            </span>
-          </View>
-        </View>
-        <View as="footer" scope={s} className="print-footer print-step-footer">
-          <button
-            type="button"
-            className="print-previous"
-            disabled={s.disabled}
-            onClick={() => s.previousStep()}
-          >
-            <svg aria-hidden="true">
-              <use href="#i-chevron-left" />
-            </svg>
-            上一步
-          </button>
-          <View
-            as="button"
-            scope={s}
-            className="print-primary"
-            disabled={!s.selectedLayout || s.disabled || !!s.layoutError}
-            events={[
-              {
-                type: "click",
-                prevent: false,
-                stop: false,
-                self: false,
-                passive: false,
-                run: function (scope, $event, $el) {
-                  scope.confirm();
-                },
-              },
-            ]}
-          >
-            {"下一步"}
-            <View as="svg" scope={s} aria-hidden="true">
-              <View as="use" scope={s} href="#i-arrow"></View>
-            </View>
-          </View>
-        </View>
-      </View>
+      {s.view === "layouts" && <PrintWorkspace studio={s} />}
       <View
         as="div"
         scope={s}
@@ -844,151 +556,14 @@ export default function PrintPage({ scope: s }) {
           ]}
         >
           <View as="div" scope={s} className="print-body">
-            <View as="div" scope={s} className="print-card print-fields">
-              <View as="label" scope={s}>
-                <View as="span" scope={s}>
-                  {"收件人"}
-                </View>
-                <View
-                  as="input"
-                  scope={s}
-                  autoComplete="name"
-                  maxLength="30"
-                  placeholder="收件人姓名"
-                  required={true}
-                  disabled={s.disabled}
-                  model={{
-                    read: function (scope, $event, $el) {
-                      return scope.addressFields.name;
-                    },
-                    write: function (scope, $event, $el) {
-                      scope.addressFields.name = $event;
-                    },
-                    number: false,
-                    lazy: false,
-                  }}
-                ></View>
-              </View>
-              <View as="label" scope={s}>
-                <View as="span" scope={s}>
-                  {"手机号码"}
-                </View>
-                <View
-                  as="input"
-                  scope={s}
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel-national"
-                  maxLength="11"
-                  placeholder="11位手机号码"
-                  required={true}
-                  disabled={s.disabled}
-                  model={{
-                    read: function (scope, $event, $el) {
-                      return scope.addressFields.phone;
-                    },
-                    write: function (scope, $event, $el) {
-                      scope.addressFields.phone = $event;
-                    },
-                    number: false,
-                    lazy: false,
-                  }}
-                ></View>
-              </View>
-              <View as="label" scope={s}>
-                <View as="span" scope={s}>
-                  {"省市区"}
-                </View>
-                <View
-                  as="input"
-                  scope={s}
-                  autoComplete="address-level1"
-                  maxLength="100"
-                  placeholder="例如：广东省 深圳市 南山区"
-                  required={true}
-                  disabled={s.disabled}
-                  model={{
-                    read: function (scope, $event, $el) {
-                      return scope.addressFields.region;
-                    },
-                    write: function (scope, $event, $el) {
-                      scope.addressFields.region = $event;
-                    },
-                    number: false,
-                    lazy: false,
-                  }}
-                ></View>
-              </View>
-              <View as="label" scope={s} className="print-street-field">
-                <View as="span" scope={s}>
-                  {"详细地址"}
-                </View>
-                <View
-                  as="textarea"
-                  scope={s}
-                  autoComplete="street-address"
-                  maxLength="200"
-                  placeholder="街道、楼栋及门牌号"
-                  required={true}
-                  disabled={s.disabled}
-                  model={{
-                    read: function (scope, $event, $el) {
-                      return scope.addressFields.street;
-                    },
-                    write: function (scope, $event, $el) {
-                      scope.addressFields.street = $event;
-                    },
-                    number: false,
-                    lazy: false,
-                  }}
-                ></View>
-              </View>
-              <View as="label" scope={s}>
-                <View as="span" scope={s}>
-                  {"邮政编码"}
-                </View>
-                <View
-                  as="input"
-                  scope={s}
-                  inputMode="numeric"
-                  autoComplete="postal-code"
-                  maxLength="6"
-                  placeholder="选填"
-                  disabled={s.disabled}
-                  model={{
-                    read: function (scope, $event, $el) {
-                      return scope.addressFields.postal;
-                    },
-                    write: function (scope, $event, $el) {
-                      scope.addressFields.postal = $event;
-                    },
-                    number: false,
-                    lazy: false,
-                  }}
-                ></View>
-              </View>
-              <View as="label" scope={s} className="print-default-field">
-                <View as="span" scope={s}>
-                  {"设为默认地址"}
-                </View>
-                <View
-                  as="input"
-                  scope={s}
-                  type="checkbox"
-                  disabled={s.disabled}
-                  model={{
-                    read: function (scope, $event, $el) {
-                      return scope.addressFields.default;
-                    },
-                    write: function (scope, $event, $el) {
-                      scope.addressFields.default = $event;
-                    },
-                    number: false,
-                    lazy: false,
-                  }}
-                ></View>
-              </View>
-            </View>
+            <ShippingAddressFields
+              className="print-card"
+              fields={s.addressFields}
+              disabled={s.disabled}
+              onChange={(key, value) => {
+                s.addressFields[key] = value;
+              }}
+            />
             <View
               as="p"
               scope={s}
@@ -1020,319 +595,322 @@ export default function PrintPage({ scope: s }) {
         {"网络不可用，请恢复连接后再提交或查询付款。"}
       </View>
       <Portal target="#print-modal-layer">
-        <View
-          as="div"
-          scope={s}
-          className="print-overlay"
-          show={s.$store.printUi.opened}
-          events={[
-            {
-              type: "click",
-              prevent: false,
-              stop: false,
-              self: true,
-              passive: false,
-              run: function (scope, $event, $el) {
-                scope.closeModal();
-              },
-            },
-            {
-              type: "keydown",
-              prevent: false,
-              stop: false,
-              self: false,
-              passive: false,
-              run: function (scope, $event, $el) {
-                scope.trap($event);
-              },
-            },
-          ]}
-          transition={{
-            opacity: true,
-            duration: 180,
-          }}
-        >
+        <PrintLayoutViewer scope={s} />
+        {s.modal !== "layoutPreview" && (
           <View
-            as="section"
+            as="div"
             scope={s}
-            className="print-dialog ui-sheet"
+            className="print-overlay"
             show={s.$store.printUi.opened}
-            dynamicClass={{
-              "print-photo-drawer": s.modal === "album",
-              "photo-selection-sheet": s.modal === "album",
-            }}
-            refName="printDialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="print-dialog-title"
+            events={[
+              {
+                type: "click",
+                prevent: false,
+                stop: false,
+                self: true,
+                passive: false,
+                run: function (scope, $event, $el) {
+                  scope.closeModal();
+                },
+              },
+              {
+                type: "keydown",
+                prevent: false,
+                stop: false,
+                self: false,
+                passive: false,
+                run: function (scope, $event, $el) {
+                  scope.trap($event);
+                },
+              },
+            ]}
             transition={{
-              enter: "print-sheet-enter",
-              start: "print-sheet-start",
-              end: "print-sheet-end",
+              opacity: true,
+              duration: 180,
             }}
           >
-            {s.modal !== "album" && (
-              <View as="header" scope={s} className="ui-sheet-header">
-                <View
-                  as="h2"
-                  scope={s}
-                  id="print-dialog-title"
-                  text={s.modalTitle}
-                ></View>
-                <View
-                  as="button"
-                  scope={s}
-                  className="print-dialog-close"
-                  disabled={s.processing}
-                  aria-label="关闭"
-                  events={[
-                    {
-                      type: "click",
-                      prevent: false,
-                      stop: false,
-                      self: false,
-                      passive: false,
-                      run: function (scope, $event, $el) {
-                        scope.closeModal();
-                      },
-                    },
-                  ]}
-                >
-                  <View as="svg" scope={s} aria-hidden="true">
-                    <View as="use" scope={s} href="#i-close"></View>
-                  </View>
-                </View>
-              </View>
-            )}
-            {s.modal === "album" ? (
-              <ToolPhotoSelection
-                library={s.library}
-                selectedId={s.candidatePhotoId}
-                mascot="assets/bear-print.webp"
-                busy={s.processing || s.store.busy}
-                error={s.error}
-                titleId="print-dialog-title"
-                onClose={() => s.closeModal()}
-                onPhone={() => s.pickPhone()}
-                onCreate={() => s.makePhoto()}
-                onSelect={(id) => s.selectCandidate(id)}
-                onConfirm={() => s.preparePhoto()}
-              />
-            ) : null}
             <View
-              as="div"
+              as="section"
               scope={s}
-              show={s.modal === "payment"}
-              className="ui-sheet-panel"
+              className="print-dialog ui-sheet"
+              show={s.$store.printUi.opened}
+              dynamicClass={{
+                "print-photo-drawer": s.modal === "album",
+                "photo-selection-sheet": s.modal === "album",
+              }}
+              refName="printDialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="print-dialog-title"
+              transition={{
+                enter: "print-sheet-enter",
+                start: "print-sheet-start",
+                end: "print-sheet-end",
+              }}
             >
-              <View as="div" scope={s} className="ui-sheet-body">
-                <View
-                  as="p"
-                  scope={s}
-                  className="print-payment-amount"
-                  text={s.order ? s.money(s.order.total) : ""}
-                ></View>
-                <View as="label" scope={s} className="print-payment-option">
-                  <View as="span" scope={s}>
-                    {"微信支付"}
-                  </View>
+              {s.modal !== "album" && (
+                <View as="header" scope={s} className="ui-sheet-header">
                   <View
-                    as="input"
+                    as="h2"
                     scope={s}
-                    type="radio"
-                    name="print-payment"
-                    value="wechat"
-                    disabled={s.processing}
-                    model={{
-                      read: function (scope, $event, $el) {
-                        return scope.paymentMethod;
-                      },
-                      write: function (scope, $event, $el) {
-                        scope.paymentMethod = $event;
-                      },
-                      number: false,
-                      lazy: false,
-                    }}
+                    id="print-dialog-title"
+                    text={s.modalTitle}
                   ></View>
-                </View>
-                <View as="label" scope={s} className="print-payment-option">
-                  <View as="span" scope={s}>
-                    {"支付宝支付"}
-                  </View>
                   <View
-                    as="input"
+                    as="button"
                     scope={s}
-                    type="radio"
-                    name="print-payment"
-                    value="alipay"
+                    className="print-dialog-close"
                     disabled={s.processing}
-                    model={{
-                      read: function (scope, $event, $el) {
-                        return scope.paymentMethod;
+                    aria-label="关闭"
+                    events={[
+                      {
+                        type: "click",
+                        prevent: false,
+                        stop: false,
+                        self: false,
+                        passive: false,
+                        run: function (scope, $event, $el) {
+                          scope.closeModal();
+                        },
                       },
-                      write: function (scope, $event, $el) {
-                        scope.paymentMethod = $event;
-                      },
-                      number: false,
-                      lazy: false,
-                    }}
-                  ></View>
-                </View>
-              </View>
-              <View as="footer" scope={s} className="ui-sheet-footer">
-                <View
-                  as="button"
-                  scope={s}
-                  className="print-primary"
-                  disabled={s.disabled || !s.online}
-                  text={s.processing ? "正在确认…" : "确认付款"}
-                  events={[
-                    {
-                      type: "click",
-                      prevent: false,
-                      stop: false,
-                      self: false,
-                      passive: false,
-                      run: function (scope, $event, $el) {
-                        scope.pay();
-                      },
-                    },
-                  ]}
-                ></View>
-              </View>
-            </View>
-            <View
-              as="div"
-              scope={s}
-              show={s.modal === "resolution"}
-              className="ui-sheet-panel"
-            >
-              <View as="div" scope={s} className="ui-sheet-body">
-                <View as="p" scope={s} className="print-dialog-copy">
-                  {"付款结果未确认时，先查询同一订单，避免重复付款。"}
-                </View>
-                <View as="label" scope={s} className="print-query-choice">
-                  {"付款状态"}
-                  <View
-                    as="select"
-                    scope={s}
-                    disabled={s.processing}
-                    model={{
-                      read: function (scope, $event, $el) {
-                        return scope.resolution;
-                      },
-                      write: function (scope, $event, $el) {
-                        scope.resolution = $event;
-                      },
-                      number: false,
-                      lazy: false,
-                    }}
+                    ]}
                   >
-                    <View as="option" scope={s} value="paid">
-                      {"已付款"}
-                    </View>
-                    <View as="option" scope={s} value="unpaid">
-                      {"未付款"}
-                    </View>
-                    <View as="option" scope={s} value="unknown">
-                      {"仍未确认"}
+                    <View as="svg" scope={s} aria-hidden="true">
+                      <View as="use" scope={s} href="#i-close"></View>
                     </View>
                   </View>
                 </View>
-              </View>
-              <View as="footer" scope={s} className="ui-sheet-footer">
-                <View
-                  as="button"
-                  scope={s}
-                  className="print-primary"
-                  disabled={s.disabled || !s.online}
-                  text={s.processing ? "正在查询…" : "查询结果"}
-                  events={[
-                    {
-                      type: "click",
-                      prevent: false,
-                      stop: false,
-                      self: false,
-                      passive: false,
-                      run: function (scope, $event, $el) {
-                        scope.resolvePayment();
+              )}
+              {s.modal === "album" ? (
+                <ToolPhotoSelection
+                  library={s.library}
+                  selectedId={s.candidatePhotoId}
+                  mascot="assets/bear-print.webp"
+                  busy={s.processing || s.store.busy}
+                  error={s.error}
+                  titleId="print-dialog-title"
+                  onClose={() => s.closeModal()}
+                  onPhone={() => s.pickPhone()}
+                  onCreate={() => s.makePhoto()}
+                  onSelect={(id) => s.selectCandidate(id)}
+                  onConfirm={() => s.preparePhoto()}
+                />
+              ) : null}
+              <View
+                as="div"
+                scope={s}
+                show={s.modal === "payment"}
+                className="ui-sheet-panel"
+              >
+                <View as="div" scope={s} className="ui-sheet-body">
+                  <View
+                    as="p"
+                    scope={s}
+                    className="print-payment-amount"
+                    text={s.order ? s.money(s.order.total) : ""}
+                  ></View>
+                  <View as="label" scope={s} className="print-payment-option">
+                    <View as="span" scope={s}>
+                      {"微信支付"}
+                    </View>
+                    <View
+                      as="input"
+                      scope={s}
+                      type="radio"
+                      name="print-payment"
+                      value="wechat"
+                      disabled={s.processing}
+                      model={{
+                        read: function (scope, $event, $el) {
+                          return scope.paymentMethod;
+                        },
+                        write: function (scope, $event, $el) {
+                          scope.paymentMethod = $event;
+                        },
+                        number: false,
+                        lazy: false,
+                      }}
+                    ></View>
+                  </View>
+                  <View as="label" scope={s} className="print-payment-option">
+                    <View as="span" scope={s}>
+                      {"支付宝支付"}
+                    </View>
+                    <View
+                      as="input"
+                      scope={s}
+                      type="radio"
+                      name="print-payment"
+                      value="alipay"
+                      disabled={s.processing}
+                      model={{
+                        read: function (scope, $event, $el) {
+                          return scope.paymentMethod;
+                        },
+                        write: function (scope, $event, $el) {
+                          scope.paymentMethod = $event;
+                        },
+                        number: false,
+                        lazy: false,
+                      }}
+                    ></View>
+                  </View>
+                </View>
+                <View as="footer" scope={s} className="ui-sheet-footer">
+                  <View
+                    as="button"
+                    scope={s}
+                    className="print-primary"
+                    disabled={s.disabled || !s.online}
+                    text={s.processing ? "正在确认…" : "确认付款"}
+                    events={[
+                      {
+                        type: "click",
+                        prevent: false,
+                        stop: false,
+                        self: false,
+                        passive: false,
+                        run: function (scope, $event, $el) {
+                          scope.pay();
+                        },
                       },
-                    },
-                  ]}
-                ></View>
+                    ]}
+                  ></View>
+                </View>
               </View>
+              <View
+                as="div"
+                scope={s}
+                show={s.modal === "resolution"}
+                className="ui-sheet-panel"
+              >
+                <View as="div" scope={s} className="ui-sheet-body">
+                  <View as="p" scope={s} className="print-dialog-copy">
+                    {"付款结果未确认时，先查询同一订单，避免重复付款。"}
+                  </View>
+                  <View as="label" scope={s} className="print-query-choice">
+                    {"付款状态"}
+                    <View
+                      as="select"
+                      scope={s}
+                      disabled={s.processing}
+                      model={{
+                        read: function (scope, $event, $el) {
+                          return scope.resolution;
+                        },
+                        write: function (scope, $event, $el) {
+                          scope.resolution = $event;
+                        },
+                        number: false,
+                        lazy: false,
+                      }}
+                    >
+                      <View as="option" scope={s} value="paid">
+                        {"已付款"}
+                      </View>
+                      <View as="option" scope={s} value="unpaid">
+                        {"未付款"}
+                      </View>
+                      <View as="option" scope={s} value="unknown">
+                        {"仍未确认"}
+                      </View>
+                    </View>
+                  </View>
+                </View>
+                <View as="footer" scope={s} className="ui-sheet-footer">
+                  <View
+                    as="button"
+                    scope={s}
+                    className="print-primary"
+                    disabled={s.disabled || !s.online}
+                    text={s.processing ? "正在查询…" : "查询结果"}
+                    events={[
+                      {
+                        type: "click",
+                        prevent: false,
+                        stop: false,
+                        self: false,
+                        passive: false,
+                        run: function (scope, $event, $el) {
+                          scope.resolvePayment();
+                        },
+                      },
+                    ]}
+                  ></View>
+                </View>
+              </View>
+              <View
+                as="div"
+                scope={s}
+                show={s.modal === "cancel"}
+                className="ui-sheet-panel"
+              >
+                <View as="div" scope={s} className="ui-sheet-body">
+                  <View as="p" scope={s} className="print-dialog-copy">
+                    {"取消这笔待付款订单？照片和地址仍会保留。"}
+                  </View>
+                </View>
+                <View as="footer" scope={s} className="ui-sheet-footer">
+                  <View
+                    as="button"
+                    scope={s}
+                    className="print-primary"
+                    disabled={s.disabled}
+                    events={[
+                      {
+                        type: "click",
+                        prevent: false,
+                        stop: false,
+                        self: false,
+                        passive: false,
+                        run: function (scope, $event, $el) {
+                          scope.cancelOrder();
+                        },
+                      },
+                    ]}
+                  >
+                    {"确认取消"}
+                  </View>
+                  <View
+                    as="button"
+                    scope={s}
+                    className="print-secondary"
+                    events={[
+                      {
+                        type: "click",
+                        prevent: false,
+                        stop: false,
+                        self: false,
+                        passive: false,
+                        run: function (scope, $event, $el) {
+                          scope.closeModal();
+                        },
+                      },
+                    ]}
+                  >
+                    {"保留订单"}
+                  </View>
+                </View>
+              </View>
+              <View
+                as="p"
+                scope={s}
+                className="print-modal-message"
+                show={s.message}
+                text={s.message}
+                role="status"
+              ></View>
+              <View
+                as="p"
+                scope={s}
+                className="print-form-error"
+                show={s.modal !== "album" && s.error}
+                text={s.error}
+                role="alert"
+              ></View>
             </View>
-            <View
-              as="div"
-              scope={s}
-              show={s.modal === "cancel"}
-              className="ui-sheet-panel"
-            >
-              <View as="div" scope={s} className="ui-sheet-body">
-                <View as="p" scope={s} className="print-dialog-copy">
-                  {"取消这笔待付款订单？照片和地址仍会保留。"}
-                </View>
-              </View>
-              <View as="footer" scope={s} className="ui-sheet-footer">
-                <View
-                  as="button"
-                  scope={s}
-                  className="print-primary"
-                  disabled={s.disabled}
-                  events={[
-                    {
-                      type: "click",
-                      prevent: false,
-                      stop: false,
-                      self: false,
-                      passive: false,
-                      run: function (scope, $event, $el) {
-                        scope.cancelOrder();
-                      },
-                    },
-                  ]}
-                >
-                  {"确认取消"}
-                </View>
-                <View
-                  as="button"
-                  scope={s}
-                  className="print-secondary"
-                  events={[
-                    {
-                      type: "click",
-                      prevent: false,
-                      stop: false,
-                      self: false,
-                      passive: false,
-                      run: function (scope, $event, $el) {
-                        scope.closeModal();
-                      },
-                    },
-                  ]}
-                >
-                  {"保留订单"}
-                </View>
-              </View>
-            </View>
-            <View
-              as="p"
-              scope={s}
-              className="print-modal-message"
-              show={s.message}
-              text={s.message}
-              role="status"
-            ></View>
-            <View
-              as="p"
-              scope={s}
-              className="print-form-error"
-              show={s.modal !== "album" && s.error}
-              text={s.error}
-              role="alert"
-            ></View>
           </View>
-        </View>
+        )}
       </Portal>
     </View>
   );

@@ -1,3 +1,4 @@
+import { photoCaptureDate } from "./photo-date.js";
 import { getStore } from "../runtime/state.js";
 import {
   readCameraSession,
@@ -65,6 +66,10 @@ export async function savePurchasedElectronic(id) {
       ? await readCameraSession(receipt.sessionId)
       : null;
     const image = await uploadedPhoto(receipt.photo.blob);
+    const captureDate =
+      (await photoCaptureDate(session?.photo)) ||
+      receipt.photo.captureDate ||
+      image.captureDate;
     if (owner !== getStore("account")?.session?.phone)
       throw Error("登录状态已变化，请重新查看相册。");
     const photoId = receipt.sessionId
@@ -80,6 +85,8 @@ export async function savePurchasedElectronic(id) {
       versionId: receipt.versionId,
       versionName: receipt.versionName,
       rawBlob: session?.photo?.blob || receipt.photo.blob,
+      sourceId: session?.photo?.id || null,
+      captureDate,
     };
     const next = library.snapshot();
     if (!next.finished.some((r) => r.id === photoId))

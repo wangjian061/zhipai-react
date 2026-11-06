@@ -6,7 +6,10 @@ import { PNG } from "pngjs";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "vite";
-import { createController } from "../src/runtime/state.js";
+import {
+  createController,
+  createDetachedController,
+} from "../src/runtime/state.js";
 import { HOME_HERO_SLIDES } from "../src/domain/home-hero.js";
 await import("../src/domain/app.js");
 
@@ -34,10 +37,21 @@ function nodes(tree) {
   );
 }
 
-test("home keeps its top promotion and search before the single collection entry and tools", () => {
+test("brand header leads directly into the collection card, with only the bell actionable", () => {
   const elements = nodes(HomePage({ scope: { page: "home" } }));
-  const promotion = elements.find((node) => node.type.name === "ImageCarousel");
-  assert.deepEqual(promotion.props.args, ["hero"]);
+  const brand = elements.find((node) => node.type.name === "HomeBrandHeader");
+  assert.ok(brand);
+  const markup = renderToStaticMarkup(brand);
+  assert.match(markup, /知拍证件照/);
+  assert.match(markup, /<img\b[^>]*src="\/assets\/home-brand-tagline\.svg"[^>]*alt="拍照片，用知拍！"/);
+  const lettering = fs.readFileSync("public/assets/home-brand-tagline.svg", "utf8");
+  assert.match(lettering, /<path\b/);
+  assert.doesNotMatch(lettering, /<(?:text|font|image|use)\b|@font-face/);
+  assert.match(markup, /zhipai-mascot\.webp/);
+  assert.equal((markup.match(/<button\b/g) || []).length, 1);
+  assert.doesNotMatch(markup, /home-brand-unread/);
+  assert.match(renderToStaticMarkup(React.cloneElement(brand, {unread: true})), /home-brand-unread/);
+  assert.ok(!elements.some((node) => node.type.name === "ImageCarousel" || node.props.className === "home-main-card"));
   const search = elements.find(
     (node) => node.props.className === "search-form home-search-entry",
   );
@@ -47,71 +61,151 @@ test("home keeps its top promotion and search before the single collection entry
   const [collection, tools] = React.Children.toArray(content.props.children);
   assert.equal(collection.type.name, "HomeCollectionCard");
   assert.equal(tools.props.className, "tools-card utility-card");
-  assert.ok(elements.indexOf(promotion) < elements.indexOf(search));
+  assert.equal(search, undefined);
   assert.ok(
-    elements.indexOf(search) <
+    elements.indexOf(brand) <
       elements.findIndex((node) => node.type.name === "HomeCollectionCard"),
   );
-  const calls = [];
-  search.props.events[0].run({ go: (page) => calls.push(page) });
-  assert.deepEqual(calls, ["search"]);
+  assert.doesNotMatch(renderToStaticMarkup(collection), /home-collection-progress/);
 });
 
-test("collection entry has one heading, one link and its audience before the decorative artwork", () => {
-  const tree = HomeCollectionCard({ scope: { go() {} } });
-  const elements = nodes(tree);
-  assert.equal(elements.filter((node) => node.type === "h2").length, 1);
-  assert.equal(elements.filter((node) => node.type === "a").length, 1);
-  assert.equal(elements.filter((node) => node.type === "button").length, 0);
-  const link = elements.find((node) => node.type === "a");
-  const audience = elements.find((node) => node.type === "p");
-  const image = elements.find((node) => node.type === "img");
-  assert.equal(link.props.href, "/?page=collection");
-  assert.equal(link.props["aria-describedby"], audience.props.id);
-  assert.equal(image.props.alt, "");
-  assert.ok(elements.indexOf(link) < elements.indexOf(audience));
-  assert.ok(elements.indexOf(audience) < elements.indexOf(image));
-  const html = renderToStaticMarkup(
-    React.createElement(HomeCollectionCard, { scope: { go() {} } }),
-  );
-  assert.equal((html.match(/>专项采集</g) || []).length, 1);
-  assert.ok(html.includes("新生入学 · 毕业生 · 行业协会会员"));
-  assert.ok(!html.includes("轮播") && !html.includes("collection-bear"));
-  const bytes = fs.readFileSync("public/" + image.props.src);
-  assert.equal(bytes.subarray(1, 4).toString(), "PNG");
-  assert.equal(bytes.readUInt32BE(16), Number(image.props.width));
-  assert.equal(bytes.readUInt32BE(20), Number(image.props.height));
-  assert.equal(Number(image.props.width) / Number(image.props.height), 3);
-});
-
-test("normal and keyboard-style link activation enter the zone once; modified activation keeps native navigation", () => {
-  const calls = [];
-  const link = nodes(
-    HomeCollectionCard({ scope: { go: (page) => calls.push(page) } }),
-  ).find((node) => node.type === "a");
-  const activate = (overrides = {}) => {
-    let prevented = false;
-    link.props.onClick({
-      button: 0,
-      defaultPrevented: false,
-      preventDefault: () => (prevented = true),
-      ...overrides,
-    });
-    return prevented;
+test("full header shows glass whenever content is under it, including on the way back up", (t) => {
+  const viewport = { clientHeight: 800, scrollHeight: 1500, scrollTop: 0 };
+  const phone = createDetachedController("phoneDemo", { $refs: { homePage: viewport } });
+  let frame;
+  const original = Object.getOwnPropertyDescriptor(globalThis, "requestAnimationFrame");
+  globalThis.requestAnimationFrame = (callback) => {
+    frame = callback; return 1;
   };
-  assert.equal(activate({ detail: 1 }), true);
-  assert.equal(activate({ detail: 0 }), true);
-  assert.deepEqual(calls, ["collection", "collection"]);
-  for (const overrides of [
-    { metaKey: true },
-    { ctrlKey: true },
-    { shiftKey: true },
-    { altKey: true },
-    { button: 1 },
-    { defaultPrevented: true },
-  ])
-    assert.equal(activate(overrides), false);
-  assert.equal(calls.length, 2);
+  t.after(() => {
+    if (original) Object.defineProperty(globalThis, "requestAnimationFrame", original);
+    else delete globalThis.requestAnimationFrame;
+  });
+  const update = (offset, expected, page = "home") => {
+    phone.page = page;
+    viewport.scrollTop = offset;
+    phone.scheduleHomeNavScrim();
+    frame();
+    assert.equal(phone.homeHeaderOverContent, expected);
+    assert.equal(viewport.scrollTop, offset);
+  };
+  update(0, false);
+  update(0.5, true);
+  update(46, true);
+  update(49, true);
+  update(240, true);
+  update(238, true);
+  update(240, true); // Horizontal movement does not change the vertical offset.
+  update(226, true); // Reversing direction still leaves content underneath.
+  update(229, true);
+  update(242, true);
+  update(0, true, "collection"); // Visiting notifications doesn't discard home state.
+  update(242, true);
+  update(725, true);
+  update(700, true); // Clamping elastic overscroll prevents a false reversal.
+  update(1, true);
+  update(0, false);
+  update(-15, false);
+  viewport.scrollHeight = viewport.clientHeight;
+  update(12, false);
+});
+
+test("the full header keeps the bear, tagline and one accessible notification action over content", () => {
+  const s = {page:"home", homeHeaderOverContent:true, homeHasUnread:true};
+  const brand = nodes(HomePage({scope:s})).find(node=>node.type.name==="HomeBrandHeader");
+  const html = renderToStaticMarkup(brand);
+  assert.match(html, /data-over-content="true"/);
+  assert.match(html, /知拍证件照/);
+  assert.match(html, /通知中心，有未读消息/);
+  assert.equal((html.match(/<button\b/g) || []).length, 1);
+  assert.match(html, /zhipai-mascot/);
+  assert.match(html, /home-brand-tagline/);
+});
+
+test("old personal search URLs resolve to home while collection project searches retain their query", (t) => {
+  const location = new URL("http://localhost/");
+  const replaced = [];
+  for (const [key, value] of Object.entries({
+    location,
+    history: {
+      replaceState(_state, _title, url) {
+        replaced.push(url);
+      },
+    },
+  })) {
+    const previous = Object.getOwnPropertyDescriptor(globalThis, key);
+    Object.defineProperty(globalThis, key, { value, configurable: true });
+    t.after(() => {
+      if (previous) Object.defineProperty(globalThis, key, previous);
+      else delete globalThis[key];
+    });
+  }
+  const phone = createDetachedController("phoneDemo", { $nextTick() {} });
+  for (const field of ["page", "state"]) {
+    location.search = new URLSearchParams({ [field]: "search", q: "一寸" });
+    phone.readLocation();
+    assert.equal(phone.page, "home");
+    assert.equal(replaced.at(-1), "/?page=home");
+  }
+  location.search = "?page=collection&view=projects&category=all&q=test";
+  phone.readLocation();
+  assert.equal(phone.page, "collection");
+  assert.equal(replaced.length, 2);
+});
+
+test("category links navigate once and retain native modified-click behavior", (t) => {
+  const location = new URL("https://example.test/?page=home");
+  const pushes = [],
+    events = [];
+  const previous = Object.getOwnPropertyDescriptors(globalThis);
+  for (const [name, value] of Object.entries({
+    location,
+    history: { state: {}, pushState: (...args) => pushes.push(args) },
+    window: { dispatchEvent: (event) => events.push(event.type) },
+  })) {
+    Object.defineProperty(globalThis, name, { value, configurable: true });
+    t.after(() => {
+      if (previous[name])
+        Object.defineProperty(globalThis, name, previous[name]);
+      else delete globalThis[name];
+    });
+  }
+  const links = nodes(HomeCollectionCard()).filter((node) => node.type === "a");
+  for (const link of links) {
+    const href = link.props.href;
+    const activate = (overrides) => {
+      let prevented = false;
+      link.props.onClick({
+        button: 0,
+        currentTarget: { href },
+        preventDefault: () => {
+          prevented = true;
+        },
+        ...overrides,
+      });
+      return prevented;
+    };
+    for (const overrides of [
+      { metaKey: true },
+      { ctrlKey: true },
+      { shiftKey: true },
+      { altKey: true },
+      { button: 1 },
+      { defaultPrevented: true },
+    ]) {
+      assert.equal(activate(overrides), false);
+    }
+    for (const detail of [1, 0]) {
+      assert.equal(activate({ detail }), true);
+      assert.equal(pushes.at(-1)[2], href);
+      assert.deepEqual(pushes.at(-1)[0].collectionCategoryBack, {
+        source: "/?page=home",
+        target: href,
+      });
+    }
+  }
+  assert.equal(pushes.length, 6);
+  assert.deepEqual(events, Array(6).fill("zhipai-route"));
 });
 
 test("all eight tool entries preserve their destinations and enable the specification entry", () => {
@@ -138,6 +232,9 @@ test("all eight tool entries preserve their destinations and enable the specific
     "resize",
   ]);
   assert.equal(tools[3].props["aria-disabled"], undefined);
+  assert.ok(nodes(tools[7]).some(node => node.props.children === "修改大小(kb)"));
+  for (const icon of elements.filter(node => node.type.name === "HomeToolIcon"))
+    assert.match(renderToStaticMarkup(icon), /--tool-icon-detail/);
   assert.equal(
     elements.filter((node) => node.type.name === "HomeToolIcon").length,
     8,

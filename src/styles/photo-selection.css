@@ -37,6 +37,19 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.tool-workspace-placeholder {
+  width: min(100%, 200px);
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.tool-workspace-placeholder:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 3px;
+}
 .photo-selection-empty {
   width: 100%;
   min-height: 340px;
@@ -310,6 +323,7 @@
   outline-offset: 3px;
 }
 .tool-sheet.photo-selection-sheet,
+.shared-sheet.photo-selection-sheet,
 .print-dialog.photo-selection-sheet {
   display: flex;
   flex-direction: column;

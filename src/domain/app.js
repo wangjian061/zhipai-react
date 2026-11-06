@@ -4,6 +4,7 @@ import {
   registerController,
   registerStore,
   getStore,
+  getControllerScopes,
   storageValue,
 } from "../runtime/state.js";
 
@@ -109,129 +110,6 @@ registerController("imageCarousel", () => ({
       this.select(this.index + (dx < 0 ? 1 : -1));
   },
 }));
-registerController("searchPage", () => ({
-  keyword: "",
-  searched: false,
-  matches: [],
-  routeHandler: null,
-  init() {
-    this.routeHandler = () => this.readQuery();
-    window.addEventListener("popstate", this.routeHandler);
-    window.addEventListener("zhipai-route", this.routeHandler);
-    this.readQuery();
-  },
-  destroy() {
-    window.removeEventListener("popstate", this.routeHandler);
-    window.removeEventListener("zhipai-route", this.routeHandler);
-  },
-  readQuery() {
-    const query = new URLSearchParams(location.search);
-    if (query.get("page") !== "search") return;
-    this.keyword = (query.get("q") || "").slice(0, 60);
-    if (this.keyword.trim()) this.search(false);
-    else {
-      this.searched = false;
-      this.matches = [];
-    }
-    this.$nextTick(() =>
-      this.$refs.searchInput.focus({
-        preventScroll: true,
-      }),
-    );
-  },
-  entries: [
-    {
-      label: "一寸证件照",
-      action: "spec",
-      aliases: ["一寸", "1寸", "证件照"],
-    },
-    {
-      label: "两寸证件照",
-      action: "spec",
-      aliases: ["两寸", "二寸", "2寸", "证件照"],
-    },
-    {
-      label: "简历照片",
-      action: "spec",
-      aliases: ["简历", "求职"],
-    },
-    {
-      label: "会员照片",
-      action: "spec",
-      aliases: ["会员", "协会"],
-    },
-    {
-      label: "冲印服务",
-      action: "print",
-      aliases: ["冲印", "打印", "排版"],
-    },
-    {
-      label: "照片精修",
-      action: "repair",
-      aliases: ["修复", "修图", "精修", "照片修复"],
-    },
-    {
-      label: "照片换装",
-      action: "outfit",
-      aliases: ["换装", "衣服", "西装"],
-    },
-    {
-      label: "证照规格",
-      action: "spec",
-      aliases: ["规格", "证照", "尺寸"],
-    },
-    {
-      label: "照片裁剪",
-      action: "crop",
-      aliases: ["裁剪", "剪裁", "裁切"],
-    },
-    {
-      label: "更换背景",
-      action: "background",
-      aliases: ["背景", "底色", "蓝底", "红底", "白底"],
-    },
-    {
-      label: "格式转换",
-      action: "format",
-      aliases: ["格式", "转换", "jpg", "jpeg", "png", "webp"],
-    },
-    {
-      label: "修改体积",
-      action: "resize",
-      aliases: ["修改大小", "大小", "文件体积", "kb", "mb", "压缩", "缩小"],
-    },
-  ],
-  search(updateURL = true) {
-    const query = this.keyword.trim().toLowerCase().replace(/\s+/g, "");
-    this.matches = query
-      ? this.entries.filter((item) =>
-          [item.label, ...item.aliases].some((term) =>
-            term.toLowerCase().includes(query),
-          ),
-        )
-      : [];
-    this.searched = true;
-    if (updateURL) {
-      const url = new URL(location.href);
-      if (this.keyword.trim()) url.searchParams.set("q", this.keyword.trim());
-      else url.searchParams.delete("q");
-      ["account", "project", "record", "view"].forEach((key) =>
-        url.searchParams.delete(key),
-      );
-      history.replaceState(history.state, "", url);
-    }
-  },
-  edit() {
-    this.searched = false;
-    this.matches = [];
-    const url = new URL(location.href);
-    url.searchParams.delete("q");
-    ["account", "project", "record", "view"].forEach((key) =>
-      url.searchParams.delete(key),
-    );
-    history.replaceState(history.state, "", url);
-  },
-}));
 registerController("phoneDemo", () => ({
   page: "home",
   homeNotice: "",
@@ -239,6 +117,20 @@ registerController("phoneDemo", () => ({
   homeNavScrim: 0,
   homeNavFrame: null,
   homeNavObserver: null,
+  homeHeaderOverContent: false,
+  returnFocusToHomeBell: false,
+  get homeHasUnread() {
+    return this.$store.collectionMessages.hasUnreadFor(this.$store.account.session?.phone);
+  },
+  openHomeNotifications() {
+    const collection = getControllerScopes().collectionFlow;
+    if (!collection?.entryEnabled("notifications")) {
+      this.notifyUnavailable();
+      return;
+    }
+    this.returnFocusToHomeBell = true;
+    collection.openNotifications(true);
+  },
   albumView: "library",
   albumManaging: false,
   albumModal: false,
@@ -254,7 +146,7 @@ registerController("phoneDemo", () => ({
       this.homeNavObserver = new ResizeObserver(() =>
         this.scheduleHomeNavScrim(),
       );
-      [this.$refs.homePage, this.$refs.homeTools, this.$refs.bottomNav].forEach(
+      [this.$refs.homePage, this.$refs.homeContent, this.$refs.bottomNav].forEach(
         (el) => {
           if (el) this.homeNavObserver.observe(el);
         },
@@ -264,7 +156,15 @@ registerController("phoneDemo", () => ({
   },
   readLocation() {
     this.clearHomeNotice();
-    const query = new URLSearchParams(location.search);
+    let query = new URLSearchParams(location.search);
+    if ((query.get("page") || query.get("state")) === "search") {
+      query = new URLSearchParams({ page: "home" });
+      history.replaceState(
+        { page: "home" },
+        "",
+        location.pathname + "?" + query,
+      );
+    }
     if (
       query.get("page") === "album" &&
       (query.get("album") === "local" || query.has("upload"))
@@ -285,7 +185,6 @@ registerController("phoneDemo", () => ({
     const requested = query.get("page") || query.get("state");
     this.page = [
       "home",
-      "search",
       "album",
       "support",
       "my",
@@ -297,6 +196,7 @@ registerController("phoneDemo", () => ({
       "collection",
       "orders",
       "specifications",
+      "keepsake",
     ].includes(requested)
       ? requested
       : "home";
@@ -309,9 +209,14 @@ registerController("phoneDemo", () => ({
     ].includes(query.get("camera"))
       ? query.get("camera")
       : "capture";
+    this.supportSearching = this.page==="support" && query.get("view")==="search";
     this.myView = query.get("my") === "share" ? "share" : "overview";
     this.albumView =
       query.get("photo") && this.page === "album" ? "detail" : "library";
+    if (this.page === "home" && this.returnFocusToHomeBell) {
+      this.returnFocusToHomeBell = false;
+      this.$nextTick(() => document.getElementById("home-notifications")?.focus({ preventScroll: true }));
+    }
     this.$nextTick(() => this.scheduleHomeNavScrim());
   },
   scheduleHomeNavScrim() {
@@ -322,19 +227,27 @@ registerController("phoneDemo", () => ({
         this.homeNavScrim = 0;
         return;
       }
-      const content = this.$refs.homeTools;
+      const viewport = this.$refs.homePage;
+      if (viewport?.clientHeight) {
+        const limit = viewport.scrollHeight - viewport.clientHeight;
+        const offset = Math.max(0, Math.min(viewport.scrollTop, limit));
+        this.homeHeaderOverContent = offset > 0;
+      }
+      const cards = this.$refs.homeContent?.children;
       const nav = this.$refs.bottomNav;
-      if (!content || !nav) {
+      if (!cards || !nav || !viewport) {
         this.homeNavScrim = 0;
         return;
       }
       const navRect = nav.getBoundingClientRect();
-      const scale =
-        nav.offsetWidth && navRect.width ? navRect.width / nav.offsetWidth : 1;
-      const gap =
-        (navRect.top - content.getBoundingClientRect().bottom) / scale;
-      // Show the backing only after content actually crosses the menu's top.
-      this.homeNavScrim = Math.max(0, Math.min(1, -gap / 24));
+      const screenBottom = viewport.getBoundingClientRect().bottom;
+      const scale = nav.offsetWidth && navRect.width ? navRect.width / nav.offsetWidth : 1;
+      let overlap = 0;
+      for (const card of cards) {
+        const rect = card.getBoundingClientRect();
+        overlap = Math.max(overlap, Math.min(screenBottom, rect.bottom) - Math.max(navRect.top, rect.top));
+      }
+      this.homeNavScrim = Math.min(1, overlap / (24 * scale));
     });
   },
   notifyUnavailable() {
@@ -436,7 +349,6 @@ registerController("phoneDemo", () => ({
     if (
       ![
         "home",
-        "search",
         "album",
         "support",
         "my",

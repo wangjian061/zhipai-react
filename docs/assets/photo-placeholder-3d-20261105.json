@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-05",
+  "mode": "builtin image_gen",
+  "selectedSource": "exec-9c2d2b8b-b5ef-44eb-842b-f223bef98843.png",
+  "sourceDirectory": "/Users/jianwang/.codex/generated_images/01a11fa2-c319-7931-bfc6-0598b402d2dd",
+  "asset": "public/assets/photo-placeholder-3d-20261105.webp",
+  "assetSha256": "9b5e331b943d482ab8e6ba17e034b74986c970aca567a3f64ca9c1d54c04f4e3",
+  "size": [
+    600,
+    840
+  ],
+  "usage": "Seven empty photo workspaces and print examples only; never source input",
+  "selection": "用户纠正不使用粘土，最终选择第一版自然材质3D人物；后续粘土版未接入项目",
+  "processing": "cwebp q88 resize600x840; aspect preserved; no crop/stretch/recolor",
+  "prompt": "Use case: stylized-concept. Asset type: final production raster placeholder portrait for the Zhipai mobile identity-photo app, not a UI mockup. Create ONE premium softly lit 3D clay-rendered young East Asian adult person, clearly a stylized 3D character and absolutely not a real photograph, not flat vector art. The figure is dressed in a restrained dusty light-blue blazer over a white crew-neck shirt. Exact frontal symmetrical identity-photo pose, eyes at camera, calm neutral expression, short dark blue-gray sculpted hair. Frame the complete head with a modest amount of space above it and include shoulders and upper chest. Shoulders/clothing must continue to and be naturally cropped by the entire bottom edge: NO empty bar beneath the person. Portrait image composition exactly 5:7 width:height, straight rectangular photo with no paper border or rounded corners. Very pale powder-blue solid background, refined matte ceramic skin, soft studio light with gentle real 3D volume and subtle material shading, mature and restrained design fitting a blue-white professional photo app. No environmental objects, no card frame, no ground plane, no cast shadow outside the portrait, no labels, no text, no symbols, no watermark. Person occupies a normal identity-photo composition; do not leave an enormous empty region. This asset will be shown at 200 by 280 CSS pixels and repeated inside print layout previews, so face and clothing must remain legible at thumbnail size."
+}

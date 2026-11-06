@@ -1,3 +1,10 @@
+import { originalDateInFile, restoreAlbumCaptureDates } from "./photo-date.js";
+import { readCameraSession } from "./camera.js";
+import {
+  decodePhotoBlob,
+  photoReadabilityState,
+  isPhotoReadable,
+} from "./photo-readability.js";
 import { returnToOrderCenter } from "./order-routing.js";
 import {
   registerController,
@@ -54,17 +61,6 @@ function photoCropBounds(
     w,
     h,
   };
-}
-async function decodePhotoBlob(blob) {
-  const url = URL.createObjectURL(blob);
-  try {
-    const image = new Image();
-    image.src = url;
-    await image.decode();
-    return image;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
 }
 async function renderPhotoBlob(blob, settings) {
   const image = await decodePhotoBlob(blob),
@@ -130,6 +126,30 @@ async function writeAlbumState(state) {
       reject(transaction.error || new Error("save aborted"));
   });
 }
+// Patch only missing metadata on the latest stored rows, including when another tab has changed the album.
+async function cacheAlbumCaptureDates(days) {
+  const db = await openAlbumDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction("library", "readwrite");
+    const store = transaction.objectStore("library");
+    const request = store.get("state");
+    request.onsuccess = () => {
+      const current = request.result;
+      let changed = false;
+      for (const rows of [current?.finished, current?.archivedOriginals]) {
+        for (const row of rows || []) {
+          if (row.captureDate === undefined && days.has(row.id)) {
+            row.captureDate = days.get(row.id);
+            changed = true;
+          }
+        }
+      }
+      if (changed) store.put(current, "state");
+    };
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = transaction.onerror = () => reject(transaction.error);
+  });
+}
 function plainAlbumState(state) {
   const copyPhotos = (photos) =>
     photos.map((p) => ({
@@ -142,7 +162,12 @@ function plainAlbumState(state) {
       spec: p.spec || "",
       blob: p.blob || null,
       rawBlob: p.rawBlob || null,
+      captureDate: p.captureDate,
       createdAt: p.createdAt || null,
+      // These writers stamped createdAt when saving/importing the photo into this library.
+      addedAt: p.addedAt ?? (
+        ["made", "upload", "demo-repair", "demo-outfit"].includes(p.origin) ? p.createdAt ?? null : null
+      ),
       origin: p.origin || "",
       sourceId: p.sourceId || null,
       uploadSettings: p.uploadSettings
@@ -259,6 +284,7 @@ async function uploadedPhoto(file) {
       blob: file,
       createdAt: Date.now(),
       origin: "upload",
+      captureDate: await originalDateInFile(file),
     };
   } finally {
     URL.revokeObjectURL(url);
@@ -304,11 +330,28 @@ registerStore("photoLibrary", {
       Object.assign(this, state);
       this.refreshURLs();
       this.ready = true;
+      void this.recoverCaptureDates(state);
     } catch (_) {
       this.ready = false;
       this.error = "相册暂时无法读取，请重新加载后再试。";
     } finally {
       this.busy = false;
+    }
+  },
+  async recoverCaptureDates(state) {
+    const photos = [...state.finished, ...state.archivedOriginals].map((p) => ({ ...p }));
+    const missing = photos.filter((p) => p.captureDate === undefined);
+    if (!missing.length) return;
+    try {
+      await restoreAlbumCaptureDates(photos, (id) => readCameraSession(id));
+      const days = new Map(missing.map((p) => [p.id, p.captureDate]));
+      for (const p of [...this.finished, ...this.archivedOriginals]) {
+        if (p.captureDate === undefined && days.has(p.id))
+          p.captureDate = days.get(p.id);
+      }
+      await cacheAlbumCaptureDates(days);
+    } catch {
+      // Photos remain available even if the optional metadata migration cannot be saved.
     }
   },
   refreshURLs() {
@@ -329,13 +372,23 @@ registerStore("photoLibrary", {
   snapshot() {
     return plainAlbumState(this);
   },
+  async removePhotos(ids) {
+    const next = this.snapshot();
+    next.finished = next.finished.filter((photo) => !ids.includes(photo.id));
+    await this.commit(next);
+  },
   async commit(next) {
     if (!this.ready || this.busy) throw new Error("library unavailable");
     this.busy = true;
     try {
       const state = plainAlbumState(next);
+      const old = new Map(this.finished.map((p) => [p.id, p.addedAt]));
+      const addedAt = Date.now();
+      for (const row of state.finished) {
+        if (!old.has(row.id)) row.addedAt = addedAt;
+        else if (old.get(row.id) != null) row.addedAt = old.get(row.id);
+      }
       await writeAlbumState(state);
-      const old = new Set(this.finished.map((p) => p.id));
       Object.assign(this, state);
       this.refreshURLs();
       this.addedIds = state.finished
@@ -350,8 +403,14 @@ registerStore("photoLibrary", {
   },
 });
 registerController("albumCenter", () => ({
+  ...photoReadabilityState(),
+  get photoReadable() {
+    return isPhotoReadable(this);
+  },
   view: "library",
   library: "finished",
+  space: "mine",
+  archiveRoute: "",
   photoId: null,
   managing: false,
   selected: [],
@@ -372,7 +431,7 @@ registerController("albumCenter", () => ({
   tools: [
     {
       icon: "crop-frame",
-      name: "照片裁剪",
+      name: "修改尺寸",
       action: "crop",
     },
     {
@@ -392,7 +451,7 @@ registerController("albumCenter", () => ({
     },
     {
       icon: "size",
-      name: "修改体积",
+      name: "修改大小",
       action: "resize",
     },
     {
@@ -414,6 +473,7 @@ registerController("albumCenter", () => ({
         this.photos.some((p) => p.id === id),
       );
       if (this.managing && !this.photos.length) this.endManage();
+      if (this.view === "detail") this.checkPhotoReadability();
     });
     this.routeHandler = (event) => this.syncLocation(event);
     window.addEventListener("popstate", this.routeHandler);
@@ -424,6 +484,7 @@ registerController("albumCenter", () => ({
     window.removeEventListener("popstate", this.routeHandler);
     window.removeEventListener("zhipai-route", this.routeHandler);
     clearTimeout(this.noticeTimer);
+    this.photoReadEpoch++;
   },
   get store() {
     return this.$store.photoLibrary;
@@ -449,14 +510,17 @@ registerController("albumCenter", () => ({
     );
   },
   rememberScroll() {
-    const surface =
-      this.view === "library"
-        ? this.$refs.finishedLibraryGrid
-        : this.$refs.albumScroll;
-    if (surface) this.scrollPositions[this.view] = surface.scrollTop;
+    if (this.view === "library" && this.$refs.finishedLibraryGrid) this.scrollPositions.library = this.$refs.finishedLibraryGrid.scrollTop;
   },
   syncLocation(event) {
     const query = new URLSearchParams(location.search);
+    if (this.modal === "delete" && this.deleteHistoryId && event?.type === "popstate") {
+      this.operationEpoch++;
+      const samePhoto = query.get("page") === "album" && query.get("photo") === this.photoId;
+      this.deleteHistoryId = null;
+      this.finishCloseModal(samePhoto);
+      if (samePhoto) return;
+    }
     if (this.modal === "preview" && event?.type === "popstate") {
       const samePhoto =
         query.get("page") === "album" && query.get("photo") === this.photoId;
@@ -467,15 +531,21 @@ registerController("albumCenter", () => ({
     this.rememberScroll();
     this.operationEpoch++;
     this.library = "finished";
+    this.space = query.get("page") === "album" && !query.has("photo") &&
+      ["family","documents"].includes(query.get("space")) ? query.get("space") : "mine";
+    this.archiveRoute = this.space === "mine" ? "" : query.toString();
+    const previousId=this.photoId;
     this.photoId = query.get("photo");
     this.detailFrom = "library";
     this.view =
       query.get("page") === "album" && this.photoId ? "detail" : "library";
+    this.checkPhotoReadability();
     this.managing = false;
     this.selected = [];
     this.modal = null;
     this.message = "";
     this.previewHistoryId = null;
+    this.deleteHistoryId = null;
     this.previewClosing = false;
     this.previewImageFailed = false;
     this.albumManaging = false;
@@ -486,7 +556,9 @@ registerController("albumCenter", () => ({
         this.view === "library"
           ? this.$refs.finishedLibraryGrid
           : this.$refs.albumScroll;
-      if (surface) surface.scrollTop = this.scrollPositions[this.view] || 0;
+      if (surface && this.view==="library") surface.scrollTop = this.scrollPositions.library || 0;
+      if (previousId && this.page==="album" && this.view==="library")
+        Array.from(this.$refs.finishedLibraryGrid?.querySelectorAll?.("[data-photo-id]") || []).find(el=>el.dataset.photoId===previousId)?.focus({preventScroll:true});
     });
     if (
       event?.type === "popstate" &&
@@ -507,7 +579,7 @@ registerController("albumCenter", () => ({
     url.searchParams.delete("upload");
     if (view === "detail") url.searchParams.set("album", "finished");
     else url.searchParams.delete("album");
-    ["tool", "view", "print", "order", "back"].forEach((key) =>
+    ["tool", "view", "print", "order", "back", "space", "member", "doctype", "item", "sheet"].forEach((key) =>
       url.searchParams.delete(key),
     );
     if (photoId) {
@@ -522,6 +594,7 @@ registerController("albumCenter", () => ({
         page: "album",
         album: kind,
         photo: photoId,
+        albumSheetFromList: view==="detail" && this.view==="library",
       },
       "",
       url,
@@ -542,6 +615,12 @@ registerController("albumCenter", () => ({
     }
     this.route("detail", kind, id);
   },
+  closeDetail() {
+    if (this.working || this.downloading) return;
+    if (history.state?.albumSheetFromList && history.state.photo === this.photoId && history.length>1) return history.back();
+    history.replaceState({page:"album"},"","/?page=album");
+    window.dispatchEvent(new Event("zhipai-route"));
+  },
   back() {
     if (!this.busy && !this.modal && !this.panel && returnToOrderCenter())
       return;
@@ -553,7 +632,7 @@ registerController("albumCenter", () => ({
       this.endManage();
       return;
     }
-    if (this.view === "detail") this.route("library");
+    if (this.view === "detail") this.closeDetail();
     else if (this.$store.photoChoice.printReturnContext)
       this.$store.photoChoice.resumePrint();
     else this.go("home");
@@ -616,7 +695,7 @@ registerController("albumCenter", () => ({
     if (
       this.page !== "album" ||
       this.view !== "detail" ||
-      !(this.photo?.blob instanceof Blob) ||
+      !this.photoReadable ||
       this.disabled ||
       this.downloading ||
       this.modal
@@ -633,6 +712,10 @@ registerController("albumCenter", () => ({
   },
   closeModal() {
     if (this.modal !== "preview" && (this.working || this.store.busy)) return;
+    if (this.modal === "delete" && this.deleteHistoryId && history.state?.albumDelete === this.deleteHistoryId) {
+      history.back();
+      return;
+    }
     if (
       this.modal === "preview" &&
       history.state?.albumPreview === this.previewHistoryId
@@ -651,14 +734,12 @@ registerController("albumCenter", () => ({
     this.previewHistoryId = null;
     this.previewImageFailed = false;
     this.message = "";
-    this.$nextTick(
-      () =>
-        restoreFocus &&
-        this.returnFocus?.isConnected &&
-        this.returnFocus.focus({
-          preventScroll: true,
-        }),
-    );
+    this.$nextTick(() => {
+      if (!restoreFocus) return;
+      const target = this.returnFocus?.isConnected ? this.returnFocus :
+        this.view === "detail" && document.querySelector?.("#shared-modal-layer .sheet-photo-preview");
+      target?.focus?.({preventScroll:true});
+    });
   },
   trapFocus(event) {
     if (event.key === "Escape") {
@@ -697,6 +778,8 @@ registerController("albumCenter", () => ({
   deleteCurrent() {
     if (!this.photo || this.disabled || this.downloading) return;
     this.selected = [this.photo.id];
+    this.deleteHistoryId = crypto.randomUUID();
+    history.pushState({ ...history.state, albumDelete: this.deleteHistoryId }, "", location.href);
     this.showModal("delete");
   },
   async confirmDelete() {
@@ -710,13 +793,21 @@ registerController("albumCenter", () => ({
     this.working = true;
     this.message = "";
     try {
-      const next = this.store.snapshot();
-      next.finished = next.finished.filter((p) => !ids.includes(p.id));
-      await this.store.commit(next);
+      await this.store.removePhotos(ids);
       if (epoch === this.operationEpoch) {
         this.selected = [];
         this.modal = null;
-        if (from === "detail") this.route("library");
+        if (from === "detail") {
+          this.working = false;
+          if (this.deleteHistoryId && history.state?.albumDelete === this.deleteHistoryId) {
+            this.deleteHistoryId = null;
+            if (history.state?.albumSheetFromList && history.length > 2) history.go(-2);
+            else {
+              history.replaceState({page:"album"}, "", "/?page=album");
+              window.dispatchEvent(new Event("zhipai-route"));
+            }
+          } else this.closeDetail();
+        }
         else if (!this.photos.length) this.endManage();
       }
     } catch (_) {
@@ -727,7 +818,8 @@ registerController("albumCenter", () => ({
     }
   },
   async savePhotos(single = false) {
-    if (this.downloading || this.disabled) return;
+    if (this.downloading || this.disabled || (single && !this.photoReadable))
+      return;
     const photos = single
       ? [this.photo].filter(Boolean)
       : this.photos.filter((p) => this.selected.includes(p.id));

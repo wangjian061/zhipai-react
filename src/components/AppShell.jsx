@@ -5,7 +5,6 @@ import HomePage from "../pages/HomePage.jsx";
 import SpecificationsPage from "../pages/SpecificationsPage.jsx";
 import AccountPage from "../pages/AccountPage.jsx";
 import CollectionPage from "../pages/CollectionPage.jsx";
-import SearchPage from "../pages/SearchPage.jsx";
 import AlbumPage from "../pages/AlbumPage.jsx";
 import CameraPage from "../pages/CameraPage.jsx";
 import ScanPage from "../pages/ScanPage.jsx";
@@ -14,6 +13,9 @@ import SupportPage from "../pages/SupportPage.jsx";
 import PrintPage from "../pages/PrintPage.jsx";
 import OrdersPage from "../pages/OrdersPage.jsx";
 import MyPage from "../pages/MyPage.jsx";
+import KeepsakesPage from "../pages/KeepsakesPage.jsx";
+import MenuBacking from "./MenuBacking.jsx";
+import PhotoActionSheet from "./PhotoActionSheet.jsx";
 import LiquidTabs from "../components/LiquidTabs.jsx";
 import PhotoPicker from "../components/PhotoPicker.jsx";
 import NativePhoneChrome from "./NativePhoneChrome.jsx";
@@ -34,6 +36,8 @@ export default function AppShell({ scope, args = [] }) {
           data-camera-compare={s.cameraCompare}
           data-camera-step={s.cameraStep}
           data-my-view={s.myView}
+          data-help-search={s.supportSearching || undefined}
+          data-print-preview={s.$store.printUi.preview}
         >
           <View as="div" scope={s} className="screen">
             <NativePhoneChrome />
@@ -53,6 +57,9 @@ export default function AppShell({ scope, args = [] }) {
                   s.$store.myUi.opened ||
                   s.$store.printUi.opened ||
                   s.$store.orderUi.opened ||
+                  s.$store.keepsakeUi.opened ||
+                  s.$store.photoActions.opened || (s.page==="album" && s.albumView==="detail") ||
+                  s.$store.albumSpacesUi?.opened ||
                   s.albumModal
                 }
               >
@@ -60,7 +67,6 @@ export default function AppShell({ scope, args = [] }) {
                 <SpecificationsPage scope={s} />
                 <AccountPage scope={s} args={[]} />
                 <CollectionPage scope={s} args={[]} />
-                <SearchPage scope={s} args={[]} />
                 <AlbumPage scope={s} args={[]} />
                 <CameraPage scope={s} args={[]} />
                 <ScanPage scope={s} args={[]} />
@@ -75,6 +81,7 @@ export default function AppShell({ scope, args = [] }) {
                   )}
                 </Controller>
                 <MyPage scope={s} args={[]} />
+                <KeepsakesPage scope={s} />
               </View>
               <View
                 as="nav"
@@ -89,24 +96,29 @@ export default function AppShell({ scope, args = [] }) {
                   s.$store.myUi.opened ||
                   s.$store.printUi.opened ||
                   s.$store.orderUi.opened ||
+                  s.$store.keepsakeUi.opened ||
+                  s.$store.photoActions.opened || (s.page==="album" && s.albumView==="detail") ||
+                  s.$store.albumSpacesUi?.opened ||
                   s.albumModal
                 }
                 show={
+                  !s.supportSearching &&
                   s.page !== "account" &&
                   s.page !== "orders" &&
                   s.page !== "collection" &&
-                  s.page !== "search" &&
                   s.page !== "camera" &&
                   s.page !== "scan" &&
                   s.page !== "print" &&
                   s.page !== "tool" &&
                   s.page !== "specifications" &&
+                  s.page !== "keepsake" &&
                   (s.page !== "album" ||
-                    (s.albumView !== "detail" && !s.albumManaging)) &&
+                    !s.albumManaging) &&
                   (s.page !== "my" || s.myView === "overview")
                 }
                 aria-label="底部导航"
               >
+                <MenuBacking page={s.page} section={s.myView}/>
                 <LiquidTabs scope={s} args={[]} />
                 <View
                   as="button"
@@ -178,6 +190,8 @@ export default function AppShell({ scope, args = [] }) {
               <View as="div" scope={s} id="tool-modal-layer"></View>
               <View as="div" scope={s} id="account-modal-layer"></View>
               <View as="div" scope={s} id="collection-modal-layer"></View>
+              <View as="div" scope={s} id="shared-modal-layer"></View>
+              <PhotoActionSheet scope={s} />
               <PhotoPicker scope={s} args={[]} />
             </View>
             <ScenarioHost />

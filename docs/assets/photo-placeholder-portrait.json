@@ -1,0 +1,24 @@
+{
+  "file": "public/assets/photo-placeholder-portrait.webp",
+  "source": "/Users/jianwang/.codex/generated_images/01a11fa2-c319-7931-bfc6-0598b402d2dd/exec-aae6a904-29b8-4fe9-b2b6-1ad238bd9863.png",
+  "kind": "Approved pale blue faceless placeholder; no shadows or external card",
+  "ratio": "5/7",
+  "encoded": "500×700 WebP q88, uniform downscale from generated 5:7 PNG",
+  "role": "interactive selection affordance only; never input or outcome",
+  "prompt": "Use case: precise-object-edit. Edit target: the provided previously approved neutral faceless ID portrait placeholder. Preserve the exact 5:7 portrait canvas, centered featureless oval head, neck and shoulders extending all the way to the bottom edge, straight-on pose, clean silhouette and original composition. Change ONLY the palette and depth: a uniformly very pale icy blue background close to #F1F7FD, and a slightly more visible but still very light blue figure close to #D7E8F8. Remove ALL cast shadows, drop shadows, ambient occlusion, gray shading, relief shadows and directional lighting. The result is a calm, flat, clean professional app placeholder with soft crisp edges, two light blue tones and no simulated 3D depth. Background fills every edge, no bottom blank strip. Do not add any outer card, panel, border, frame, round corners, glow, text, icons, face details, real person or watermark. This is only the placeholder image, not an app screenshot.",
+  "reusedAt": "2026-11-04",
+  "scope": [
+    "crop",
+    "background",
+    "format",
+    "resize"
+  ],
+  "sha256": "89f671743ac851a4500bbb2cabb9d188c10f5ea00589f77f881cd10b65950c90",
+  "usage": "Edited from the previously approved placeholder using built-in image_gen; selected real photos replace it, and it never enters detection or processing.",
+  "mode": "built-in image_gen edit",
+  "palette": {
+    "ground": "very pale blue",
+    "figure": "light blue"
+  },
+  "shadows": "none"
+}

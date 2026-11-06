@@ -469,7 +469,7 @@ test("scan-project return preserves homepage/section source, and cancellation pr
     ctx.c.closePanel();
     ctx.c.back();
     await settle();
-    assert.equal(current.pathname + current.search, source);
+    assert.equal(current.pathname + current.search, source.includes("view=records") ? "/?page=home" : source);
     ctx.close();
   }
   const ctx = setup("collection");

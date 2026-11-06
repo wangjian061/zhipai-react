@@ -1,6 +1,7 @@
 /* Shared mobile UI values; status surfaces and branded artwork remain contextual. */
 :root{
   --ui-heading:#203858;
+  --ui-body:#53637b;
   --ui-muted:#73849a;
   --ui-canvas:#f5f7fb;
   --ui-card-radius:16px;
@@ -13,4 +14,32 @@
   --ui-card-shadow:0 2px 8px #29496b06,0 6px 18px -10px #29496b0d;
   --ui-sheet-shadow:0 -10px 32px #20385812;
   --card-shadow:var(--ui-card-shadow);
+}
+
+/* The order masthead and full-height home header share the same glass and opaque fallback. */
+:root {
+  --ui-masthead-fill: #edf3ff;
+  --ui-masthead-filter: none;
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --ui-masthead-fill:
+      radial-gradient(ellipse at 9% 0%, rgb(172 204 255 / 20%), transparent 66%),
+      radial-gradient(ellipse at 98% 20%, rgb(215 230 255 / 18%), transparent 64%),
+      linear-gradient(rgb(249 252 255 / 68%), rgb(241 247 255 / 42%));
+    --ui-masthead-filter: blur(24px) saturate(1.1);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root { --ui-masthead-fill: #edf3ff; --ui-masthead-filter: none; }
+}
+.home-page, .my-overview {
+  --brand-safe-top: var(--device-status-height, env(safe-area-inset-top, 0px));
+  --brand-expanded-body: 92px;
+  --brand-canvas: #f1f5fd;
+  --brand-header-fill:
+    linear-gradient(to bottom, transparent 58%, var(--brand-canvas)),
+    radial-gradient(ellipse 65% 76% at 37% 31%, rgb(155 203 255 / .55), transparent),
+    radial-gradient(ellipse 20% 45% at 100% 66%, rgb(211 200 255 / .30), transparent),
+    linear-gradient(to bottom, #cfe0ff, var(--brand-canvas));
 }

@@ -73,6 +73,9 @@ test("dedupe, new attempts, superseded queued reminders and persistent read hist
   sync(record("reviewing"));
   sync(record("rejected", { updatedAt: 2 }));
   const old = history.items[0];
+  assert.equal(history.hasUnreadFor("a"), true);
+  assert.equal(history.hasUnreadFor("b"), false);
+  assert.equal(history.hasUnreadFor(""), false);
   assert.equal(history.reminders.length, 1);
   sync(record("rejected", { updatedAt: 3 }));
   assert.equal(history.items.length, 1, "refreshing does not make new result");
@@ -92,6 +95,9 @@ test("dedupe, new attempts, superseded queued reminders and persistent read hist
   assert.equal(reloaded.items.length, 3);
   assert.equal(reloaded.items.find((n) => n.id === old.id).read, true);
   assert.equal(reloaded.reminders.length, 0);
+  assert.equal(reloaded.hasUnreadFor("a"), true);
+  for (const item of reloaded.items) reloaded.markRead(item.id);
+  assert.equal(reloaded.hasUnreadFor("a"), false);
   reloaded.sync("b", [], [project]);
   assert.equal(reloaded.items.length, 0);
   reloaded.sync("", [], [project]);

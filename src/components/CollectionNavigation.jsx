@@ -1,4 +1,5 @@
 import React, { useLayoutEffect, useRef } from "react";
+import MenuBacking from "./MenuBacking.jsx";
 import { LiquidTabIndicator } from "../domain/liquid-tabs.js";
 import { CollectionIcon } from "./CollectionHome.jsx";
 const sections = [
@@ -30,6 +31,7 @@ export default function CollectionNavigation({ scope: s }) {
   if (!visible) return null;
   return (
     <nav className="collection-floating-nav" aria-label="专项采集导航">
+      <MenuBacking page="collection" section={s.view}/>
       <div className="collection-tab-container">
         <div className="tab-menu" ref={menu}>
           {sections.map((t) => (

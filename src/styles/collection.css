@@ -50,7 +50,8 @@
 .collection-zone-heading{padding-top:6px;margin-bottom:22px}
 .collection-zone-heading h1{font-size:26px;line-height:1.4;font-weight:700;letter-spacing:-.01em;margin:0;color:#203858}
 .collection-zone-heading p{font-size:13px;color:#677c99;line-height:1.65;margin-top:9px}
-.collection-records-inner,.collection-services-inner{padding:20px 16px calc(var(--device-nav-bottom,29px) + 86px)}
+.collection-records-inner{padding:20px 16px calc(var(--device-nav-bottom,29px) + 86px)}
+.collection-services-inner{padding:20px 16px calc(var(--device-home-height,34px) + 16px)}
 .collection-service-card{border-radius:18px;background:#fff;padding:19px 16px;margin-bottom:15px;box-shadow:var(--card-shadow)}
 .collection-service-card>header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .collection-service-card h2,.collection-contact-card h2{font-size:16px;line-height:1.5;font-weight:650;margin:0}
@@ -86,7 +87,6 @@
 .collection-contact-card>button{display:flex;align-items:center;gap:2px;font-size:12px;color:#0032ff;text-decoration:none;min-height:44px}
 .collection-contact-card>button>svg{width:14px;height:14px}
 .collection-floating-nav{position:absolute;bottom:max(16px,env(safe-area-inset-bottom));left:16px;right:16px;z-index:15;display:flex;align-items:center;gap:9px;height:58px;isolation:isolate}
-.collection-floating-nav:before{content:"";position:absolute;z-index:-1;left:-16px;right:-16px;top:-18px;bottom:calc(-1 * max(16px,env(safe-area-inset-bottom)));pointer-events:none;background:linear-gradient(#ffffff00,#ffffff30 45%,#ffffff4d);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);mask-image:linear-gradient(transparent,#000 35%);-webkit-mask-image:linear-gradient(transparent,#000 35%)}
 .collection-tab-container{position:relative;min-width:0;flex:1}
 .collection-floating-nav .tab-menu{height:58px}
 .collection-floating-nav .tab>svg,.collection-floating-nav .liquid-tab-label>svg{width:22px;height:22px}
@@ -96,7 +96,6 @@
 .collection-record-badge{position:absolute;right:-13px;bottom:-2px;z-index:3;display:block;background:#df4852;color:#fff;min-width:18px;height:14px;line-height:12px;padding:0 4px;border-radius:8px;font-size:9px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;white-space:nowrap;pointer-events:none;border:1px solid #fff}
 @keyframes collection-section-enter{from{opacity:.65;transform:translateY(5px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.collection-section{animation:none}.collection-faq svg{transition:none}}
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.collection-floating-nav:before{background:linear-gradient(transparent,#f3f5fce8)}}
 .collection-project-overview{min-height:100%;background:#fff}
 .collection-project-content{position:relative;margin-top:-18px;border-radius:20px 20px 0 0;background:#fff;padding:18px 20px 18px;z-index:1}
 .collection-project-summary{margin:0;padding:0;background:transparent}
@@ -226,3 +225,30 @@
 .collection-record-content .collection-chip{margin:0;font-size:11px;line-height:1.5}
 .collection-record-content .collection-record-metadata{gap:8px;font-size:11px}
 @media(max-width:360px){.collection-record-card.has-portrait{gap:10px;padding-inline:14px}}
+
+/* The entry counts personal tasks independently of the project search. */
+.collection-record-entry { flex: none; min-height: 52px; padding: 10px 14px; border-radius: var(--ui-card-radius); }
+.collection-record-entry img { flex: none; object-fit: contain; }
+.collection-record-entry small { margin: 0; color: var(--ui-body); font-size: 13px; font-variant-numeric: tabular-nums; }
+.collection-record-entry:focus-visible { outline-offset: -3px; }
+.collection-page[data-view="records"][data-record-category] .collection-record-list {
+  padding-bottom: calc(var(--device-home-height, 34px) + 12px);
+  scroll-padding-bottom: calc(var(--device-home-height, 34px) + 12px);
+}
+.collection-page[data-view="records"][data-record-category] .collection-record-filters { gap: 8px; }
+.collection-page[data-view="records"][data-record-category] .collection-record-filters button {
+  min-height: 44px; padding: 0 14px; border-radius: 24px; background: var(--ui-canvas); color: var(--ui-body);
+}
+.collection-page[data-view="records"][data-record-category] .collection-record-filters .is-selected {
+  background: var(--brand-tint); color: var(--brand-blue);
+}
+
+.collection-overlay[data-shoot-guide] { align-items:center; justify-content:center; padding:24px; }
+.collection-shoot-guide img { width:100%; height:auto; aspect-ratio:2; object-fit:contain; margin:14px 0; border-radius:8px; }
+.collection-shoot-guide .shoot-step { text-align:left; margin-bottom:12px; }
+.shoot-step h3,.shoot-step p { margin:0; font-size:15px; line-height:1.5; }
+.shoot-step p { color:var(--ui-body); }
+.collection-shoot-guide label { display:flex; align-items:center; gap:8px; min-height:44px; color:var(--ui-body); }
+.collection-shoot-guide input { width:18px; height:18px; accent-color:var(--brand-blue); }
+.collection-shoot-actions button { width:100%; display:flex; justify-content:space-between; align-items:center; min-height:50px; border-bottom:1px solid var(--ui-canvas); }
+.collection-shoot-actions small { color:var(--ui-body); }

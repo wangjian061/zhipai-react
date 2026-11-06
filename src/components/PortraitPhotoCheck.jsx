@@ -31,7 +31,13 @@ export default function PortraitCheckStatus({ check, onReasons, onRetry }) {
   );
 }
 
-export function PortraitCheckPanel({ panel, check, onChoose, onClose }) {
+export function PortraitCheckPanel({
+  panel,
+  check,
+  onChoose,
+  onClose,
+  closeLabel = "返回选照片",
+}) {
   const [reason, setReason] = useState("not_id");
   if (panel === "portraitOutcome")
     return (
@@ -85,7 +91,7 @@ export function PortraitCheckPanel({ panel, check, onChoose, onClose }) {
       </div>
       <footer className="ui-sheet-footer">
         <button className="tool-primary" onClick={onClose}>
-          返回选照片
+          {closeLabel}
         </button>
       </footer>
     </div>

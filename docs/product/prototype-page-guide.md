@@ -1,16 +1,15 @@
 # 知拍原型逐页文档目录
 
-更新：2026-11-03。当前共62份独立页面／步骤说明，正文位于`docs/product/pages/*.md`。本文件供团队查找、维护及在左侧手动阅读，不用于生成运行时页面正文；左侧按当前`context.guide`直接按需加载对应全文，目录从该文件的`##`章节生成。
+更新：2026-11-04。六工具与冲印选图说明已并入各自工作页，新增明信片／邮票各4页，当前62份独立正文。正文位于`docs/product/pages/*.md`，左侧按`context.guide`直接加载对应全文，本文件仅为查找目录，`##`生成页内章节。
 
 每份说明按当前页实际区块从上到下讲清任务、内容、输入输出、动作去向、返回与取消、状态异常及相邻功能差别。首页完整样例和两张结构图已获用户确认，后续页面沿用同一粒度。已确认规则、当前实现与待整改差异分别标明，不从源码补造未确认业务。
 
-## 首页、搜索、规格与扫码
+## 首页、规格与扫码
 
 | 上下文标识 | 完整页面说明 |
 | --- | --- |
 | `home` | [首页](pages/home.md) |
-| `search` | [照片工具搜索](pages/search.md) |
-| `specifications` | [证照规格](pages/specifications.md) |
+| `specifications` | [照片规格](pages/specifications.md) |
 | `scan` | [扫码采集](pages/scan.md) |
 
 ## 个人证件照制作
@@ -26,36 +25,40 @@
 
 | 上下文标识 | 完整页面说明 |
 | --- | --- |
-| `tool.repair.select` | [照片精修 · 选照片](pages/tool.repair.select.md) |
-| `tool.repair.settings` | [照片精修 · 处理设置](pages/tool.repair.settings.md) |
+| `tool.repair.settings` | [照片精修 · 功能工作页](pages/tool.repair.settings.md) |
 | `tool.repair.result` | [照片精修 · 处理完成](pages/tool.repair.result.md) |
-| `tool.outfit.select` | [照片换装 · 选照片](pages/tool.outfit.select.md) |
-| `tool.outfit.settings` | [照片换装 · 处理设置](pages/tool.outfit.settings.md) |
+| `tool.outfit.settings` | [照片换装 · 功能工作页](pages/tool.outfit.settings.md) |
 | `tool.outfit.result` | [照片换装 · 处理完成](pages/tool.outfit.result.md) |
-| `tool.background.select` | [更换背景 · 选照片](pages/tool.background.select.md) |
-| `tool.background.settings` | [更换背景 · 处理设置](pages/tool.background.settings.md) |
+| `tool.background.settings` | [更换背景 · 功能工作页](pages/tool.background.settings.md) |
 | `tool.background.result` | [更换背景 · 处理完成](pages/tool.background.result.md) |
-| `tool.crop.select` | [照片裁剪 · 选照片](pages/tool.crop.select.md) |
-| `tool.crop.settings` | [照片裁剪 · 处理设置](pages/tool.crop.settings.md) |
-| `tool.crop.result` | [照片裁剪 · 处理完成](pages/tool.crop.result.md) |
-| `tool.format.select` | [格式转换 · 选照片](pages/tool.format.select.md) |
-| `tool.format.settings` | [格式转换 · 处理设置](pages/tool.format.settings.md) |
+| `tool.crop.settings` | [修改尺寸 · 功能工作页](pages/tool.crop.settings.md) |
+| `tool.crop.result` | [修改尺寸 · 处理完成](pages/tool.crop.result.md) |
+| `tool.format.settings` | [格式转换 · 功能工作页](pages/tool.format.settings.md) |
 | `tool.format.result` | [格式转换 · 处理完成](pages/tool.format.result.md) |
-| `tool.resize.select` | [修改体积 · 选照片](pages/tool.resize.select.md) |
-| `tool.resize.settings` | [修改体积 · 处理设置](pages/tool.resize.settings.md) |
-| `tool.resize.result` | [修改体积 · 处理完成](pages/tool.resize.result.md) |
+| `tool.resize.settings` | [修改大小 · 功能工作页](pages/tool.resize.settings.md) |
+| `tool.resize.result` | [修改大小 · 处理完成](pages/tool.resize.result.md) |
 
 ## 冲印及地址
 
 | 上下文标识 | 完整页面说明 |
 | --- | --- |
-| `print.select` | [冲印照片 · 选择照片](pages/print.select.md) |
 | `print.crop` | [冲印照片 · 裁剪照片](pages/print.crop.md) |
-| `print.layouts` | [冲印照片 · 选择排版](pages/print.layouts.md) |
+| `print.layouts` | [冲印照片 · 功能工作页](pages/print.layouts.md) |
 | `print.confirm` | [冲印照片 · 确认订单](pages/print.confirm.md) |
 | `print.complete` | [冲印订单已确认](pages/print.complete.md) |
 | `print.addresses` | [收货地址](pages/print.addresses.md) |
 | `print.address` | [编辑收货地址](pages/print.address.md) |
+
+## 明信片与邮票制作
+
+| 上下文标识 | 完整页面说明 |
+| --- | --- |
+| `keepsake.postcard.work` | [明信片 · 模板与构图](pages/keepsake.postcard.work.md) |
+| `keepsake.postcard.confirm` | [明信片 · 确认订单](pages/keepsake.postcard.confirm.md) |
+| `keepsake.postcard.result` | [明信片 · 下单完成](pages/keepsake.postcard.result.md) |
+| `keepsake.stamp.work` | [致青春邮折 · 商品与定制](pages/keepsake.stamp.work.md) |
+| `keepsake.stamp.confirm` | [邮票 · 确认订单](pages/keepsake.stamp.confirm.md) |
+| `keepsake.stamp.result` | [邮票 · 下单完成](pages/keepsake.stamp.result.md) |
 
 ## 相册与订单
 
@@ -113,7 +116,7 @@
 
 ## 页面、步骤与抽屉的归属
 
-- 真实页面或关键步骤改变时切换到该页独立全文；六种工具分别拥有选图、设置、结果三页，不能共用一段通用工具说明。
+- 真实页面或关键步骤改变时切换到该页独立全文；六种工具分别有工作页和结果页；冲印选图合入排版工作页；两类纪念品旧模板入口归并对应商品工作页；介绍与定制同页，确认和完成单独展示。不能共用一段通用说明。
 - 个人制作四页与专项拍摄／制作两页独立。专项规格及参数来自原项目，成功回传原任务，不进入个人普通版／精修版购买。
 - 冲印完成仍使用原confirm地址，状态对应`print.complete`，不得因URL未换就继续展示付款前确认说明。
 - 抽屉属于父页章节，不新增`collection.auth`、`collection.payment`、`collection.submit`等短文页。打开以`context.section`定位本页相关章节，关闭恢复打开前阅读位置。
@@ -125,7 +128,7 @@
 2. 首行使用唯一页面名称，`##`用于本页目录，`###`说明区块内细项；标题清楚表达真实区块。正文中的来源链接必须是可追溯文件，价格、保存目的地、付款权益和三端能力以已确认契约为准。
 3. 文件不存在必须报错并保留重试，不加载其他页面或通用内容顶替。当前读取失败显示「暂时无法读取本页完整说明，请重试。」；维护时补齐缺失文件与映射，不掩盖缺口。
 4. Markdown以文本节点渲染，文档锚点独立于手机URL；标题重复时生成唯一ID。模块文档及PRODUCT／DESIGN仍可只读按需打开，返回恢复本页阅读位置。
-5. 页文档覆盖不表示真实业务、接口或三端实现完成。通知历史／已读、服务九项帮助及后台配置仍待正常业务补齐；换装仅知拍相册是已确认待代码落实限制。实际视觉和真机另验收。
+5. 页文档覆盖不表示真实业务、接口或三端实现完成。正常通知历史／已读和服务帮助已有本地演示，后台、推送、真实认证与支付仍未接入；两种相册来源及直接工作页按当前契约执行。实际视觉和真机另验收。
 
 依据：[工作区契约](prototype-workbench.md)、[产品上下文](../../PRODUCT.md)、[设计规范](../../DESIGN.md)、[本轮实施记录](../reviews/page-documentation-20261103/implementation.md)、[本轮文档收尾](../reviews/page-documentation-20261103/documentation.md)。
 

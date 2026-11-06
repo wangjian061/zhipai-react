@@ -1,3 +1,4 @@
+import { OUTFITS } from "./outfit-catalogue.js";
 import {
   registerStore,
   registerController,
@@ -5,6 +6,7 @@ import {
 } from "../runtime/state.js";
 import { readElectronicOrders } from "./camera.js";
 import { confirmPrintReceipt } from "./print.js";
+import { confirmKeepsakeReceipt } from "./keepsakes.js";
 import {
   TRANSACTION_STATES,
   transactionState,
@@ -22,6 +24,8 @@ export const ORDER_TYPES = [
   { id: "repair", label: "照片精修" },
   { id: "outfit", label: "照片换装" },
   { id: "collection", label: "专项采集" },
+  { id: "postcard", label: "明信片" },
+  { id: "stamp", label: "邮票" },
 ];
 export const ORDER_STATES = TRANSACTION_STATES;
 const paymentFields = (record, type) => {
@@ -33,7 +37,15 @@ const paymentFields = (record, type) => {
     failureReason: state === "failed" ? record.paymentResult?.reason || "" : "",
   };
 };
-const outfitName = (id) => {
+const outfitName = (id, snapshot) => {
+  if (snapshot) return snapshot;
+  const item = OUTFITS.find((o) => o.id === id);
+  if (item)
+    return (
+      ({ men: "男装", women: "女装", children: "童装" }[item.category] || "") +
+      " · " +
+      item.name
+    );
   const [category, style] = (id || "").split("-");
   return (
     [
@@ -77,6 +89,7 @@ export function normalizeOrders({
   tools = [],
   electronic = [],
   collection = [],
+  keepsakes = [],
   projects = COLLECTION_PROJECTS,
 }) {
   if (!owner) return [];
@@ -94,6 +107,43 @@ export function normalizeOrders({
       ...fields,
     });
   // Read-only purchase identification; no photo viewer or business result links.
+  for (const r of keepsakes
+    .filter(own)
+    .filter((r) => ["postcard", "stamp"].includes(r.kind)))
+    add(r.kind, r, {
+      ...paymentFields(r),
+      title: r.kind === "postcard" ? "定制明信片" : "定制纪念邮折",
+      thumbnailBlob: thumbnail(r.output, r.photo?.blob),
+      amount: r.total,
+      description: `${r.demo ? "演示 · " : ""}${r.templateName} · 1套 · ${r.count}${r.unit}`,
+      address: r.address,
+      tracking: r.tracking,
+      fulfillment:
+        r.review && r.review !== "approved" ? null : printFulfillment(r),
+      fulfillmentSteps: PRINT_FULFILLMENT_STEPS,
+      sourceStatus: r.status,
+      demo: !!r.demo,
+      details: [
+        ["制作模板", r.templateName],
+        ...(r.review
+          ? [
+              [
+                "学生资格审核",
+                {
+                  pending: "待人工审核",
+                  approved: "审核通过",
+                  rejected: "未通过 · 订单已取消",
+                }[r.review],
+              ],
+            ]
+          : []),
+        ["商品数量", `1套 · ${r.count}${r.unit}`],
+      ],
+      fees: [
+        ["商品金额", money(r.price)],
+        ["配送费", money(r.shipping)],
+      ],
+    });
   for (const r of print.filter(own))
     add("print", r, {
       ...paymentFields(r, "print"),
@@ -134,7 +184,13 @@ export function normalizeOrders({
         [
           toolSpecName(r),
           ...(r.action === "outfit"
-            ? [r.outfit && outfitName(r.outfit).replace(" · ", "")]
+            ? [
+                r.outfit &&
+                  outfitName(r.outfit, r.purchaseSnapshot?.outfitName).replace(
+                    " · ",
+                    "",
+                  ),
+              ]
             : [
                 r.purchaseSnapshot?.backgroundName &&
                   `${r.purchaseSnapshot.backgroundName}背景`,
@@ -152,7 +208,7 @@ export function normalizeOrders({
           ),
         ],
         ...(r.action === "outfit" && r.outfit
-          ? [["所选服装", outfitName(r.outfit)]]
+          ? [["所选服装", outfitName(r.outfit, r.purchaseSnapshot?.outfitName)]]
           : []),
         ...(r.action === "repair" && r.purchaseSnapshot?.backgroundName
           ? [["背景颜色", r.purchaseSnapshot.backgroundName]]
@@ -267,6 +323,7 @@ registerStore("orderCenter", {
       tools: getStore("toolOrders")?.items,
       collection: getStore("collectionRecords")?.items,
       electronic: this.electronic,
+      keepsakes: getStore("keepsakeOrders")?.items || [],
     });
   },
   get count() {
@@ -278,20 +335,22 @@ registerStore("orderCenter", {
       getStore("printLibrary")?.error,
       getStore("toolOrders")?.error,
       getStore("collectionRecords")?.error,
+      getStore("keepsakeOrders")?.error,
     ].filter(Boolean);
   },
   get complete() {
     return this.ready && !this.errors.length;
   },
   get unavailable() {
-    return this.errors.length === 4 && !this.all.length;
+    return this.errors.length === 5 && !this.all.length;
   },
   get ready() {
     return (
       this.electronicReady &&
       getStore("printLibrary")?.ready &&
       getStore("toolOrders")?.ready &&
-      getStore("collectionRecords")?.ready
+      getStore("collectionRecords")?.ready &&
+      (getStore("keepsakeOrders")?.ready ?? true)
     );
   },
   async retry() {
@@ -300,6 +359,7 @@ registerStore("orderCenter", {
       getStore("printLibrary").load(),
       getStore("toolOrders").load(),
       getStore("collectionRecords").load(),
+      getStore("keepsakeOrders")?.load(),
     ]);
   },
 });
@@ -453,7 +513,7 @@ registerController("ordersFlow", () => ({
   get canConfirmReceipt() {
     const order = this.current;
     return (
-      order?.type === "print" &&
+      ["print", "postcard", "stamp"].includes(order?.type) &&
       order.state === "paid" &&
       order.fulfillment?.id === "delivered"
     );
@@ -500,7 +560,9 @@ registerController("ordersFlow", () => ({
     this.paymentError = "";
     this.notice = "";
     try {
-      await confirmPrintReceipt(order.sourceId, this.owner);
+      await (
+        order.type === "print" ? confirmPrintReceipt : confirmKeepsakeReceipt
+      )(order.sourceId, this.owner);
       this.paymentBusy = false;
       this.closePayment();
       this.notice = "已确认收货";

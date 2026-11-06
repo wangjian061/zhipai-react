@@ -1,3 +1,7 @@
+import AlbumSpaces, { AlbumTabs, AlbumDate } from "../components/AlbumSpaces.jsx";
+import { formatCaptureDate } from "../domain/photo-date.js";
+import PhotoActionSheet from "../components/PhotoActionSheet.jsx";
+import PhotoDeleteDialog from "../components/PhotoDeleteDialog.jsx";
 import React from "react";
 import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
 import PendingPhotoResults from "../components/PendingPhotoResults.jsx";
@@ -13,7 +17,7 @@ export default function AlbumPage({ scope, args = [] }) {
           className="page album-page"
           id="album-page"
           show={s.page === "album"}
-          data-view={s.view}
+          data-view="library"
           data-managing={s.managing}
           data-preview={s.modal === "preview"}
           aria-label="知拍相册"
@@ -23,7 +27,6 @@ export default function AlbumPage({ scope, args = [] }) {
               as="section"
               scope={s}
               className="album-hero"
-              show={s.view === "library"}
             >
               <View as="div" scope={s} className="album-hero-copy">
                 <View as="h1" scope={s}>
@@ -32,6 +35,7 @@ export default function AlbumPage({ scope, args = [] }) {
                 <View
                   as="p"
                   scope={s}
+                  show={s.space === "mine"}
                   text={
                     s.store.ready
                       ? "已保存 " + s.photos.length + " 张照片"
@@ -49,62 +53,6 @@ export default function AlbumPage({ scope, args = [] }) {
                 className="album-hero-bear"
                 decoding="async"
               ></View>
-            </View>
-            <View
-              as="header"
-              scope={s}
-              className="page-header album-header"
-              show={s.view === "detail"}
-            >
-              <View
-                as="button"
-                scope={s}
-                className="back"
-                disabled={s.working || s.downloading}
-                aria-label="返回相册"
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.back();
-                    },
-                  },
-                ]}
-              >
-                <View as="svg" scope={s} aria-hidden="true">
-                  <View as="use" scope={s} href="#i-chevron"></View>
-                </View>
-              </View>
-              <View as="h1" scope={s}>
-                {"照片详情"}
-              </View>
-              <View
-                as="button"
-                scope={s}
-                className="header-more"
-                show={s.photo}
-                aria-label="照片信息"
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.showModal("info");
-                    },
-                  },
-                ]}
-              >
-                <View as="svg" scope={s} aria-hidden="true">
-                  <View as="use" scope={s} href="#i-more"></View>
-                </View>
-              </View>
             </View>
             <View
               as="button"
@@ -140,7 +88,7 @@ export default function AlbumPage({ scope, args = [] }) {
                 as="div"
                 scope={s}
                 className="album-error"
-                show={s.store.error}
+                show={s.space === "mine" && s.store.error}
                 role="alert"
               >
                 <View as="p" scope={s} text={s.store.error}></View>
@@ -172,30 +120,22 @@ export default function AlbumPage({ scope, args = [] }) {
                 role="alert"
                 text={s.message}
               ></View>
-              {s.page === "album" && s.view === "library" && !s.managing && (
+              {s.page === "album" && s.view === "library" && s.space === "mine" && !s.managing && (
                 <PendingPhotoResults />
               )}
               <View
                 as="section"
                 scope={s}
                 className="album-library-card"
-                show={s.view === "library"}
-              >
+                >
                 <View as="div" scope={s} className="album-library-toolbar">
-                  <View
-                    as="strong"
-                    scope={s}
-                    text={
-                      s.managing
-                        ? "已选择 " + s.selected.length + " 张"
-                        : "我的照片"
-                    }
-                  ></View>
+                  {s.managing ? <strong>{"已选择 " + s.selected.length + " 张"}</strong>
+                    : <AlbumTabs space={s.space} />}
                   <View as="div" scope={s}>
                     <View
                       as="button"
                       scope={s}
-                      show={!s.managing && s.photos.length}
+                      show={s.space === "mine" && !s.managing && s.photos.length}
                       disabled={s.disabled || s.downloading}
                       events={[
                         {
@@ -257,6 +197,10 @@ export default function AlbumPage({ scope, args = [] }) {
                     </View>
                   </View>
                 </View>
+                {s.space !== "mine" && s.page === "album" && s.view === "library" ? (
+                  <AlbumSpaces scope={s} key={s.$store.account?.session?.phone || "guest"}
+                    owner={s.$store.account?.session?.phone} space={s.space} search={s.archiveRoute} />
+                ) : <>
                 <View
                   as="div"
                   scope={s}
@@ -318,6 +262,7 @@ export default function AlbumPage({ scope, args = [] }) {
                               as="button"
                               scope={s}
                               className="photo photo-thumb"
+                              data-photo-id={s.item.id}
                               dynamicClass={{
                                 selected: s.selected.includes(s.item.id),
                                 "photo-added": s.store.addedIds.includes(
@@ -393,6 +338,7 @@ export default function AlbumPage({ scope, args = [] }) {
                                 </View>
                               </View>
                             </View>
+                            <AlbumDate photo={s.item} />
                           </View>
                         </>
                       </>
@@ -428,219 +374,7 @@ export default function AlbumPage({ scope, args = [] }) {
                     {"立即拍摄"}
                   </View>
                 </View>
-              </View>
-              <View
-                as="div"
-                scope={s}
-                className="album-loading"
-                show={s.view === "detail" && !s.store.ready && !s.store.error}
-                role="status"
-              >
-                <View as="span" scope={s} className="camera-spinner"></View>
-                <View as="p" scope={s}>
-                  {"正在读取照片…"}
-                </View>
-              </View>
-              <View
-                as="div"
-                scope={s}
-                className="photo-detail"
-                show={s.store.ready && s.view === "detail"}
-              >
-                {s.photo ? (
-                  <>
-                    <>
-                      <View as="div" scope={s}>
-                        <View
-                          as="button"
-                          scope={s}
-                          className="detail-preview"
-                          show={s.photo.blob}
-                          dynamicStyle={
-                            "--photo-ratio:" +
-                            s.photo.width +
-                            "/" +
-                            s.photo.height
-                          }
-                          aria-label="放大照片"
-                          aria-haspopup="dialog"
-                          aria-expanded={s.modal === "preview"}
-                          events={[
-                            {
-                              type: "click",
-                              prevent: false,
-                              stop: false,
-                              self: false,
-                              passive: false,
-                              run: function (scope, $event, $el) {
-                                scope.openPreview();
-                              },
-                            },
-                          ]}
-                        >
-                          <View
-                            as="img"
-                            scope={s}
-                            src={s.store.url(s.photo.id) || undefined}
-                            alt={s.photo.name}
-                          ></View>
-                        </View>
-                        <View
-                          as="div"
-                          scope={s}
-                          className="detail-unavailable"
-                          show={!s.photo.blob}
-                        >
-                          <View as="svg" scope={s} aria-hidden="true">
-                            <View as="use" scope={s} href="#i-alert"></View>
-                          </View>
-                          <View as="p" scope={s}>
-                            {"照片文件不可用"}
-                          </View>
-                          <View
-                            as="button"
-                            scope={s}
-                            disabled={s.disabled || s.downloading}
-                            events={[
-                              {
-                                type: "click",
-                                prevent: false,
-                                stop: false,
-                                self: false,
-                                passive: false,
-                                run: function (scope, $event, $el) {
-                                  scope.deleteCurrent();
-                                },
-                              },
-                            ]}
-                          >
-                            {"删除此记录"}
-                          </View>
-                        </View>
-                        <View
-                          as="button"
-                          scope={s}
-                          className="zoom-hint"
-                          show={s.photo.blob}
-                          type="button"
-                          aria-haspopup="dialog"
-                          aria-expanded={s.modal === "preview"}
-                          events={[
-                            {
-                              type: "click",
-                              run: (scope) => scope.openPreview(),
-                            },
-                          ]}
-                        >
-                          <View as="svg" scope={s} aria-hidden="true">
-                            <View as="use" scope={s} href="#i-search"></View>
-                          </View>
-                          <View as="span" scope={s} text="点击放大查看"></View>
-                        </View>
-                        <View as="div" scope={s} className="photo-metadata">
-                          <View
-                            as="p"
-                            scope={s}
-                            show={s.photo.spec}
-                            text={s.photo.spec}
-                          ></View>
-                          <View
-                            as="p"
-                            scope={s}
-                            text={s.photoInfo(s.photo)}
-                          ></View>
-                        </View>
-                        <View
-                          as="div"
-                          scope={s}
-                          className="photo-tools"
-                          show={s.photo.blob}
-                        >
-                          <Repeat
-                            scope={s}
-                            items={s.tools}
-                            names={["tool"]}
-                            keyFor={function (scope, $event, $el) {
-                              return scope.tool.action;
-                            }}
-                          >
-                            {(s) => (
-                              <>
-                                <>
-                                  <View
-                                    as="button"
-                                    scope={s}
-                                    disabled={s.disabled || s.downloading}
-                                    events={[
-                                      {
-                                        type: "click",
-                                        prevent: false,
-                                        stop: false,
-                                        self: false,
-                                        passive: false,
-                                        run: function (scope, $event, $el) {
-                                          scope.openPhotoTool(
-                                            scope.tool.action,
-                                            scope.photo,
-                                            "finished",
-                                          );
-                                        },
-                                      },
-                                    ]}
-                                  >
-                                    <View as="svg" scope={s} aria-hidden="true">
-                                      <View
-                                        as="use"
-                                        scope={s}
-                                        href={"#i-" + s.tool.icon}
-                                      ></View>
-                                    </View>
-                                    <View
-                                      as="span"
-                                      scope={s}
-                                      text={s.tool.name}
-                                    ></View>
-                                  </View>
-                                </>
-                              </>
-                            )}
-                          </Repeat>
-                        </View>
-                      </View>
-                    </>
-                  </>
-                ) : null}
-                <View
-                  as="div"
-                  scope={s}
-                  className="detail-unavailable"
-                  show={!s.photo}
-                >
-                  <View as="svg" scope={s} aria-hidden="true">
-                    <View as="use" scope={s} href="#i-nav-album"></View>
-                  </View>
-                  <View as="p" scope={s}>
-                    {"这张照片已不存在"}
-                  </View>
-                  <View
-                    as="button"
-                    scope={s}
-                    events={[
-                      {
-                        type: "click",
-                        prevent: false,
-                        stop: false,
-                        self: false,
-                        passive: false,
-                        run: function (scope, $event, $el) {
-                          scope.route("library");
-                        },
-                      },
-                    ]}
-                  >
-                    {"返回相册"}
-                  </View>
-                </View>
+                </>}
               </View>
             </View>
             <View
@@ -705,63 +439,7 @@ export default function AlbumPage({ scope, args = [] }) {
                 ></View>
               </View>
             </View>
-            <View
-              as="div"
-              scope={s}
-              className="album-actions detail-actions"
-              show={s.view === "detail" && s.photo?.blob}
-            >
-              <View
-                as="button"
-                scope={s}
-                className="print-photo"
-                disabled={s.disabled || s.downloading}
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.openPrint(scope.photo, "finished", "album");
-                    },
-                  },
-                ]}
-              >
-                <View as="svg" scope={s} aria-hidden="true">
-                  <View as="use" scope={s} href="#i-print"></View>
-                </View>
-                {"冲印照片"}
-              </View>
-              <View
-                as="button"
-                scope={s}
-                className="primary-button"
-                disabled={s.disabled || s.downloading}
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.savePhotos(true);
-                    },
-                  },
-                ]}
-              >
-                <View as="svg" scope={s} aria-hidden="true">
-                  <View as="use" scope={s} href="#i-download"></View>
-                </View>
-                <View
-                  as="span"
-                  scope={s}
-                  text={s.downloading ? "正在准备…" : "下载照片"}
-                ></View>
-              </View>
-            </View>
+
           </View>
           <View
             as="div"
@@ -779,13 +457,19 @@ export default function AlbumPage({ scope, args = [] }) {
             </View>
             <View as="span" scope={s} text={s.notice}></View>
           </View>
+          {s.page==="album" && s.view==="detail" && <PhotoActionSheet scope={s} album={s}/>}
+          {s.page === "album" && s.modal === "delete" && <PhotoDeleteDialog
+            title={s.selected.length === 1 ? "删除这张照片？" : "删除 " + s.selected.length + " 张照片？"}
+            description="删除后无法恢复，个人中心也将不再显示这些照片。"
+            busy={s.working || s.store.busy} unavailable={s.disabled || !s.selected.length}
+            error={s.message} onClose={() => s.closeModal()} onDelete={() => s.confirmDelete()} />}
           <Portal target="#album-modal-layer">
             <AlbumPhotoViewer scope={s} />
             <View
               as="div"
               scope={s}
               className="album-overlay"
-              show={s.page === "album" && s.modal && s.modal !== "preview"}
+              show={s.page === "album" && s.modal === "info"}
               events={[
                 {
                   type: "keydown",
@@ -856,51 +540,6 @@ export default function AlbumPage({ scope, args = [] }) {
                     }[s.modal]
                   }
                 ></View>
-                <View as="div" scope={s} show={s.modal === "delete"}>
-                  <View as="p" scope={s} className="dialog-description">
-                    {"删除后无法恢复"}
-                  </View>
-                  <View as="div" scope={s} className="delete-confirm-actions">
-                    <View
-                      as="button"
-                      scope={s}
-                      disabled={s.working || s.store.busy}
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.closeModal();
-                          },
-                        },
-                      ]}
-                    >
-                      {"取消"}
-                    </View>
-                    <View
-                      as="button"
-                      scope={s}
-                      className="danger"
-                      disabled={s.disabled}
-                      text={s.working ? "正在删除…" : "确认删除"}
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.confirmDelete();
-                          },
-                        },
-                      ]}
-                    ></View>
-                  </View>
-                </View>
                 <View
                   as="div"
                   scope={s}
@@ -923,6 +562,12 @@ export default function AlbumPage({ scope, args = [] }) {
                       text={s.photoInfo(s.photo)}
                     ></View>
                   </View>
+                  {formatCaptureDate(s.photo?.captureDate) && (
+                    <p>
+                      <span>拍摄日期</span>
+                      <strong><time dateTime={s.photo.captureDate}>{formatCaptureDate(s.photo.captureDate)}</time></strong>
+                    </p>
+                  )}
                   <View
                     as="button"
                     scope={s}

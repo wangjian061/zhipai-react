@@ -12,13 +12,15 @@ Object.defineProperty(globalThis,'navigator',{value:{onLine:true},configurable:t
 globalThis.window=new EventTarget();globalThis.document={hidden:false,querySelector(){return null}};
 await import('../src/domain/index.js');
 const root=createController('phoneDemo').scope;
-const mapping={AppShell:'phoneDemo',ImageCarousel:'imageCarousel',SearchPage:'searchPage',AlbumPage:'albumCenter',CameraPage:'cameraStudio',SpecificationsPage:'specificationPicker',ScanPage:'collectionScanner',ToolsPage:'toolStudio',SupportPage:'supportCenter',PrintPage:'printStudio',MyPage:'myCenter',PhotoPicker:'photoChooser',AccountPage:'accountFlow',CollectionPage:'collectionFlow',LiquidTabs:'liquidTabs'};
+const mapping={AppShell:'phoneDemo',ImageCarousel:'imageCarousel',AlbumPage:'albumCenter',CameraPage:'cameraStudio',SpecificationsPage:'specificationPicker',ScanPage:'collectionScanner',ToolsPage:'toolStudio',SupportPage:'supportCenter',PrintPage:'printStudio',MyPage:'myCenter',PhotoPicker:'photoChooser',AccountPage:'accountFlow',CollectionPage:'collectionFlow',LiquidTabs:'liquidTabs'};
 const read=(node,s)=>new Function('s','args','return ('+generate(node).code+')')(s,[]);
 test('all initial JSX data bindings resolve against the migrated domain state',()=>{
  let count=0;const errors=[];
  for(const folder of ['components','pages'])for(const file of fs.readdirSync('src/'+folder).filter(n=>n.endsWith('.jsx'))){
   const name=file.slice(0,-4),controller=mapping[name];const s=name==='AppShell'?root:controller?createController(controller,controller==='imageCarousel'?['hero']:[],root).scope:root;
-  const ast=parse(fs.readFileSync(path.join('src',folder,file),'utf8'),{sourceType:'module',plugins:['jsx']});
+  const source=fs.readFileSync(path.join('src',folder,file),'utf8');
+  if(!/<(?:View|Repeat)\b/.test(source))continue;
+  const ast=parse(source,{sourceType:'module',plugins:['jsx']});
   const evaluate=(node,scope)=>{try{count++;return read(node,scope);}catch(error){errors.push(file+': '+generate(node).code+' — '+error.message);return undefined;}};
   const walk=(node,scope)=>{
    if(!node)return;

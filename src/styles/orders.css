@@ -48,33 +48,15 @@
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: #edf3ff;
+  background: var(--ui-masthead-fill);
+  -webkit-backdrop-filter: var(--ui-masthead-filter);
+  backdrop-filter: var(--ui-masthead-filter);
   -webkit-mask-image: linear-gradient(
     #000 0,
     #000 calc(100% - 12px),
     transparent 100%
   );
   mask-image: linear-gradient(#000 0, #000 calc(100% - 12px), transparent 100%);
-}
-@supports (
-  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
-) {
-  .orders-masthead::before {
-    background:
-      radial-gradient(
-        ellipse at 9% 0%,
-        rgb(172 204 255 / 20%),
-        transparent 66%
-      ),
-      radial-gradient(
-        ellipse at 98% 20%,
-        rgb(215 230 255 / 18%),
-        transparent 64%
-      ),
-      linear-gradient(rgb(249 252 255 / 68%), rgb(241 247 255 / 42%));
-    -webkit-backdrop-filter: blur(24px) saturate(1.1);
-    backdrop-filter: blur(24px) saturate(1.1);
-  }
 }
 .orders-masthead .orders-load-error {
   margin: 4px 16px;
@@ -216,13 +198,6 @@
   inset: 0;
   padding-top: calc(var(--orders-header-height, 222px) + 8px);
   scroll-padding-top: calc(var(--orders-header-height, 222px) + 8px);
-}
-@media (prefers-reduced-transparency: reduce) {
-  .orders-masthead::before {
-    background: #edf3ff;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
 }
 .order-list-card {
   transition: none;

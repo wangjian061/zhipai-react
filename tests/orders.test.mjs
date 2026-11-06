@@ -1,6 +1,9 @@
 // Source-render and domain contracts only. No browser automation or real payment.
 import test, { after } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "vite";
@@ -25,6 +28,7 @@ globalThis.history = {
   },
 };
 await import("../src/domain/index.js");
+getStore("keepsakeOrders").ready = true;
 const {
   normalizeOrders,
   ORDER_STATES,
@@ -171,11 +175,16 @@ function printScope(status = "delivered") {
     },
   };
 }
+const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "zhipai-orders-ssr-"));
 const server = await createServer({
-  server: { middlewareMode: true, hmr: false },
+  cacheDir,
+  server: { middlewareMode: true, hmr: false, ws: false, watch: null },
   appType: "custom",
 });
-after(() => server.close());
+after(async () => {
+  await server.close();
+  fs.rmSync(cacheDir, { recursive: true, force: true });
+});
 const { OrdersContent } = await server.ssrLoadModule(
   "/src/pages/OrdersPage.jsx",
 );

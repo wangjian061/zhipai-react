@@ -116,6 +116,18 @@ export default function SpecificationIcon({ kind = "portrait" }) {
             strokeLinecap="round"
           />
         </>
+      ) : kind === "medical" ? (
+        <>
+          <rect x="4" y="9" width="40" height="30" rx="4" fill="var(--tool-icon-light, #e5ebf4)" />
+          <path d="M14 16h6v6h6v6h-6v6h-6v-6H8v-6h6Z" fill="currentColor" />
+          <path d="M31 20h7m-7 7h7" stroke="var(--tool-icon-accent, #6583bc)" strokeWidth="2" strokeLinecap="round" />
+        </>
+      ) : kind === "document" ? (
+        <>
+          <rect x="9" y="5" width="30" height="38" rx="4" fill="var(--tool-icon-light, #e5ebf4)" />
+          <path d="M17 16h14" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+          <path d="M17 24h14m-14 8h9" stroke="var(--tool-icon-accent, #6583bc)" strokeWidth="2" strokeLinecap="round" />
+        </>
       ) : (
         <>
           <rect

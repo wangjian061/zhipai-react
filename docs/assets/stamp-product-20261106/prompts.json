@@ -1,0 +1,68 @@
+{
+  "date": "2026-11-06",
+  "tool": "built-in image_gen",
+  "mode": "reference-image editing",
+  "status": "applied-to-product-gallery",
+  "integration": "User approved replacement on 2026-11-06. Home stamp entry and all four product-gallery views use losslessly exported WebP assets. Editable template and customer inputs are unchanged.",
+  "assets": [
+    {
+      "key": "inner",
+      "file": "inner.png",
+      "source": "public/assets/keepsakes/stamp-youth-sample.webp",
+      "runtimeFile": "public/assets/keepsakes/stamp-product-inner-20261106.webp"
+    },
+    {
+      "key": "open",
+      "file": "open.png",
+      "source": "public/assets/keepsakes/stamp-spread-sample.webp",
+      "runtimeFile": "public/assets/keepsakes/stamp-product-open-20261106.webp"
+    },
+    {
+      "key": "cover",
+      "file": "cover.png",
+      "source": "public/assets/keepsakes/stamp-cover.webp",
+      "runtimeFile": "public/assets/keepsakes/stamp-product-cover-20261106.webp"
+    },
+    {
+      "key": "back",
+      "file": "back.png",
+      "source": "public/assets/keepsakes/stamp-back.webp",
+      "runtimeFile": "public/assets/keepsakes/stamp-product-back-20261106.webp"
+    }
+  ],
+  "prompts": [
+    {
+      "key": "inner",
+      "refs": [
+        "stamp-youth-sample.webp"
+      ],
+      "prompt": "Use case: product-mockup, based on supplied existing product artwork. 为知拍APP的“致青春·学生纪念邮折”商品页重建高清、专业、真实纸质商品图。这是同一实体产品，不重新设计印刷图案。真正透明背景，无房间、桌面、花草道具、手、UI、价格、说明标签或水印。正面平视、边缘横平竖直、不倾斜、不夸张透视；全部产品边缘完整入画，中心陈列、合理留白。柔和均匀棚拍灯光，清晰细腻印刷、轻微纸张厚度、极轻柔接触阴影。恢复原图清晰度，消除低清模糊、污渍和拍摄反光；保留原图的所有主要图形、文字和颜色位置。不凭空增加图案或营销标语。输出独立单张产品素材，横向3:2画布。视图：单独内页正视图；输入图就是编辑目标。森林光影和左侧竖排“致青春”是产品本身印刷图案，必须保留。中央邮票版面保持严格13格结构：一个中央大人像、四角小人像、八枚绿树邮票。五个人像沿用同一个蓝灰西装、浅蓝背景的3D男生，不能变真人、不能增加头像、不能改布局。内页为横向4:3卡纸，占画布宽约84%，保留四周透明留白。"
+    },
+    {
+      "key": "open",
+      "refs": [
+        "stamp-spread-sample.webp",
+        "stamp-youth-sample.webp"
+      ],
+      "prompt": "Use case: product-mockup, based on supplied existing product artwork. 为知拍APP的“致青春·学生纪念邮折”商品页重建高清、专业、真实纸质商品图。这是同一实体产品，不重新设计印刷图案。真正透明背景，无房间、桌面、花草道具、手、UI、价格、说明标签或水印。正面平视、边缘横平竖直、不倾斜、不夸张透视；全部产品边缘完整入画，中心陈列、合理留白。柔和均匀棚拍灯光，清晰细腻印刷、轻微纸张厚度、极轻柔接触阴影。恢复原图清晰度，消除低清模糊、污渍和拍摄反光；保留原图的所有主要图形、文字和颜色位置。不凭空增加图案或营销标语。输出独立单张产品素材，横向3:2画布。视图：完整双页展开正视图。第1张是展开版目标，第2张是右页细节参考。产品左右两页各为4:3，总体约8:3横向。左页是原图雪山、草原、五个行走背影与“纵马星野 奔赴山海”；右页是原图森林、竖排“致青春”、一个中央大头像、四角小头像、八枚树图邮票。五个头像均保留参考中的同一个3D男生。仅有自然中央折痕，平整完全展开，不V形、不斜看，不改变图案数量。整体占画布宽约90%，完整清晰。"
+    },
+    {
+      "key": "cover",
+      "refs": [
+        "stamp-cover.webp"
+      ],
+      "prompt": "Use case: product-mockup, based on supplied existing product artwork. 为知拍APP的“致青春·学生纪念邮折”商品页重建高清、专业、真实纸质商品图。这是同一实体产品，不重新设计印刷图案。真正透明背景，无房间、桌面、花草道具、手、UI、价格、说明标签或水印。正面平视、边缘横平竖直、不倾斜、不夸张透视；全部产品边缘完整入画，中心陈列、合理留白。柔和均匀棚拍灯光，清晰细腻印刷、轻微纸张厚度、极轻柔接触阴影。恢复原图清晰度，消除低清模糊、污渍和拍摄反光；保留原图的所有主要图形、文字和颜色位置。不凭空增加图案或营销标语。输出独立单张产品素材，横向3:2画布。视图：闭合邮折的封面正视图，输入图是正封面印刷原稿。保留树荫阳光、左下自行车、长椅与足球、右上竖排“致青春”及原图的小字；不要添加邮票格或人物。真实横向4:3封面，占画布宽约84%，完整边缘；略见极薄纸张边缘但不产生倾斜透视。"
+    },
+    {
+      "key": "back",
+      "refs": [
+        "stamp-back.webp"
+      ],
+      "prompt": "Use case: product-mockup, based on supplied existing product artwork. 为知拍APP的“致青春·学生纪念邮折”商品页重建高清、专业、真实纸质商品图。这是同一实体产品，不重新设计印刷图案。真正透明背景，无房间、桌面、花草道具、手、UI、价格、说明标签或水印。正面平视、边缘横平竖直、不倾斜、不夸张透视；全部产品边缘完整入画，中心陈列、合理留白。柔和均匀棚拍灯光，清晰细腻印刷、轻微纸张厚度、极轻柔接触阴影。恢复原图清晰度，消除低清模糊、污渍和拍摄反光；保留原图的所有主要图形、文字和颜色位置。不凭空增加图案或营销标语。输出独立单张产品素材，横向3:2画布。视图：闭合邮折的封底正视图，输入图是封底原稿。保留青蓝底色、中央细线圆形纹样与竖排“致青春”、下方“中国邮政 / CHINA POST”原有标识；清除原图不均匀反光/污痕，细线和印刷字清晰但不要增强成新设计。横向4:3封底，占画布宽约84%，完整边缘。"
+    }
+  ],
+  "coverCorrections": [
+    "Use case: text-localization. 精确修正第一张邮折封面商品图的一处小字，第二张为原始封面。保持第一张的产品主体、版式、纸张材质、画面构图、色彩、全部插画与透明背景原封不动。只修正“致青春”标题左下方的小竖排字，严格复原第二张原稿文字：“有一个地方 叫青春”。下方原有短句严格为“风和日暖 清澈如初”。英文竖排为“FOREVER YOUNG”。文字要清晰、细小、与原稿位置一致，不添加任何其它新字。大标题“致青春”保持不变。只输出独立封面产品图，真正透明背景保留。",
+    "Use case: text-localization. Edit the attached generated product-cover image. Correct ONLY the small Chinese vertical subtitle immediately to the left of the large title 致青春. It must read exactly “有一个地方 叫青春”, with each character separately and clearly printed in sequence: 有 / 一 / 个 / 地 / 方 / 叫 / 青 / 春. The current generated character before 春 is wrong; replace it with 青 (blue/green), never 蕾 or 薔. Do not invent any other wording. Keep the large title 致青春, the lower phrase 风和日暖 清澈如初, FOREVER YOUNG, forest illustration, bicycle, bench, football, product edges, lighting and layout all unchanged. Preserve true transparent background and use the same canvas. Final text must be legible and accurate."
+  ]
+}

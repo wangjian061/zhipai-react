@@ -1,4 +1,8 @@
 import {
+  cleanShippingAddress,
+  shippingAddressError,
+} from "./shipping-address.js";
+import {
   openOrderCenter,
   printOrderPath,
   orderNavigate,
@@ -456,7 +460,12 @@ function printSlots(layout) {
   }
   return small;
 }
-function printSheetMarkup(layout, url = "", landscape = false) {
+function printSheetMarkup(
+  layout,
+  url = "",
+  landscape = false,
+  showFooter = true,
+) {
   const plan =
     typeof layout === "object"
       ? layout
@@ -481,14 +490,16 @@ function printSheetMarkup(layout, url = "", landscape = false) {
       }</g>`;
     })
     .join("");
-  const footer = plan?.paperWidth
-    ? `<g fill="#173358" font-family="sans-serif"><text x="3" y="146" font-size="4" font-weight="700">知拍</text><text x="19" y="145" font-size="2.5">免剪裁 · 自带胶 · 背胶模切</text><text x="19" y="149" font-size="2.5">${escape(plan.description || "")}</text></g>`
-    : "";
+  const footer =
+    showFooter && plan?.paperWidth
+      ? `<g fill="#173358" font-family="sans-serif"><text x="3" y="146" font-size="4" font-weight="700">知拍</text><text x="19" y="145" font-size="2.5">免剪裁 · 自带胶 · 背胶模切</text><text x="19" y="149" font-size="2.5">${escape(plan.description || "")}</text></g>`
+      : "";
   const content = `<rect width="${width}" height="${height}" fill="white"/>${portraits}${footer}`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${landscape ? `${height} ${width}` : `${width} ${height}`}" role="img" aria-label="背胶模切排版预览">${landscape ? `<g transform="translate(${height} 0) rotate(90)">${content}</g>` : content}</svg>`;
 }
 registerStore("printUi", {
   opened: false,
+  preview: false,
 });
 registerStore("printLibrary", {
   ...printStateSeed(),
@@ -536,7 +547,7 @@ registerStore("printLibrary", {
   },
 });
 registerController("printStudio", () => ({
-  view: "select",
+  view: "layouts",
   entryPhotoId: null,
   entryPhoto: null,
   entryKind: null,
@@ -550,6 +561,10 @@ registerController("printStudio", () => ({
   message: "",
   error: "",
   moreOpen: false,
+  layoutPreviewId: null,
+  previewHistoryId: null,
+  previewReturn: "",
+  previewClosing: false,
   candidatePhotoId: null,
   quote: null,
   quoteLoading: false,
@@ -569,6 +584,7 @@ registerController("printStudio", () => ({
   processing: false,
   crop: { scale: 1, offsetX: 0, offsetY: 0 },
   cropTask: 0,
+  cropFallback: null,
   addonExpanded: false,
   layoutExpanded: false,
   addressFields: {},
@@ -582,7 +598,7 @@ registerController("printStudio", () => ({
   onPhoneError: null,
   onNetwork: null,
   init() {
-    this.onRoute = () => this.syncLocation();
+    this.onRoute = (event) => this.syncLocation(event);
     this.onOpen = (event) => this.enter(event.detail);
     this.onPhoto = (event) => {
       if (
@@ -642,6 +658,7 @@ registerController("printStudio", () => ({
     this.releaseLayouts();
     this.quoteRequest++;
     this.$store.printUi.opened = false;
+    this.$store.printUi.preview = false;
   },
   get store() {
     return this.$store.printLibrary;
@@ -767,10 +784,10 @@ registerController("printStudio", () => ({
   },
   get title() {
     return {
-      preview: "冲印服务",
+      preview: "照片冲印",
       select: "选择照片",
       crop: "裁剪照片",
-      layouts: "选择排版",
+      layouts: "照片冲印",
       confirm: "确认订单",
       addresses: "收货地址",
       address: "编辑收货地址",
@@ -864,6 +881,36 @@ registerController("printStudio", () => ({
       landscape,
     );
   },
+  workspaceSheet(layout) {
+    const photo = this.draft.photo;
+    const plan =
+      this.layouts.find((item) => item.id === layout) ||
+      PRINT_LAYOUTS.find((item) => item.id === layout);
+    if (!plan) return "";
+    const source = photo?.blob
+      ? actualPhotoURL({ ...photo, id: "print-" + photo.id })
+      : "/assets/photo-placeholder-3d-20261105.webp";
+    return printSheetMarkup(plan, source, true, false);
+  },
+  openLayoutPreview(id) {
+    if (
+      this.disabled ||
+      this.modal ||
+      !this.layouts.some((item) => item.id === id)
+    )
+      return;
+    this.layoutPreviewId = id;
+    this.previewReturn = location.pathname + location.search;
+    this.previewHistoryId = printId();
+    this.previewClosing = false;
+    history.pushState(
+      { ...history.state, printLayoutPreview: this.previewHistoryId },
+      "",
+      location.href,
+    );
+    this.$store.printUi.preview = true;
+    this.showModal("layoutPreview");
+  },
   releaseLayouts() {
     for (const item of this.layoutOptions)
       if (item.previewURL) URL.revokeObjectURL(item.previewURL);
@@ -874,6 +921,17 @@ registerController("printStudio", () => ({
       return;
     if (this.draft.photo && !isPrintRatio(this.draft.photo)) {
       this.route("crop", {}, true);
+      return;
+    }
+    if (!this.draft.photo) {
+      this.layoutOptions = PRINT_LAYOUTS.map(printLayoutCopy);
+      this.layoutsLoading = false;
+      this.layoutError = "";
+      if (!this.draft.layout && !this.store.busy)
+        await this.store.commit((state) => {
+          state.draft.layout = PRINT_LAYOUTS[0].id;
+          state.draft.layoutSnapshot = printLayoutCopy(PRINT_LAYOUTS[0]);
+        });
       return;
     }
     const key = this.photoKey;
@@ -1060,13 +1118,13 @@ registerController("printStudio", () => ({
     }
   },
   openAlbum() {
-    if (this.view === "select" && !this.disabled && !this.library.busy) {
+    if (this.view === "layouts" && !this.disabled && !this.library.busy) {
       this.syncCandidate();
       this.showModal("album");
     }
   },
   pickPhone() {
-    if (this.disabled || this.view !== "select") return;
+    if (this.disabled || this.view !== "layouts") return;
     this.closeModal();
     this.error = "";
     this.selectionId = printId();
@@ -1141,8 +1199,6 @@ registerController("printStudio", () => ({
           type: "image/jpeg",
           spec: "一寸比例 · 5∶7",
         });
-        state.draft.layout = null;
-        state.draft.layoutSnapshot = null;
         state.draft.orderId = null;
         state.draft.completedOrderId = null;
         state.draft.token = printId();
@@ -1229,7 +1285,18 @@ registerController("printStudio", () => ({
   openOrderList() {
     if (!this.processing) openOrderCenter("print");
   },
-  syncLocation() {
+  syncLocation(event) {
+    if (event?.type === "popstate" && this.modal === "layoutPreview") {
+      const samePage =
+        location.pathname + location.search === this.previewReturn;
+      this.previewHistoryId = null;
+      this.previewClosing = false;
+      this.closeModal();
+      if (samePage) return;
+    }
+    this.previewHistoryId = null;
+    this.previewClosing = false;
+    this.$store.printUi.preview = false;
     const q = new URLSearchParams(location.search);
     if (this.view === "crop" && q.get("print") !== "crop") {
       this.cropTask++;
@@ -1253,7 +1320,10 @@ registerController("printStudio", () => ({
       return;
     }
     const requested = q.get("print");
-    const next = !requested || requested === "preview" ? "select" : requested;
+    const next =
+      !requested || ["preview", "select"].includes(requested)
+        ? "layouts"
+        : requested;
     if (["order", "result"].includes(next)) {
       orderNavigate(
         printOrderPath(q.get("order") || "", this.draft.returnTo),
@@ -1280,7 +1350,7 @@ registerController("printStudio", () => ({
       ? next
       : "select";
     if (
-      ["crop", "layouts", "confirm"].includes(this.view) &&
+      ["crop", "confirm"].includes(this.view) &&
       this.store.ready &&
       (!this.draft.photo || !["finished", "phone"].includes(this.draft.kind))
     ) {
@@ -1290,6 +1360,7 @@ registerController("printStudio", () => ({
     if (
       ["layouts", "confirm"].includes(this.view) &&
       this.store.ready &&
+      this.draft.photo &&
       !isPrintRatio(this.draft.photo)
     ) {
       this.route("crop", {}, true);
@@ -1340,7 +1411,7 @@ registerController("printStudio", () => ({
       );
       return;
     }
-    if (view === "preview") view = "select";
+    if (["preview", "select"].includes(view)) view = "layouts";
     const url = new URL(location.href);
     const orderBack = url.searchParams.get("orderBack");
     url.search = "";
@@ -1376,7 +1447,7 @@ registerController("printStudio", () => ({
       await this.startPrint();
     } catch (_) {
       this.route("select");
-      this.error = "暂时无法读取冲印服务，请重试。";
+      this.error = "暂时无法读取照片冲印，请重试。";
     }
   },
   back() {
@@ -1422,10 +1493,26 @@ registerController("printStudio", () => ({
     }
     openOrderCenter("print", "/?page=print&print=preview");
   },
-  previousStep() {
+  async previousStep() {
     if (this.disabled || this.modal || this.flowCompleted) return;
     if (!["crop", "layouts", "confirm"].includes(this.view)) return;
     if (this.guardPendingPayment()) return;
+    if (this.view === "crop") {
+      const fallback = this.cropFallback;
+      try {
+        await this.store.commit((state) => {
+          state.draft.photo = printPhotoCopy(fallback?.photo || null);
+          state.draft.kind = fallback?.kind || null;
+        });
+        this.cropFallback = null;
+        this.layoutRequest++;
+        this.releaseLayouts();
+        this.loadedPhotoKey = "";
+      } catch (_) {
+        this.error = "取消裁剪未完成，请重试。";
+        return;
+      }
+    }
     this.route(this.view === "confirm" ? "layouts" : "select");
   },
   async changeDraft(key, value) {
@@ -1472,21 +1559,23 @@ registerController("printStudio", () => ({
     await this.store.loading;
     if (this.disabled) return;
     if (this.guardPendingPayment()) return;
-    if (this.view !== "select") this.route("select", {}, true);
+    if (this.view !== "layouts") this.route("layouts", {}, true);
     const originalLocation = location.pathname + location.search;
     this.selectionId = null;
     const samePhoto =
       this.draft.photo?.id === photo.id &&
       this.draft.photo.blob === photo.blob &&
       this.draft.kind === kind;
+    if (!samePhoto)
+      this.cropFallback = isPrintRatio(this.draft.photo)
+        ? { photo: printPhotoCopy(this.draft.photo), kind: this.draft.kind }
+        : null;
     this.processing = true;
     try {
       await this.store.commit((state) => {
         const d = state.draft;
         if (d.photo?.id !== photo.id || d.completedOrderId) {
           d.completedOrderId = null;
-          d.layout = null;
-          d.layoutSnapshot = null;
           d.orderId = null;
           d.token = printId();
         }
@@ -1546,31 +1635,9 @@ registerController("printStudio", () => ({
   async saveAddress() {
     if (this.disabled) return;
     const f = this.addressFields;
-    const clean = {
-      id: f.id || printId(),
-      name: f.name.trim(),
-      phone: f.phone.trim(),
-      region: f.region.trim(),
-      street: f.street.trim(),
-      postal: f.postal.trim(),
-      default: !!f.default,
-    };
-    if (!clean.name || clean.name.length > 30) {
-      this.addressError = "请填写收件人姓名，最多30字。";
-      return;
-    }
-    if (!/^1[3-9]\d{9}$/.test(clean.phone)) {
-      this.addressError = "请填写正确的11位手机号码。";
-      return;
-    }
-    if (clean.region.length < 4 || clean.street.length < 5) {
-      this.addressError = "请补齐省市区与详细地址。";
-      return;
-    }
-    if (clean.postal && !/^\d{6}$/.test(clean.postal)) {
-      this.addressError = "邮政编码应为6位数字，也可以留空。";
-      return;
-    }
+    const clean = cleanShippingAddress(f, f.id || printId());
+    this.addressError = shippingAddressError(clean);
+    if (this.addressError) return;
     try {
       await this.store.commit((state) => {
         if (clean.default)
@@ -1598,11 +1665,22 @@ registerController("printStudio", () => ({
     this.error = "";
     this.$store.printUi.opened = true;
     this.$nextTick(() =>
-      this.$refs.printDialog.querySelector("button:not(:disabled)")?.focus(),
+      this.$refs.printDialog?.querySelector("button:not(:disabled)")?.focus(),
     );
   },
   closeModal() {
-    if (this.processing) return;
+    if (this.processing || this.previewClosing) return;
+    if (
+      this.modal === "layoutPreview" &&
+      this.previewHistoryId &&
+      history.state?.printLayoutPreview === this.previewHistoryId
+    ) {
+      this.previewClosing = true;
+      history.back();
+      return;
+    }
+    this.$store.printUi.preview = false;
+    this.layoutPreviewId = null;
     this.modal = null;
     this.$store.printUi.opened = false;
     this.$nextTick(

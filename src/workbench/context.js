@@ -1,5 +1,5 @@
 const collectionViews = {
-  home: "专项列表",
+  home: "旧专项入口兼容",
   projects: "项目列表",
   project: "项目详情",
   records: "采集记录",
@@ -26,12 +26,13 @@ const accountViews = {
 const tools = {
   repair: "照片精修",
   outfit: "照片换装",
-  crop: "照片裁剪",
+  crop: "修改尺寸",
   background: "更换背景",
   format: "格式转换",
-  resize: "修改体积",
+  resize: "修改大小",
 };
 const panels = {
+  layoutPreview: "排版预览",
   identity: "上传身份证",
   verify: "核对身份",
   alternate: "其他认证方式",
@@ -91,7 +92,6 @@ const statuses = {
 };
 const knownPages = new Set([
   "home",
-  "search",
   "collection",
   "account",
   "camera",
@@ -103,6 +103,7 @@ const knownPages = new Set([
   "specifications",
   "my",
   "support",
+  "keepsake",
 ]);
 const visibleParams = [
   "page",
@@ -112,9 +113,12 @@ const visibleParams = [
   "camera",
   "print",
   "album",
+  "space",
   "type",
   "status",
   "category",
+  "search",
+  "kind",
 ];
 export function safeAddress(search) {
   const original = new URLSearchParams(search),
@@ -149,7 +153,8 @@ export function resolveWorkbenchContext(
     guide = "collection." + view;
     title = collectionViews[view] || "专项采集";
     source = "collection-week2-development-handoff-1.4.6.md";
-    if (view === "projects" && (q.get("category") || "all") === "all") {
+    if (view === "records") title = scope?.recordListTitle || ({graduate:"毕业生采集记录",enrollment:"新生采集记录",association:"其它采集记录"})[q.get("category")] || "采集记录";
+    if (view === "projects" && ((q.get("category") || "all") === "all" || q.get("search")==="1" || q.has("q"))) {
       guide = "collection.search";
       title = "项目搜索";
       source = "collection-project-search-1.4.6.md";
@@ -169,7 +174,7 @@ export function resolveWorkbenchContext(
       if (scope?.panel === "serviceHelp")
         state = "采集帮助 · " + (scope.helpArticle?.title || "帮助内容");
     }
-    panel = scope?.panel || "";
+    panel = ({captureMethod:"人像采集",shootingGuide:"拍摄指引"})[scope?.panel] || scope?.panel || "";
   } else if (page === "account") {
     scope = scopes.accountFlow;
     const view = scope?.view || q.get("account") || "welcome";
@@ -191,19 +196,32 @@ export function resolveWorkbenchContext(
     title = tools[action] || "常用工具";
     source = "common-tools-1.4.6.md";
     const step = scope?.step ?? 0;
+    const workspace = [
+      "repair",
+      "outfit",
+      "crop",
+      "background",
+      "format",
+      "resize",
+    ].includes(action);
     guide =
       "tool." +
       action +
       "." +
       (scope?.view === "saved" || step === 2
         ? "result"
-        : step === 0
-          ? "select"
-          : "settings");
-    state = ["选择照片", "处理设置", "处理结果"][step] || "";
+        : workspace
+          ? "settings"
+          : step === 0
+            ? "select"
+            : "settings");
+    state =
+      workspace && scope?.view !== "saved" && step !== 2
+        ? "照片与处理设置"
+        : ["选择照片", "处理设置", "处理结果"][step] || "";
     panel = scope?.panel || "";
     if (
-      ["checking", "awaiting", "failed", "error"].includes(
+      ["checking", "awaiting", "failed", "rejected", "error"].includes(
         scope?.portraitCheck?.status,
       )
     ) {
@@ -230,7 +248,10 @@ export function resolveWorkbenchContext(
       guide = "collection.camera." + step;
   } else if (page === "print") {
     scope = scopes.printStudio;
-    const view = scope?.view || q.get("print") || "select";
+    const requestedView = scope?.view || q.get("print") || "layouts";
+    const view = ["preview", "select"].includes(requestedView)
+      ? "layouts"
+      : requestedView;
     title = "冲印照片";
     guide = "print." + (view === "preview" ? "select" : view);
     if (view === "confirm" && scope?.flowCompleted) guide = "print.complete";
@@ -238,7 +259,7 @@ export function resolveWorkbenchContext(
       {
         select: "冲印照片 · 选择照片",
         crop: "冲印照片 · 裁剪照片",
-        layouts: "选择排版",
+        layouts: "照片冲印 · 照片与排版",
         confirm: "确认订单",
         addresses: "收货地址",
         address: "编辑收货地址",
@@ -257,15 +278,44 @@ export function resolveWorkbenchContext(
     }
     source = "common-tools-1.4.6.md";
     panel = scope?.panel || scope?.dialog || scope?.modal || "";
+    if (panel === "layoutPreview") state = "排版预览";
+  } else if (page === "keepsake") {
+    scope = scopes.keepsakeStudio;
+    const kind = scope?.kind || q.get("kind") || "postcard";
+    const requested = scope?.view || q.get("view") || "templates";
+    const view =
+      requested === "templates" ? "work" : requested;
+    guide = `keepsake.${kind}.${view}`;
+    title =
+      (kind === "stamp" ? "邮票制作" : "明信片制作") +
+      " · " +
+      ({
+        templates: "产品介绍",
+        work: kind === "postcard" ? "模板与构图" : "商品与定制",
+        confirm: "确认订单",
+        result: "下单完成",
+      }[view] || "选择模板");
+    source = "personal-business-upgrade-20261104.md";
+    panel = ({ album: "选择照片", keepsakeCrop: "调整构图" })[scope?.panel] || scope?.panel || "";
   } else if (page === "album") {
     scope = scopes.albumCenter;
     guide =
-      scope?.view === "detail" || q.has("photo")
+      scope?.view === "detail" || q.has("photo") || (q.has("item") && ["family", "documents"].includes(q.get("space")))
         ? "album.detail"
         : "album.library";
-    title = guide === "album.detail" ? "照片详情" : "知拍相册";
+    const space = scope?.space || q.get("space");
+    title = guide === "album.detail" ? "照片详情" :
+      ({family:"知拍相册 · 家人照片", documents:"知拍相册 · 证件照片"})[space] || "知拍相册";
     source = "";
     panel = scope?.previewHistoryId ? "preview" : scope?.modal || "";
+    if (guide==="album.detail" && !panel) panel="照片详情";
+    if (q.has("item") && ["family","documents"].includes(space)) panel=space==="family" ? "家人照片详情" : "证件详情";
+    if (space === "family" && q.has("member") && !q.has("item")) panel = "家人照片列表";
+    if (space === "family" && q.get("sheet") === "member") panel = "添加家人";
+    if (space === "family" && q.get("sheet") === "photos") panel = "添加照片";
+    if (space === "documents" && q.get("sheet") === "document") panel = "添加证件";
+    if (space === "documents" && q.has("doctype") && !q.has("item") && !q.has("sheet")) panel = "证件类型展开";
+    if (q.get("sheet")?.startsWith("delete-")) panel = space === "documents" ? "删除证件" : "删除照片";
     state = scope?.previewHistoryId
       ? "放大查看"
       : scope?.managing
@@ -279,7 +329,7 @@ export function resolveWorkbenchContext(
     panel = scope?.sheet || "";
   } else if (page === "specifications") {
     scope = scopes.specificationPicker;
-    title = "证照规格";
+    title = "照片规格";
     source = "photo-specifications-1.4.6.md";
     panel = scope?.opened ? "选择背景颜色" : "";
   } else if (page === "scan") {
@@ -298,13 +348,10 @@ export function resolveWorkbenchContext(
     title = guide === "my.share" ? "分享知拍" : "我的";
     source = "";
     panel = scope?.panel || "";
-  } else if (page === "search") {
-    scope = scopes.searchPage;
-    title = "搜索";
-    source = "home-1.4.6.md";
+    if (q.has("photoAction")) panel = "照片详情与处理";
   } else if (page === "support") {
     scope = scopes.supportCenter;
-    title = "客服中心";
+    title = q.get("view")==="search" ? "帮助搜索" : "客服中心";
     source = "";
     panel = scope?.panel || "";
   }
@@ -332,6 +379,10 @@ export function resolveWorkbenchContext(
       isDemo: true,
     };
   context.section = sectionFor(context);
+  if (guide === "album.library" && !panel) {
+    const albumSpace = scope?.space || q.get("space");
+    context.section = ({family:"家人照片", documents:"证件照片"})[albumSpace] || context.section;
+  }
   context.key = [
     context.page,
     context.guide,
@@ -373,6 +424,8 @@ export function sectionFor(context) {
         "failure",
         "checkFailure",
         "checkScenario",
+        "portrait",
+        "portraitOutcome",
       ].includes(panel)
     )
       return "照片检查";
@@ -426,10 +479,26 @@ export function sectionFor(context) {
     );
   }
   if (page === "print")
-    return panel === "album" || panel === "选择照片"
-      ? "照片来源"
-      : "付款与恢复";
-  if (page === "album") return panel === "preview" ? "照片预览" : "更多与删除";
+    return panel === "layoutPreview"
+      ? "排版示例与独立预览"
+      : panel === "album" || panel === "选择照片"
+        ? "照片来源"
+        : "付款与恢复";
+  if (page === "album") {
+    if (["添加家人", "添加照片", "家人照片列表"].includes(panel)) return "家人照片";
+    if (["添加证件", "证件类型展开"].includes(panel)) return "证件照片";
+    if (["证件详情", "删除证件"].includes(panel)) return "证件图片管理";
+    if (["delete", "删除照片"].includes(panel)) return guide === "album.detail" ? "删除照片" : "管理与删除";
+    return panel === "preview" ? "照片预览" : "照片信息";
+  }
+  if (page === "keepsake") {
+    if (panel === "addresses" || panel === "addressEdit") return "收货地址";
+    if (panel === "payment" || panel === "resolution") return "付款与未知结果";
+    if (panel === "调整构图") return "调整构图";
+    if (panel === "选择照片")
+      return guide.includes(".stamp.") ? "定制照片" : "当前明信片";
+    return "";
+  }
   if (page === "orders") return "订单操作";
   if (page === "specifications") return "选择背景";
   if (page === "scan")
@@ -437,6 +506,7 @@ export function sectionFor(context) {
   if (page === "my")
     return (
       {
+        照片详情与处理: "照片详情抽屉",
         feedback: "意见反馈",
         language: "语言与隐私",
         support: "客服中心",

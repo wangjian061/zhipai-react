@@ -19,8 +19,7 @@ function setup(loggedIn) {
     myView: "overview",
     $store: {
       account: { loggedIn, masked: "138****8000" },
-      photoLibrary: { finished: [{}, {}] },
-      orderCenter: { ready: true, count: 5, pendingCount: 2 },
+      photoLibrary: { finished: [], ready: true },
     },
   };
   for (const name of [
@@ -55,7 +54,7 @@ test("personal hub retains all account, library, order, help and settings destin
     ["openShare"],
   ]);
 });
-test("signed-out security requires login while privacy stays public; counts come from current stores", () => {
+test("signed-out security requires login while privacy stays public; the photo card distinguishes loading from an empty album", () => {
   const { s, calls } = setup(false);
   const elements = nodes(MyOverview({ scope: s }));
   const buttons = elements.filter((n) => n.type === "button");
@@ -72,19 +71,12 @@ test("signed-out security requires login while privacy stays public; counts come
   );
   assert.ok(html.includes("登录 / 注册"));
   assert.ok(!html.includes("138****8000"));
-  assert.ok(html.includes("登录后查看"));
-  assert.deepEqual(
-    elements.filter((n) => n.type === "b").map((n) => n.props.children),
-    [2, "—"],
-  );
-  s.$store.photoLibrary.finished = [];
-  s.$store.orderCenter.count = 0;
-  assert.deepEqual(
-    nodes(MyOverview({ scope: s }))
-      .filter((n) => n.type === "b")
-      .map((n) => n.props.children),
-    [0, "—"],
-  );
+  assert.ok(html.includes("登录后管理个人服务"));
+  assert.ok(html.includes("暂无照片，制作后可在这里查看"));
+  s.$store.photoLibrary.ready = false;
+  const loading = renderToStaticMarkup(React.createElement(MyOverview, { scope: s }));
+  assert.ok(loading.includes("正在读取照片"));
+  assert.ok(!loading.includes("暂无照片"));
   for (const img of elements.filter((n) => n.type === "img"))
     assert.ok(fs.existsSync("public/" + img.props.src));
 });
@@ -95,8 +87,9 @@ test("sharing stays a separate page and authenticated hub displays only the mask
   );
   assert.ok(html.includes("138****8000"));
   assert.ok(!html.includes("笔待付款"));
-  assert.ok(html.includes("笔订单"));
-  assert.ok(html.includes("<b>5</b>"));
+  assert.ok(html.includes("我的订单"));
+  assert.ok(html.indexOf("账号安全") < html.indexOf("我的照片"));
+  assert.ok(html.includes("bear-personal-center.png"));
   assert.ok(html.includes("帮助与服务") && html.includes("偏好与设置"));
   s.myView = "share";
   assert.equal(MyOverview({ scope: s }), null);

@@ -78,6 +78,7 @@ export default function CollectionRecordCard({ scope: s, record }) {
       type="button"
       className="collection-record-card has-portrait"
       data-status={s.statusKeyFor(record.status)}
+      data-record-id={record.id}
       data-status-tone={status.tone}
       disabled={s.disabled}
       onClick={() => s.openRecord(record)}

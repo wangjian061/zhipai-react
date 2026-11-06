@@ -72,15 +72,21 @@ test("service scenarios use shared help/contact sheets and never expose real mai
 });
 
 test("full page documents are independently loaded and complete sources remain actual repository content", async () => {
-  assert.ok(PAGE_IDS.length >= 60);
+  for (const action of ["crop", "background", "format", "resize"]) {
+    assert.ok(PAGE_IDS.includes(`tool.${action}.settings`));
+    assert.ok(PAGE_IDS.includes(`tool.${action}.result`));
+    assert.ok(!PAGE_IDS.includes(`tool.${action}.select`), "selection is part of the workspace");
+  }
   const home = await loadPage("home");
   assert.equal(home.title, "首页");
   assert.deepEqual(
-    home.contents.slice(0, 5).map((item) => item.label),
-    ["顶部轮播", "搜索", "专项采集卡片", "常用工具", "底部导航"],
+    home.contents.slice(0, 7).map((item) => item.label),
+    ["品牌头部与通知", "专项采集卡片", "常用工具", "明信片制作", "邮票制作", "底部导航"],
   );
   assert.match(home.body, /照片换装/);
-  assert.match(home.body, /独立照片精修与个人制作精修版/);
+  assert.match(home.body, /照片精修/);
+  assert.match(home.body, /明信片制作/);
+  assert.match(home.body, /邮票制作/);
   await assert.rejects(loadPage("unmapped-page"));
   const source = "docs/product/common-tools-1.4.6.md";
   assert.equal(await loadSource(source), fs.readFileSync(source, "utf8"));

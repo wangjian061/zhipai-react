@@ -10,39 +10,14 @@ export function CollectionIcon({ name, ...props }) {
 }
 export function CollectionSearch({ scope: s }) {
   return (
-    <form
-      className="collection-search"
-      role="search"
-      onSubmit={(e) => {
-        e.preventDefault();
-        s.searchProjects();
-      }}
-    >
-      <CollectionIcon name="search" />
-      <input
-        aria-label={
-          s.view === "projects" && s.projectCategory !== "all"
-            ? "搜索" + s.categoryInfo.name + "项目"
-            : "搜索采集项目"
-        }
-        placeholder="请输入搜索内容"
-        value={s.keyword}
-        onChange={(e) => {
-          s.keyword = e.target.value;
-        }}
-      />
-      {s.keyword && (
-        <button
-          className="collection-search-clear"
-          type="button"
-          aria-label="清除搜索"
-          onClick={() => s.clearSearch()}
-        >
-          ×
-        </button>
-      )}
-      <button type="submit">搜索</button>
-    </form>
+    <div role="search">
+      <button className="collection-search collection-search-entry" type="button"
+        ref={node => { s.$refs.projectSearchEntry = node; }}
+        aria-label={s.view === "projects" ? "搜索" + s.categoryInfo.name + "项目" : "搜索全部采集项目"}
+        onClick={() => s.enterProjectSearch()}>
+        <CollectionIcon name="search" /><span>搜索项目或机构</span><strong>搜索</strong>
+      </button>
+    </div>
   );
 }
 export default function CollectionHome({ scope: s }) {
@@ -100,7 +75,7 @@ export default function CollectionHome({ scope: s }) {
               alt=""
             />
             <span>通知</span>
-            {s.notifications.length > 0 && <i aria-label="有通知" />}
+            {s.notifications.some((item) => item.read === false) && <i aria-label="有未读通知" />}
           </button>
         </div>
         <div className="collection-list-heading">

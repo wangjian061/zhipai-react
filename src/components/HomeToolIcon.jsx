@@ -3,6 +3,32 @@ import React from "react";
 // Home-only geometry: shared navigation and tool-page icons keep their own roles.
 export default function HomeToolIcon({ name }) {
   const shapes = {
+    postcard: (
+      <>
+        <rect
+          x="2"
+          y="4"
+          width="20"
+          height="16"
+          rx="2"
+          fill="var(--tool-icon-light)"
+        />
+        <path d="M4 17 9 11l4 4 3-3 4 5v1H4Z" fill="currentColor" />
+        <circle cx="16" cy="9" r="2" fill="var(--tool-icon-accent)" />
+      </>
+    ),
+    stamp: (
+      <>
+        <path d="M4 2h16v20H4z" fill="var(--tool-icon-light)" />
+        <path d="M6 4h12v16H6z" fill="var(--tool-icon-accent)" />
+        <path d="m8 17 3-5 2 2 3-3v7H8z" fill="currentColor" />
+        <path
+          d="M3 5h2m-2 4h2m-2 4h2m-2 4h2m14-12h2m-2 4h2m-2 4h2m-2 4h2"
+          stroke="var(--tool-icon-light)"
+          strokeWidth="2"
+        />
+      </>
+    ),
     print: (
       <>
         <path fill="var(--tool-icon-light)" d="M6 3h12v7H6z" />
@@ -11,7 +37,12 @@ export default function HomeToolIcon({ name }) {
           d="M5 8h14a3 3 0 0 1 3 3v6h-4v-4H6v4H2v-6a3 3 0 0 1 3-3Z"
         />
         <path fill="var(--tool-icon-accent)" d="M7 14h10v7H7z" />
-        <circle fill="var(--tool-icon-light)" cx="18.5" cy="11" r="1" />
+        <circle
+          fill="var(--tool-icon-detail, var(--tool-icon-light))"
+          cx="18.5"
+          cy="11"
+          r="1.35"
+        />
       </>
     ),
     repair: (
@@ -29,7 +60,7 @@ export default function HomeToolIcon({ name }) {
           d="m11 6 1.8 5.2L18 13l-5.2 1.8L11 20l-1.8-5.2L4 13l5.2-1.8Z"
         />
         <path
-          fill="var(--tool-icon-accent)"
+          fill="var(--tool-icon-detail, var(--tool-icon-accent))"
           d="m19 1 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z"
         />
       </>
@@ -42,7 +73,10 @@ export default function HomeToolIcon({ name }) {
           transform="translate(-1 0)"
         />
         <path fill="var(--tool-icon-light)" d="m9 3 3 4 3-4-3 1Z" />
-        <path fill="var(--tool-icon-accent)" d="M11.3 7h1.4v12h-1.4z" />
+        <path
+          fill="var(--tool-icon-detail, var(--tool-icon-accent))"
+          d="M11.3 7h1.4v12h-1.4z"
+        />
       </>
     ),
     spec: (
@@ -58,7 +92,7 @@ export default function HomeToolIcon({ name }) {
         <circle fill="currentColor" cx="8" cy="10" r="2.3" />
         <path fill="currentColor" d="M4.5 17v-1a3.5 3.5 0 0 1 7 0v1Z" />
         <path
-          fill="var(--tool-icon-accent)"
+          fill="var(--tool-icon-detail, var(--tool-icon-accent))"
           d="M14 9h5v1.5h-5zm0 4h5v1.5h-5z"
         />
       </>
@@ -67,7 +101,10 @@ export default function HomeToolIcon({ name }) {
       <>
         <path fill="var(--tool-icon-light)" d="M7 7h11v11H7z" />
         <path fill="currentColor" d="M5 2h2v15h15v2H5Z" />
-        <path fill="var(--tool-icon-accent)" d="M2 5h17v17h-2V7H2Z" />
+        <path
+          fill="var(--tool-icon-detail, var(--tool-icon-accent))"
+          d="M2 5h17v17h-2V7H2Z"
+        />
       </>
     ),
     background: (
@@ -88,7 +125,12 @@ export default function HomeToolIcon({ name }) {
           height="16"
           rx="3"
         />
-        <circle fill="var(--tool-icon-light)" cx="17.5" cy="10.5" r="1.5" />
+        <circle
+          fill="var(--tool-icon-detail, var(--tool-icon-light))"
+          cx="17.5"
+          cy="10.5"
+          r="1.8"
+        />
         <path fill="currentColor" d="m7 19 5-6 4 4 2-2 4 4v1H7Z" />
       </>
     ),
@@ -100,7 +142,7 @@ export default function HomeToolIcon({ name }) {
           d="M14 2v5h5ZM3 11h12v2H3zm6-3 4 4-4 4-1.4-1.4 2.6-2.6-2.6-2.6Z"
         />
         <path
-          fill="var(--tool-icon-accent)"
+          fill="var(--tool-icon-detail, var(--tool-icon-accent))"
           d="M11 17h10v2H11zm4-3 1.4 1.4-2.6 2.6 2.6 2.6L15 22l-4-4Z"
         />
       </>
@@ -113,7 +155,7 @@ export default function HomeToolIcon({ name }) {
           d="M15 2v5h5ZM2 10h2v4h4v2H2Zm1.7 4.3 6-6L11 9.7l-6 6Z"
         />
         <path
-          fill="var(--tool-icon-accent)"
+          fill="var(--tool-icon-detail, var(--tool-icon-accent))"
           d="M22 19h-6v-2h4v-4h2Zm-8.7-8.7 1.4-1.4 6 6-1.4 1.4Z"
         />
       </>

@@ -1,3 +1,4 @@
+import CollectionShootingGuide from "../components/CollectionShootingGuide.jsx";
 import CollectionAnnouncement from "../components/CollectionAnnouncement.jsx";
 import CollectionSupportDrawer from "../components/CollectionSupportDrawer.jsx";
 import React from "react";
@@ -13,14 +14,12 @@ import CollectionTaskDetail, {
 import CollectionTaskDrawer from "../components/CollectionTaskDrawer.jsx";
 import CollectionRecordCard from "../components/CollectionRecordCard.jsx";
 import CollectionPaymentDrawer from "../components/CollectionPaymentDrawer.jsx";
-import CollectionRecords from "../components/CollectionRecords.jsx";
 import CollectionProjects from "../components/CollectionProjects.jsx";
+import CollectionRecords from "../components/CollectionRecords.jsx";
 import CollectionNotifications from "../components/CollectionNotifications.jsx";
 import CollectionNotice from "../components/CollectionNotice.jsx";
 import { CollectionIcon } from "../components/CollectionHome.jsx";
-import CollectionHome from "../components/CollectionHome.jsx";
 import CollectionServices from "../components/CollectionServices.jsx";
-import CollectionNavigation from "../components/CollectionNavigation.jsx";
 import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
 export default function CollectionPage({ scope, args = [] }) {
   return (
@@ -33,6 +32,7 @@ export default function CollectionPage({ scope, args = [] }) {
           className="page collection-page"
           id="collection-page"
           data-view={s.view}
+          data-record-category={s.recordCategory || undefined}
           data-task-status={s.isRecordView ? s.statusKey : undefined}
           data-task-tone={s.isRecordView ? s.status.tone : undefined}
           show={s.page === "collection"}
@@ -47,6 +47,7 @@ export default function CollectionPage({ scope, args = [] }) {
               !s.isSection &&
               ![
                 "projects",
+                "records",
                 "notifications",
                 "announcement",
                 "detail",
@@ -101,13 +102,12 @@ export default function CollectionPage({ scope, args = [] }) {
             refName="collectionScroll"
             inert={!!s.panel}
           >
-            <CollectionHome scope={s} />
             <CollectionProjects scope={s} />
+            <CollectionRecords scope={s} />
             <CollectionNotifications scope={s} />
             <CollectionServices scope={s} />
             <CollectionAnnouncement scope={s} />
             <CollectionProjectOverview scope={s} />
-            <CollectionRecords scope={s} />
             <CollectionTaskDetail scope={s} />
             <View
               as="div"
@@ -134,12 +134,12 @@ export default function CollectionPage({ scope, args = [] }) {
                     self: false,
                     passive: false,
                     run: function (scope, $event, $el) {
-                      scope.route("records");
+                      scope.back();
                     },
                   },
                 ]}
               >
-                {"返回采集记录"}
+                {s.taskReturnLabel}
               </View>
             </View>
             <View
@@ -147,10 +147,7 @@ export default function CollectionPage({ scope, args = [] }) {
               scope={s}
               className="collection-error"
               show={
-                !s.isProjectSearch &&
-                !["services", "notifications", "announcement"].includes(
-                  s.view,
-                ) &&
+                ["project", "detail", "complete"].includes(s.view) &&
                 (s.error || s.recordsStore.error) &&
                 !(["detail", "complete"].includes(s.view) && s.current)
               }
@@ -162,10 +159,7 @@ export default function CollectionPage({ scope, args = [] }) {
               scope={s}
               className="account-text"
               show={
-                !s.isProjectSearch &&
-                !["services", "notifications", "announcement"].includes(
-                  s.view,
-                ) &&
+                ["project", "detail", "complete"].includes(s.view) &&
                 s.recordsStore.error &&
                 !(["detail", "complete"].includes(s.view) && s.current)
               }
@@ -189,10 +183,7 @@ export default function CollectionPage({ scope, args = [] }) {
               scope={s}
               className="collection-empty"
               show={
-                !s.isProjectSearch &&
-                !["services", "notifications", "announcement"].includes(
-                  s.view,
-                ) &&
+                ["project", "detail", "complete"].includes(s.view) &&
                 !s.recordsStore.ready &&
                 !s.recordsStore.error
               }
@@ -201,7 +192,6 @@ export default function CollectionPage({ scope, args = [] }) {
             </View>
           </View>
           <CollectionNotice scope={s} />
-          <CollectionNavigation scope={s} />
           <View
             as="footer"
             scope={s}
@@ -242,6 +232,7 @@ export default function CollectionPage({ scope, args = [] }) {
               as="div"
               scope={s}
               className="collection-overlay"
+              data-shoot-guide={s.panel === "shootingGuide" || undefined}
               show={s.page === "collection" && s.panel}
               events={[
                 {
@@ -266,11 +257,12 @@ export default function CollectionPage({ scope, args = [] }) {
                 },
               ]}
             >
+              {["captureMethod","shootingGuide"].includes(s.panel) && <CollectionShootingGuide scope={s}/>}
               <CollectionPaymentDrawer scope={s} />
               <CollectionIdentityDrawer scope={s} />
               <CollectionTaskDrawer scope={s} />
               <CollectionSupportDrawer scope={s} />
-              {!s.isAuthPanel && !s.isTaskPanel && s.panel !== "payment" && (
+              {!s.isAuthPanel && !s.isTaskPanel && !["payment","captureMethod","shootingGuide"].includes(s.panel) && (
                 <View
                   as="section"
                   scope={s}

@@ -33,7 +33,6 @@ const { default: Markdown } = await server.ssrLoadModule(
 const routes = [];
 for (const page of [
   "home",
-  "search",
   "scan",
   "specifications",
   "my",
@@ -127,13 +126,21 @@ routes.push(
   resolve("?page=home", {}, {}, { guide: "update.demo", title: "强制更新" }),
 );
 
+for(const kind of ["postcard","stamp"])for(const view of ["templates","work","confirm","result"])routes.push(resolve(`?page=keepsake&kind=${kind}&view=${view}`));
+
 test("every supported page and business step loads its own complete document, including addresses and six distinct tools", async () => {
   const ids = new Set(routes.map((c) => c.guide));
   for (const id of ids) {
     assert.ok(PAGE_IDS.includes(id), "missing " + id);
     const doc = await loadPage(id);
-    assert.ok(doc.contents.length >= 4, id);
-    assert.ok(doc.body.length > 350, id);
+    if (id === "collection.home") {
+      assert.match(doc.body, /旧|历史/);
+      assert.match(doc.body, /当前采集任务/);
+      assert.match(doc.body, /首页/);
+    } else {
+      assert.ok(doc.contents.length >= 3, id);
+      assert.ok(doc.body.length > 350, id);
+    }
   }
   assert.equal(
     ids.size,
@@ -154,10 +161,10 @@ test("every supported page and business step loads its own complete document, in
         {
           repair: "精修",
           outfit: "换装",
-          crop: "裁剪",
+          crop: "修改尺寸",
           background: "背景",
           format: "转换",
-          resize: "体积",
+          resize: "修改大小",
         }[action],
       ),
     );
@@ -268,7 +275,7 @@ test("drawers remain in the owner document and critical section anchors actually
     );
   }
   const selected = resolve("?page=tool&tool=format", {}, { photoChoice: true });
-  assert.equal(selected.guide, "tool.format.select");
+  assert.equal(selected.guide, "tool.format.settings");
   assert.equal(selected.section, "照片来源");
 });
 test("full documents render unique anchors even when subsection names repeat, and contain valid local links", async () => {

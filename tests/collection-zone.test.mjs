@@ -96,38 +96,21 @@ function setup() {
   instance.start();
   return { s: instance.scope, instance, account, root };
 }
-test("peer tabs replace the route, preserve independent scroll/filter state and exit to the shared home", async () => {
-  const { s, instance, root } = setup();
-  await settle();
-  s.projectCategory = "enrollment";
-  s.category = "graduate";
-  s.$refs.collectionProjectList.scrollTop = 170;
-  s.switchSection("records");
-  assert.equal(s.view, "records");
-  await settle();
-  assert.equal(s.$refs.collectionRecordList.scrollTop, 0);
-  s.scrollHost.scrollTop = 83;
-  assert.equal(s.$refs.collectionRecordList.scrollTop, 83);
-  s.recordFilter = "complete";
-  s.switchSection("services");
-  await settle();
-  assert.equal(s.view, "services");
-  assert.equal(s.$refs.collectionScroll.scrollTop, 0);
-  s.switchSection("home");
-  await settle();
-  assert.equal(s.$refs.collectionProjectList.scrollTop, 170);
-  assert.equal(s.projectCategory, "enrollment");
-  s.switchSection("records");
-  await settle();
-  assert.equal(s.$refs.collectionRecordList.scrollTop, 83);
-  assert.equal(s.category, "graduate");
-  assert.equal(s.recordFilter, "complete");
-  assert.equal(pushes, 0);
-  assert.equal(replaces, 4);
-  s.exitCollection();
-  assert.equal(root.scope.page, "home");
-  assert.equal(s.account.session.phone, "13800008000");
-  instance.stop();
+test("retired sections resolve to home while standalone service preserves account data", async () => {
+  const {s,instance,root}=setup();
+  try {
+    const records=s.records.map(item=>item.id);
+    assert.equal(current.searchParams.get("page"),"home");
+    s.switchSection("services");
+    await settle();
+    assert.equal(s.view,"services");
+    s.exitCollection();
+    assert.equal(root.scope.page,"home");
+    assert.equal(s.account.session.phone,"13800008000");
+    assert.deepEqual(s.records.map(item=>item.id),records);
+    s.switchSection("records");
+    assert.equal(current.searchParams.get("page"),"home");
+  } finally {instance.stop();}
 });
 test("featured configuration stays separate from full category lists and scoped searches", () => {
   const { s, instance } = setup();
@@ -161,11 +144,9 @@ test("featured configuration stays separate from full category lists and scoped 
   assert.equal(s.category, "association");
   s.config.featuredProjectIds = ["association"];
   s.back();
-  assert.equal(s.view, "home");
-  assert.deepEqual(
-    s.projectsShown.map((p) => p.id),
-    ["association"],
-  );
+  assert.equal(s.isProjectSearch,false);
+  s.back();
+  assert.equal(current.searchParams.get("page"), "home");
   instance.stop();
 });
 test("continuation, badges and notifications use actual records belonging to the signed-in account", () => {
@@ -213,7 +194,8 @@ test("login returns to the requesting section; task pages retain back and cannot
   s.exitCollection();
   assert.equal(s.page, "collection");
   s.back();
-  assert.equal(s.view, "home");
+  assert.equal(s.view, "projects");
+  assert.equal(s.projectCategory, "graduate");
   s.panel = "identity";
   const old = replaces;
   s.switchSection("records");
@@ -355,13 +337,13 @@ test("disabled entries remain gray feedback targets and direct routes cannot byp
   const { s, instance } = setup();
   s.config.entries.enrollment = false;
   s.openCategory("enrollment");
-  assert.equal(s.view, "home");
+  assert.equal(current.searchParams.get("page"), "home");
   assert.equal(s.notice, "暂未开放这个功能");
   current = new URL(
     "http://127.0.0.1:4180/?page=collection&view=projects&category=enrollment",
   );
   s.sync();
-  assert.equal(s.view, "home");
+  assert.equal(current.searchParams.get("page"), "home");
   s.openProject("enrollment");
   assert.equal(s.canCollect, false);
   s.begin();
@@ -371,7 +353,7 @@ test("disabled entries remain gray feedback targets and direct routes cannot byp
     "http://127.0.0.1:4180/?page=collection&view=notifications",
   );
   s.sync();
-  assert.equal(s.view, "home");
+  assert.equal(current.searchParams.get("page"), "home");
   instance.stop();
 });
 test("back from a project preserves its category, query and actual list scroll position", async () => {
@@ -685,9 +667,9 @@ test("record task actions stay specific to all five states and retain their own 
     action = "download";
   };
   const cases = [
-    ["pending", "开始拍摄", "capture"],
+    ["pending", "开始采集", "capture"],
     ["draft", "提交审核", "submit"],
-    ["reviewing", "返回采集记录", "records"],
+    ["reviewing", "返回项目", "records"],
     ["rejected", "重新拍摄", "capture"],
     ["complete", "保存照片", "download"],
   ];
@@ -704,7 +686,8 @@ test("record task actions stay specific to all five states and retain their own 
     s.primary();
     if (expected === "records") {
       await settle();
-      assert.equal(s.view, "records");
+      assert.equal(s.view, "project");
+      assert.equal(s.project.id, "enrollment");
     } else assert.equal(action, expected);
   }
   records.items[0].status = "draft";
@@ -940,11 +923,11 @@ test("backend actions distinguish production retry, review, completion and CHSI 
     action = "download";
   };
   const cases = [
-    [22, "返回采集记录", "records"],
+    [22, "返回项目", "records"],
     [23, "重新制作", "capture"],
     [24, "提交审核", "submit"],
-    [25, "返回采集记录", "records"],
-    [26, "返回采集记录", "records"],
+    [25, "返回项目", "records"],
+    [26, "返回项目", "records"],
     [30, "保存照片", "download"],
     [40, "重新拍摄", "capture"],
     ["uploaded", "保存照片", "download"],
@@ -968,7 +951,8 @@ test("backend actions distinguish production retry, review, completion and CHSI 
     s.primary();
     if (expected === "records") {
       await settle();
-      assert.equal(s.view, "records");
+      assert.equal(s.view, "project");
+      assert.equal(s.project.id, "enrollment");
     } else if (expected === "support") {
       assert.equal(action, null);
       assert.equal(s.panel, "taskSupport");
@@ -1128,10 +1112,13 @@ test("collection payment gates capture, survives cancellation and route recovery
     s.closePanel();s.route("detail","enrollment","pay-task");await settle();
     assert.equal(s.current.payment.id,"pay-order");assert.equal(s.collectionPrice,"7.00");
     await s.capture();outcome="paid";await s.payCollection();
-    assert.equal(calls.at(-1).query,true);assert.equal(captures,1);assert.equal(s.current.payment.status,"paid");
+    assert.equal(calls.at(-1).query,true);assert.equal(captures,0);assert.equal(s.current.payment.status,"paid");
+    await s.capture();assert.equal(s.panel,"captureMethod");
+    s.chooseShootingMode("rear");assert.equal(s.panel,"shootingGuide");assert.equal(captures,0);
+    s.acceptShootingGuide();assert.equal(captures,1);
     assert.ok(calls.every(c=>c.id==="pay-order"&&c.amount===700));
     root.scope.page="collection";const count=calls.length;
-    records.items[0].status="rejected";await s.capture();await s.payCollection();
+    records.items[0].status="rejected";s.route("detail","enrollment","pay-task");await s.capture();s.chooseShootingMode("rear");assert.equal(s.panel,"shootingGuide");s.acceptShootingGuide();await s.payCollection();
     assert.equal(captures,2);assert.equal(calls.length,count);
   } finally { records.commit=commit;collectionAdapter.payment=pay;window.removeEventListener("zhipai-camera-intent",onCapture);instance.stop(); }
 });
@@ -1165,7 +1152,7 @@ test("only unpaid pending capture tasks use the payment CTA; production and revi
   s.recordId="cta";s.view="detail";
   assert.equal(s.primaryLabel,"支付并开始采集");
   records.items[0].payment.status="paid";
-  assert.equal(s.primaryLabel,"开始拍摄");
+  assert.equal(s.primaryLabel,"开始采集");
   for(const status of [22,23,24,25,26,30,40,"uploaded","upload_failed"]) {
     records.items[0].status=status;
     assert.equal(s.needsPayment,false);

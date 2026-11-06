@@ -55,3 +55,8 @@
 .camera-result-choice-note{font-size:14px;color:var(--ui-muted,#637896);line-height:1.7;margin:0}
 .camera-result-dialog .camera-result-choice-actions{display:grid;grid-template-columns:1fr 1fr;border:0;padding:0 20px 20px;gap:12px}
 .camera-result-choice-actions button{min-height:var(--ui-button-height,46px);border-radius:var(--ui-button-radius,12px);font-size:14px}
+
+.collection-framing-hint { position:absolute; bottom:calc(var(--device-home-height, 16px) + 116px); inset-inline:16px; text-align:center; border-radius:var(--ui-card-radius); padding:10px 12px; background:#14213bbf; color:white; font-size:14px; }
+.collection-framing-hint button { min-height:44px; padding-inline:8px; text-decoration:underline; }
+.camera-page[data-guided-lens="rear"] .capture-toolbar { display:flex; justify-content:center; }
+.camera-page[data-guided-lens="front"] .capture-toolbar { display:none; }

@@ -2,7 +2,7 @@
 
 更新：2026-10-20。已按用户确认实现，实际画面待验收。视觉方案及源码审查使用 Impeccable；本说明以本次双版本结果取代个人制作原有单成片与统一¥9.80规则，保留历史已付款／待查款快照。
 
-[交互式结构说明](camera-confirmation-1.4.6.html) · [双版本实施记录](../reviews/camera-dual-results-20261020/review.md) · [独立收尾评审](../reviews/camera-dual-results-20261020/finish-review.md) · [证照规格入口与交接](photo-specifications-1.4.6.md) · [配置式检测提示](../reviews/camera-configured-check-copy-20261020/review.md) · [制作失败分类](../reviews/camera-making-failure-types-20261020/review.md) · [失败抽屉视觉修订](../reviews/camera-failure-sheet-visual-20261020/review.md) · [流程内演示选择检查](../reviews/camera-scenario-modal-20261020/review.md) · [检测与返回检查](../reviews/camera-detection-return-20261020/review.md) · [此前视觉检查](../reviews/camera-confirmation-polish-20261020/review.md)
+[交互式结构说明](camera-confirmation-1.4.6.html) · [双版本实施记录](../reviews/camera-dual-results-20261020/review.md) · [独立收尾评审](../reviews/camera-dual-results-20261020/finish-review.md) · [照片规格入口与交接](photo-specifications-1.4.6.md) · [配置式检测提示](../reviews/camera-configured-check-copy-20261020/review.md) · [制作失败分类](../reviews/camera-making-failure-types-20261020/review.md) · [失败抽屉视觉修订](../reviews/camera-failure-sheet-visual-20261020/review.md) · [流程内演示选择检查](../reviews/camera-scenario-modal-20261020/review.md) · [检测与返回检查](../reviews/camera-detection-return-20261020/review.md) · [此前视觉检查](../reviews/camera-confirmation-polish-20261020/review.md)
 
 ## 目标与主流程
 
@@ -10,7 +10,7 @@
 
 拍摄／相册选图 → **证件照制作**（原照片、照片规格、底色）→ **选择演示场景**（原型）→ **检测抽屉** → 通过自动进入约5秒同页Loading → 选择原型制作结果 → 两版或一版成功进入同页双版本结果 → 选择普通证件照¥1.98或精修证件照¥9.80 → 单次解锁 → 自动保存到知拍相册 → 保存完成。整次照片失败或服务不可用进入对应原因抽屉。
 
-从首页／搜索「证照规格」进入时，先选规格及底色，再点击「去拍照或选图」进入上述流程；所选参数直接带入，制作页仍可修改，不增加第二次规格或底色确认。制作前的布局、快捷三项、检测与规格来源保持；结果页按下方双版本规则执行。
+从首页／搜索「照片规格」进入时，先选规格及底色，再点击「去拍照或选图」进入上述流程；所选参数直接带入，制作页仍可修改，不增加第二次规格或底色确认。制作前的布局、快捷三项、检测与规格来源保持；结果页按下方双版本规则执行。
 
 当前是移动Web原型。检测、制作与付款均为模拟，未接入真实AI识别、制作或后台配置服务。两版使用同一原图、规格、底色与构图生成实际Canvas文件；普通版不额外处理，精修版目前仅轻量调整亮度、对比度与饱和度，不代表已验证真实精修模型或照片质量。相册、工具「制作一张」共用本流程；专项采集使用项目固定规格，成功后回传既有任务。
 
@@ -83,7 +83,7 @@
 
 ## 照片规格与底色
 
-标题「照片规格」，常用入口一行显示「一寸／二寸／小二寸／更多规格」，约32px视觉高度、44px触控区；标题右侧回显当前名称与毫米／用途说明。更多规格通过「选择规格」上滑抽屉选择，正文标题「预设规格」，底栏「使用此规格」；头尾固定，仅预设正文滚动，未确认关闭不改设置。快捷三项不变，更多目录与[证照规格入口](photo-specifications-1.4.6.md#初始规格目录)共用以下九项，顺序一致。
+标题「照片规格」，常用入口一行显示「一寸／二寸／小二寸／更多规格」，约32px视觉高度、44px触控区；标题右侧回显当前名称与毫米／用途说明。更多规格通过「选择规格」上滑抽屉选择，正文标题「预设规格」，底栏「使用此规格」；头尾固定，仅预设正文滚动，未确认关闭不改设置。快捷三项不变，更多目录与[照片规格入口](photo-specifications-1.4.6.md#初始规格目录)共用以下九项，顺序一致。
 
 | 名称   | 毫米／用途说明   | 输出像素     |
 | ------ | ---------- | ------------ |

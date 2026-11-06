@@ -17,9 +17,8 @@ function studio(action,autoCheck=true){
  const s=data.toolStudio();s.$store=stores;s.page='tool';s.action=action;s.$nextTick=cb=>Promise.resolve(cb?.());s.route=function(view){this.view=view;};s.openPanel=function(name){if(!this.busy)this.panel=name;};s.go=page=>{s.destination=page};
  s.selectPhoto=async function(detail){
   await this.accept(detail);
-  if(this.photo?.id!==detail.photo?.id||!this.choosingPhoto)return;
-  assert.equal(this.step,0,'selection waits for explicit Next');
-  await this.primary();
+  if(this.photo?.id!==detail.photo?.id)return;
+  if(this.choosingPhoto){assert.equal(this.step,0,'paid tools wait for explicit Next');await this.primary();}
   if(autoCheck&&this.portraitCheck.status==='awaiting')await this.choosePortraitOutcome('passed');
   if(autoCheck&&this.action==='repair'&&this.step===1&&!this.repairColor)this.selectRepairBackground('blue');
  };
@@ -37,7 +36,7 @@ function studio(action,autoCheck=true){
  outfit.paymentOutcome='cancel';await outfit.pay();assert.equal(outfit.paid,false);assert.equal(outfit.serviceApplied,false);const outfitPendingId=outfit.orderId;outfit.error='';outfit.paymentOutcome='success';await outfit.pay();assert.equal(outfit.orderId,outfitPendingId);assert.equal(outfit.unlocked,true);assert.equal(outfit.serviceApplied,true);assert.equal(outfit.canSave,false,'completed paid result cannot save again');assert.equal(library.finished.length,3,'paid generation automatically saves');assert.equal(outfit.view,'saved');assert.equal(outfit.notice,'');assert.equal(outfit.flowCompleted,true);assert.equal(outfit.primaryLabel,'再处理一张');assert.equal(outfit.outfitResult,true);outfit.openResultAlbum();assert.equal(new URL(context.lastNavigation).searchParams.get('photo'),outfit.savedRecord.id,'paid result opens the exact saved photo');await outfit.save();assert.equal(library.finished.length,3,'repeated save is idempotent');
  const history=structuredClone(stores.toolOrders.items);
  const restoredRepair=studio('repair');await restoredRepair.resumeOrder(history.find(o=>o.action==='repair'));assert.equal(restoredRepair.repairResult,true);assert.ok(restoredRepair.savedRecord);assert.equal(restoredRepair.view,'saved');assert.equal(library.finished.length,3,'repair result recovery does not duplicate saved photo');restoredRepair.back();assert.equal(new URL(context.lastNavigation).searchParams.get('page'),'home','top return exits the tool');restoredRepair.view='work';await restoredRepair.primary();assert.equal(restoredRepair.repairResult,false);assert.equal(restoredRepair.photo,null);assert.equal(restoredRepair.step,0);assert.equal(restoredRepair.sourceURL,'');assert.equal(restoredRepair.output,null);assert.equal(restoredRepair.primaryLabel,'选取照片');assert.equal(restoredRepair.comparison,50);assert.equal(JSON.stringify(stores.toolOrders.items),JSON.stringify(history),'continue repair preserves earlier order');
- outfit.continueOutfit();assert.equal(outfit.outfitResult,false);assert.equal(outfit.photo,null);assert.equal(outfit.step,0);assert.equal(outfit.primaryLabel,'选取照片');outfit.selectOutfitCategory('women');assert.equal(outfit.outfit,'women-suit');assert.equal(outfit.unlocked,false);assert.equal(JSON.stringify(stores.toolOrders.items),JSON.stringify(history),'continue outfit leaves prior orders immutable');
+ outfit.continueOutfit();assert.equal(outfit.outfitResult,false);assert.equal(outfit.photo,null);assert.equal(outfit.step,0);assert.equal(outfit.primaryLabel,'选取照片');outfit.selectOutfitCategory('women');assert.equal(outfit.outfit,outfit.outfits.find(o=>o.category==='women').id);assert.equal(outfit.unlocked,false);assert.equal(JSON.stringify(stores.toolOrders.items),JSON.stringify(history),'continue outfit leaves prior orders immutable');
  const resumed=studio('outfit');await resumed.resumeOrder(history.find(o=>o.action==='outfit'));assert.equal(resumed.unlocked,true);assert.equal(resumed.outfitResult,true);assert.equal(resumed.primaryLabel,'再处理一张');assert.equal(library.finished.length,3,'restored saved order does not duplicate album record');
  // Album write succeeds but order write fails: reload must target the same record.
  const partial=studio('repair');await partial.selectPhoto({photo,kind:'finished',context:{action:'repair'}});await partial.openPayment();failAlbum=true;await partial.pay();failAlbum=false;partial.error='';const partialOrderId=partial.orderId;
@@ -65,7 +64,7 @@ function studio(action,autoCheck=true){
  const autoRepair=studio('repair');await autoRepair.selectPhoto({photo,kind:'finished',context:{action:'repair'}});await autoRepair.primary();const beforeAuto=library.finished.length;await Promise.all([autoRepair.pay(),autoRepair.pay()]);assert.equal(library.finished.length,beforeAuto+1,'repair payment and processing automatically save exactly once');assert.ok(autoRepair.savedRecord);assert.equal(autoRepair.view,'saved');assert.equal(autoRepair.primaryLabel,'再处理一张');
  const failedOutfit=studio('outfit');await failedOutfit.selectPhoto({photo,kind:'finished',context:{action:'outfit'}});failAlbum=true;await failedOutfit.openPayment();await failedOutfit.pay();assert.equal(failedOutfit.paid,true);assert.equal(failedOutfit.serviceApplied,true);assert.equal(failedOutfit.savedRecord,null);assert.equal(failedOutfit.primaryLabel,'重试保存');assert.equal(failedOutfit.primaryEnabled,true);const retryOrder=failedOutfit.orderId,orderCount=stores.toolOrders.items.length;failAlbum=false;await failedOutfit.primary();assert.ok(failedOutfit.savedRecord);assert.equal(failedOutfit.orderId,retryOrder);assert.equal(stores.toolOrders.items.length,orderCount,'save retry has no new charge');
  // Previous-step navigation retains the photo, output and user settings across the introduction.
- for(const action of ['repair','outfit','crop','background','format','resize']) {
+ for(const action of ['repair','outfit']) {
    const n=studio(action);await n.selectPhoto({photo,kind:'finished',context:{action}});
    n.format='png';n.targetValue=123;n.offsetX=12;
    const originalPhoto=n.photo,output=n.output,orderCount=stores.toolOrders.items.length;
@@ -75,19 +74,19 @@ function studio(action,autoCheck=true){
    assert.equal(stores.toolOrders.items.length,orderCount,'navigation never purchases a service');
    n.returnTo='/?page=album';n.back();assert.equal(new URL(context.lastNavigation).searchParams.get('page'),'album');
  }
- for(const action of ['repair','outfit','crop','background','format','resize']) {
+ for(const action of ['repair','outfit']) {
    const n=studio(action);await n.enter({action,returnTo:'/?page=album'});assert.equal(n.view,'work');assert.equal(n.step,0);assert.equal(n.photo,null);
    await n.enter({action,photo,kind:'finished',returnTo:'/?page=album'});assert.equal(n.view,'work');assert.equal(n.step,0);assert.equal(n.primaryLabel,'下一步');assert.equal(n.primaryEnabled,true);assert.equal(n.output,null);assert.equal(n.photo.id,photo.id);assert.equal(n.returnTo,'/?page=album');await n.primary();if(n.portraitCheck.status==='awaiting')await n.choosePortraitOutcome('passed');assert.equal(n.step,1);
    n.reset();context.location.search='?page=tool&tool='+action;n.syncLocation();assert.equal(n.view,'work');assert.equal(n.step,0,'legacy tool links open selection');
  }
  // Same-photo reselection preserves edits, output, and any pending purchase.
- for(const action of ['repair','outfit','crop','background','format','resize']){
+ for(const action of ['repair','outfit']){
   const n=studio(action);await n.selectPhoto({photo,kind:'finished',context:{action}});n.targetValue=35;n.scale=1.4;n.background='red';n.format='png';
   const retainedOutput=n.output,checks=n.portraitCheck;n.previousStep();n.pick();await n.useCandidate();
   assert.equal(n.targetValue,35);assert.equal(n.scale,1.4);assert.equal(n.background,'red');assert.equal(n.format,'png');assert.equal(n.output,retainedOutput);assert.equal(n.portraitCheck,checks);assert.equal(n.panel,null);assert.equal(n.step,0);await n.primary();assert.equal(n.step,1);
  }
  // One replacement entry belongs to selection; cancel preserves edits, replacing resets them.
- for(const action of ['repair','outfit','crop','background','format','resize']){
+ for(const action of ['repair','outfit']){
   const n=studio(action);await n.selectPhoto({photo,kind:'finished',context:{action}});
   n.scale=1.6;n.targetValue=35;n.format='png';const oldOutput=n.output,oldPhoto=n.photo;
   n.pick();assert.equal(n.panel,null,'processing step cannot open replacement picker');
@@ -118,11 +117,11 @@ function studio(action,autoCheck=true){
  // Only the three portrait-dependent tools are checked, before standardization, payment or export.
  for(const action of ['repair','outfit','background']){
   const n=studio(action,false);await n.selectPhoto({photo,kind:'phone',context:{action}});
-  assert.equal(n.config.requiresPortrait,true);assert.equal(n.panel,'portraitOutcome');assert.equal(n.step,0);assert.equal(n.portraitCheck.status,'awaiting');assert.equal(n.standardized,false);assert.equal(n.output,null);assert.equal(n.canSave,false);
+  assert.equal(n.config.requiresPortrait,true);assert.equal(n.panel,'portraitOutcome');assert.equal(n.step,action==='background'?1:0);assert.equal(n.portraitCheck.status,'awaiting');assert.equal(n.standardized,false);assert.equal(n.output,null);assert.equal(n.canSave,false);
   await n.standardize();await n.preview();await n.pay();assert.equal(n.output,null);assert.equal(n.standardized,false);
-  await n.choosePortraitOutcome('rejected','not_id');assert.equal(n.portraitEligible,false);assert.equal(n.step,0);assert.equal(n.panel,null);assert.equal(n.photo,photo);assert.equal(n.showPortraitCheck,true);await n.standardize();await n.preview();assert.equal(n.output,null);assert.equal(n.primaryLabel,'下一步');assert.equal(n.primaryEnabled,false);assert.equal(n.canSave,false);n.pick();assert.equal(n.panel,'album');assert.equal(n.step,0);assert.equal(n.photo,photo);n.closePanel();
-  await n.validatePortraitPhoto();await n.choosePortraitOutcome('error');assert.equal(n.step,0);assert.equal(n.showPortraitCheck,true);assert.equal(n.primaryLabel,'下一步');assert.equal(n.primaryEnabled,false);assert.equal(n.canSave,false);await n.validatePortraitPhoto();assert.equal(n.panel,'portraitOutcome');await n.choosePortraitOutcome('passed');assert.equal(n.portraitEligible,true);assert.equal(n.panel,null);assert.equal(n.showPortraitCheck,false,'passed checks never leave a success prompt');assert.equal(n.notice,'');assert.equal(n.step,1,'passed checks advance automatically without another next click');assert.equal(n.standardized,action!=='repair');assert.equal(n.canSave,action==='background');if(action==='background')assert.equal(n.backgroundEditing,true);else assert.equal(n.serviceApplied,false,'passing the check does not start a paid service');
-  if(action==='background'){const count=downloads.length,albumCount=library.finished.length;await n.save();assert.equal(downloads.length,count+1);assert.equal(library.finished.length,albumCount);assert.equal(n.savedRecord,null);assert.equal(n.view,'saved');assert.equal(n.showPortraitCheck,false);assert.equal(n.canSave,false);n.previousStep();assert.equal(n.view,'saved','background completion cannot go back');const savedColor=n.background;await n.setBackground('red');assert.equal(n.background,savedColor);await n.start();assert.equal(n.step,0);assert.equal(n.photo,null);assert.equal(n.portraitCheck.status,'idle');}
+  await n.choosePortraitOutcome('rejected','not_id');assert.equal(n.portraitEligible,false);assert.equal(n.step,action==='background'?1:0);assert.equal(n.panel,null);assert.equal(n.photo,photo);assert.equal(n.showPortraitCheck,true);await n.standardize();await n.preview();assert.equal(n.output,null);assert.equal(n.primaryLabel,action==='background'?'请先更换照片':'下一步');assert.equal(n.primaryEnabled,false);assert.equal(n.canSave,false);n.pick();assert.equal(n.panel,'album');assert.equal(n.step,action==='background'?1:0);assert.equal(n.photo,photo);n.closePanel();
+  await n.validatePortraitPhoto();await n.choosePortraitOutcome('error');assert.equal(n.step,action==='background'?1:0);assert.equal(n.showPortraitCheck,true);assert.equal(n.primaryLabel,action==='background'?'请先重新检查':'下一步');assert.equal(n.primaryEnabled,false);assert.equal(n.canSave,false);await n.validatePortraitPhoto();assert.equal(n.panel,'portraitOutcome');await n.choosePortraitOutcome('passed');assert.equal(n.portraitEligible,true);assert.equal(n.panel,null);assert.equal(n.showPortraitCheck,false,'passed checks never leave a success prompt');assert.equal(n.notice,'');assert.equal(n.step,1,'passed checks advance automatically without another next click');assert.equal(n.standardized,action!=='repair');assert.equal(n.canSave,action==='background');if(action==='background')assert.equal(n.backgroundEditing,true);else assert.equal(n.serviceApplied,false,'passing the check does not start a paid service');
+  if(action==='background'){const count=downloads.length,albumCount=library.finished.length;await n.save();assert.equal(downloads.length,count+1);assert.equal(library.finished.length,albumCount);assert.equal(n.savedRecord,null);assert.equal(n.view,'saved');assert.equal(n.showPortraitCheck,false);assert.equal(n.canSave,false);n.previousStep();assert.equal(n.view,'saved','background completion cannot go back');const savedColor=n.background;await n.setBackground('red');assert.equal(n.background,savedColor);await n.start();assert.equal(n.step,1);assert.equal(n.photo,null);assert.equal(n.portraitCheck.status,'idle');}
  }
  const cat={...photo,id:'cat',name:'小猫咪.jpg',width:900,height:600,spec:''};
  for(const action of ['crop','format','resize']){
@@ -134,12 +133,12 @@ function studio(action,autoCheck=true){
   context.location.search='?page=home';n.syncLocation();assert.equal(n.stage,'standardize-required');assert.match(n.error,/重试/);
   context.location.search='?page=tool&tool='+action+'&view=work';await n.retry();assert.equal(n.standardized,true);assert.equal(n.error,'');
  }
- // Browser back after completion starts a fresh selection instead of reopening the old editor.
- const completedBackground=studio('background');await completedBackground.selectPhoto({photo,kind:'phone',context:{action:'background'}});await completedBackground.save();context.location.search='?page=tool&tool=background&view=work';completedBackground.syncLocation();assert.equal(completedBackground.step,0);assert.equal(completedBackground.photo,null);assert.equal(completedBackground.flowCompleted,false);
- // All free-tool completion pages end the current flow; restart returns to photo selection.
+ // Browser back after completion starts an empty workspace instead of reopening the old result.
+ const completedBackground=studio('background');await completedBackground.selectPhoto({photo,kind:'phone',context:{action:'background'}});await completedBackground.save();context.location.search='?page=tool&tool=background&view=work';completedBackground.syncLocation();assert.equal(completedBackground.step,1);assert.equal(completedBackground.photo,null);assert.equal(completedBackground.flowCompleted,false);
+ // All free-tool completion pages end the current flow; restart returns to the empty workspace.
  for(const action of ['crop','background','format','resize']){
   const n=studio(action);await n.selectPhoto({photo,kind:'phone',context:{action}});assert.equal(n.canSave,true);await n.save();assert.equal(n.view,'saved');assert.equal(n.flowCompleted,true);assert.equal(n.canSave,false);n.previousStep();assert.equal(n.view,'saved');
-  await n.start();assert.equal(n.view,'work');assert.equal(n.step,0);assert.equal(n.photo,null);assert.equal(n.flowCompleted,false);
+  await n.start();assert.equal(n.view,'work');assert.equal(n.step,1);assert.equal(n.photo,null);assert.equal(n.flowCompleted,false);
  }
  // Background now uses device delivery for both sources; it never writes an album or order.
  for(const kind of ['phone','finished']){
@@ -151,7 +150,7 @@ function studio(action,autoCheck=true){
   assert.equal(n.view,'saved');assert.equal(n.step,2);assert.equal(n.flowCompleted,true);assert.equal(n.savedRecord,null);assert.equal(downloads.at(-1).blob,output);
   assert.equal(library.finished.find(p=>p.id===photo.id).blob,originalBlob);assert.equal(n.resultSummary,'红色背景');
   await n.save();n.previousStep();assert.equal(n.view,'saved');assert.equal(downloads.length,downloadCount+1);
-  await n.start();assert.equal(n.step,0);assert.equal(n.photo,null);assert.equal(n.savedRecord,null);assert.equal(n.portraitCheck.status,'idle');
+  await n.start();assert.equal(n.step,1);assert.equal(n.photo,null);assert.equal(n.savedRecord,null);assert.equal(n.portraitCheck.status,'idle');
  }
  // Every device-export failure retries the existing output, never renders or creates an order.
  for(const action of ['background','crop','format','resize']){

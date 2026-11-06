@@ -118,9 +118,12 @@ test("navigation backing stays transparent before overlap and ramps only on actu
           offsetWidth: 370,
           getBoundingClientRect: () => ({ top: 700, width: 370 * scale }),
         };
-        instance.refs.homeTools = {
-          getBoundingClientRect: () => ({ bottom: 700 - gap * scale }),
-        };
+        instance.refs.homePage = { getBoundingClientRect: () => ({ bottom: 700 + 85 * scale }) };
+        instance.refs.homeContent = { children: [
+          { getBoundingClientRect: () => ({ top: 200, bottom: 400 }) },
+          { getBoundingClientRect: () => ({ top: 500, bottom: 700 - gap * scale }) },
+          { getBoundingClientRect: () => ({ top: 850, bottom: 1050 }) },
+        ] };
         s.scheduleHomeNavScrim();
         await Promise.resolve();
         close(s.homeNavScrim, expected);
@@ -144,9 +147,12 @@ test("navigation backing clears on reverse scroll, route exit and missing geomet
       offsetWidth: 370,
       getBoundingClientRect: () => ({ top: 700, width: 370 }),
     };
-    instance.refs.homeTools = {
-      getBoundingClientRect: () => ({ bottom }),
-    };
+    instance.refs.homePage = { getBoundingClientRect: () => ({ bottom: 785 }) };
+    instance.refs.homeContent = { children: [
+      { getBoundingClientRect: () => ({ top: 430, bottom: 480 }) },
+      { getBoundingClientRect: () => ({ top: 500, bottom: 550 }) },
+      { getBoundingClientRect: () => ({ top: 620, bottom }) },
+    ] };
     s.scheduleHomeNavScrim();
     s.scheduleHomeNavScrim();
     assert.equal(frames.length, 1);
@@ -168,7 +174,7 @@ test("navigation backing clears on reverse scroll, route exit and missing geomet
     s.scheduleHomeNavScrim();
     frames.shift()();
     close(s.homeNavScrim, 1);
-    delete instance.refs.homeTools;
+    delete instance.refs.homeContent;
     s.scheduleHomeNavScrim();
     frames.shift()();
     close(s.homeNavScrim, 0);

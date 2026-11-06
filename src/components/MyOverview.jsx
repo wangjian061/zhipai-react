@@ -1,3 +1,5 @@
+import { recentPhotos } from "../domain/photo-actions.js";
+import MyPhotoLine from "./MyPhotoLine.jsx";
 import React from "react";
 
 function Icon({ name, ...props }) {
@@ -86,34 +88,32 @@ export default function MyOverview({ scope: s }) {
         />
       </section>
       <div className="my-personal-content">
-        <div className="my-quick-links" aria-label="我的照片与订单">
-          <button className="my-quick-card" onClick={() => s.go("album")}>
-            <span className="my-quick-heading">
-              <Icon name="album" />
-              <strong>我的相册</strong>
-              <Icon name="chevron" />
-            </span>
-            <span className="my-quick-count">
-              <b>{s.$store.photoLibrary.finished.length}</b>
-              <span>张照片</span>
-            </span>
-          </button>
-          <button className="my-quick-card" onClick={() => s.openOrders()}>
-            <span className="my-quick-heading">
-              <Icon name="document" />
-              <strong>我的订单</strong>
-              <Icon name="chevron" />
-            </span>
-            <span className="my-quick-count">
-              <b>
-                {account.loggedIn && s.$store.orderCenter.ready
-                  ? s.$store.orderCenter.count
-                  : "—"}
-              </b>
-              <span>{account.loggedIn ? "笔订单" : "登录后查看"}</span>
-            </span>
-          </button>
-        </div>
+        <>
+          <section className="my-recent-photos" aria-label="我的照片">
+            <header>
+              <h2>我的照片</h2>
+              <button type="button" onClick={() => s.go("album")}>
+                进入相册
+                <Icon name="chevron" />
+              </button>
+            </header>
+            <MyPhotoLine
+              photos={recentPhotos(s.$store.photoLibrary)}
+              ready={s.$store.photoLibrary.ready}
+              paused={s.page !== "my" || s.$store.photoActions?.opened}
+              onOpen={(photo) => s.$store.photoActions.show(photo)}
+            />
+          </section>
+          <div className="my-menu-card my-order-entry">
+            <button className="my-menu-row" onClick={() => s.openOrders()}>
+              <span className="my-menu-icon">
+                <Icon name="document" />
+              </span>
+              <span className="my-menu-label">我的订单</span>
+              <Icon name="chevron" className="my-menu-chevron" />
+            </button>
+          </div>
+        </>
         {groups.map((group) => (
           <section className="my-menu-group" key={group.title}>
             <h2>{group.title}</h2>

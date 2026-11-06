@@ -1,0 +1,25 @@
+{
+  "date": "2026-11-04",
+  "method": "builtin image_gen",
+  "usage": "首页专项三分类，无字3D人物，非真实用户或机构",
+  "assets": [
+    {
+      "id": "graduate",
+      "prompt": "Use case: stylized-concept. Asset type: square category illustration for a restrained Chinese photo-service mobile app. Premium friendly 3D clay character, smooth matte material, soft studio lighting, clear silhouette at tiny 100px display, centered waist-up composition, character fills about 80% of the frame, shoulders/body extend naturally to lower edge, no blank strip. Pale low-saturation seamless backdrop, no outer card or frame, no heavy cast shadow. Not photoreal, not a real person, no text, no letters, no digits, no logo, no watermark, no QR code. Calm blue-white app aesthetic, consistent art direction with the other categories. Subject: young East Asian female university graduate wearing a navy academic gown and mortarboard with a small warm gold tassel, holding a plain rolled diploma. Background very light sky blue, restrained navy and soft blue clothing.",
+      "path": "/Users/jianwang/.codex/generated_images/01a11fa2-c319-7931-bfc6-0598b402d2dd/exec-55025677-6945-40d8-abbd-4431bb540ddd.png",
+      "output": "public/assets/home-collection-graduate-3d-20261104.webp"
+    },
+    {
+      "id": "enrollment",
+      "prompt": "Use case: stylized-concept. Asset type: square category illustration for a restrained Chinese photo-service mobile app. Premium friendly 3D clay character, smooth matte material, soft studio lighting, clear silhouette at tiny 100px display, centered waist-up composition, character fills about 80% of the frame, shoulders/body extend naturally to lower edge, no blank strip. Pale low-saturation seamless backdrop, no outer card or frame, no heavy cast shadow. Not photoreal, not a real person, no text, no letters, no digits, no logo, no watermark, no QR code. Calm blue-white app aesthetic, consistent art direction with the other categories. Subject: young East Asian male university freshman in a pale blue casual jacket, holding a plain ivory admission folder with no writing, a minimal backpack strap visible. Background very light mint-teal, fresh calm student character.",
+      "path": "/Users/jianwang/.codex/generated_images/01a11fa2-c319-7931-bfc6-0598b402d2dd/exec-cc9ba42a-d221-4bc7-be29-3045178f587a.png",
+      "output": "public/assets/home-collection-enrollment-3d-20261104.webp"
+    },
+    {
+      "id": "other",
+      "prompt": "Use case: stylized-concept. Asset type: square category illustration for a restrained Chinese photo-service mobile app. Premium friendly 3D clay character, smooth matte material, soft studio lighting, clear silhouette at tiny 100px display, centered waist-up composition, character fills about 80% of the frame, shoulders/body extend naturally to lower edge, no blank strip. Pale low-saturation seamless backdrop, no outer card or frame, no heavy cast shadow. Not photoreal, not a real person, no text, no letters, no digits, no logo, no watermark, no QR code. Calm blue-white app aesthetic, consistent art direction with the other categories. Subject: young East Asian female corporate professional in a tailored muted blue blazer, ivory blouse and simple blank employee badge on a lanyard. Background very light lavender, calm competent expression. No official seals or company marks.",
+      "path": "/Users/jianwang/.codex/generated_images/01a11fa2-c319-7931-bfc6-0598b402d2dd/exec-ae793702-8db6-4921-8312-5dc9be315cb7.png",
+      "output": "public/assets/home-collection-other-3d-20261104.webp"
+    }
+  ]
+}

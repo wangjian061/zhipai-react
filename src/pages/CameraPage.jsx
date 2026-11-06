@@ -20,6 +20,7 @@ export default function CameraPage({ scope, args = [] }) {
           id="camera-page"
           show={s.page === "camera"}
           data-step={s.step}
+          data-guided-lens={s.guidedLens || undefined}
           data-task-tone={s.draft?.status === "failed" ? "red" : "blue"}
           aria-label="证件照制作"
         >
@@ -177,6 +178,7 @@ export default function CameraPage({ scope, args = [] }) {
                   as="button"
                   scope={s}
                   className="device-camera-button"
+                  show={!s.guidedLens}
                   events={[
                     {
                       type: "click",
@@ -193,12 +195,17 @@ export default function CameraPage({ scope, args = [] }) {
                   {"使用设备拍照"}
                 </View>
               </View>
+              {s.guidedLens && s.cameraReady && <div className="collection-framing-hint" role="status">
+                {s.framingState === "demo" ? <>当前设备未提供人脸检测。<button type="button" onClick={()=>s.demoFramingPass()}>演示检测通过</button></> :
+                  s.framingState === "ready" ? (s.guidedLens==="front" ? "请保持不动，正在拍摄" : "构图合适，可以按下快门") : "请正对镜头，让头和双肩完整入框"}
+              </div>}
               <View as="div" scope={s} className="capture-toolbar">
                 <View
                   as="button"
                   scope={s}
                   className="capture-side"
                   disabled={s.cameraStarting || s.captureBusy}
+                  show={!s.guidedLens}
                   aria-label="翻转相机"
                   events={[
                     {
@@ -224,7 +231,8 @@ export default function CameraPage({ scope, args = [] }) {
                   as="button"
                   scope={s}
                   className="shutter"
-                  disabled={!s.cameraReady || s.busy || s.cameraStarting}
+                  show={s.guidedLens!=="front"}
+                  disabled={!s.cameraReady || s.busy || s.cameraStarting || (s.guidedLens==="rear" && s.framingState!=="ready")}
                   aria-label="拍摄照片"
                   events={[
                     {
@@ -246,6 +254,7 @@ export default function CameraPage({ scope, args = [] }) {
                   scope={s}
                   className="capture-side"
                   disabled={s.captureBusy}
+                  show={!s.guidedLens}
                   aria-label="打开手机相册"
                   events={[
                     {
@@ -373,7 +382,7 @@ export default function CameraPage({ scope, args = [] }) {
                   scope={s}
                   className="primary-button"
                   text={
-                    ["print", "tool-create"].includes(s.editingFrom)
+                    ["print", "tool-create", "keepsake"].includes(s.editingFrom)
                       ? "继续使用"
                       : "返回相册"
                   }

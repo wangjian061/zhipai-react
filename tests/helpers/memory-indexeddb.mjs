@@ -47,9 +47,9 @@ export function database() {
         get: (id) => request(() => structuredClone(snapshots.get(n).get(id))),
         getAll: () =>
           request(() => structuredClone([...snapshots.get(n).values()])),
-        put: (record) =>
+        put: (record, key = record.id) =>
           request(() =>
-            snapshots.get(n).set(record.id, structuredClone(record)),
+            snapshots.get(n).set(key, structuredClone(record)),
           ),
         delete: (id) => request(() => snapshots.get(n).delete(id)),
       });

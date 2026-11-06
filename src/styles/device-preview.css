@@ -37,7 +37,7 @@ html,body{background:#292b30}
 /* Standard task pages keep controls below the OS area; their canvas reaches y=0. */
 .device-fit .page{padding-top:var(--device-status-height)}
 .device-fit :is(.home-page,.album-page[data-view="library"],.collection-page:is([data-view="home"],[data-view="records"],[data-view="services"],[data-view="project"],[data-view="projects"],[data-view="notifications"]),.tool-page[data-view="home"],.print-page[data-view="preview"],.camera-page[data-step="capture"]){padding-top:0}
-.device-fit :is(.tool-navigation,.account-nav,.collection-nav,.album-header,.page-header,.search-header,.camera-stage-header){background:transparent}
+.device-fit :is(.tool-navigation,.account-nav,.collection-nav,.album-header,.page-header,.camera-stage-header){background:transparent}
 
 /* System chrome sits on the poster's authored quiet top; no extra page spacer. */
 .device-fit .home-page{--home-hero-status-height:var(--device-status-height)}
@@ -64,7 +64,7 @@ html,body{background:#292b30}
 .device-fit .my-overlay{inset:0}
 .device-fit .my-sheet{max-height:calc(100% - var(--device-status-height))}
 .device-fit .album-overlay{padding-top:calc(var(--device-status-height) + 16px);padding-bottom:var(--device-home-height)}
-.device-fit :is(.share-content,.search-content,.collection-scan-scroll){padding-bottom:var(--device-home-height)}
+.device-fit :is(.share-content,.collection-scan-scroll){padding-bottom:var(--device-home-height)}
 .device-fit .share-page .page-header{top:var(--device-status-height)}
 @media(max-width:360px){
   .device-fit .collection-home-hero{height:190px;padding-top:calc(20px + var(--device-status-height))}

@@ -3,7 +3,7 @@
   padding: 16px;
   border-radius: 20px;
   background: #fff;
-  box-shadow: 0 4px 14px -7px #26344a1c;
+  box-shadow: var(--ui-card-shadow);
 }
 .utility-grid {
   --utility-columns: 4;
@@ -53,7 +53,7 @@
   z-index: 1;
   outline-offset: -3px;
 }
-.utility-grid > .utility-grid-item:active {
+.utility-grid > .utility-grid-item:active:not(:disabled) {
   transform: none;
 }
 .utility-grid > .utility-grid-item:not([aria-disabled="true"]):active {
@@ -96,4 +96,20 @@
   line-height: 20px;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+/* The home eight-tool grid is denser than the specification and photo-action grids. */
+.home-page .tools-grid { margin-top: 8px; }
+.home-page .tools-grid > .utility-grid-item {
+  min-height: 60px;
+  padding: 5px 3px;
+  gap: 3px;
+}
+.home-page .tools-grid .utility-item-icon {
+  width: 26px;
+  height: 26px;
+  --tool-icon-detail: color-mix(in srgb, var(--brand-blue) 57%, #8192bb);
+}
+.home-page .tools-grid > :nth-child(even) .utility-item-icon {
+  --tool-icon-detail: color-mix(in srgb, var(--brand-purple) 50%, #8595bd);
 }

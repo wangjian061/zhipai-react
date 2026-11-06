@@ -1,3 +1,4 @@
+import SupportSearch from "../components/SupportSearch.jsx";
 import React from "react";
 import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
 export default function SupportPage({ scope, args = [] }) {
@@ -18,7 +19,8 @@ export default function SupportPage({ scope, args = [] }) {
             end: "page-end",
           }}
         >
-          <View as="div" scope={s} className="support-scroll">
+          {s.searching ? <SupportSearch key={s.searchEpoch} s={s}/> : <>
+          <View as="div" scope={s} className="support-scroll" refName="supportScroll">
             <View as="header" scope={s} className="page-header">
               <View
                 as="button"
@@ -54,42 +56,9 @@ export default function SupportPage({ scope, args = [] }) {
                 {"查找答案，或通过邮件联系我们。"}
               </View>
             </View>
-            <View as="label" scope={s} className="support-search">
-              <View as="svg" scope={s} aria-hidden="true">
-                <View as="use" scope={s} href="#i-search"></View>
-              </View>
-              <View
-                as="input"
-                scope={s}
-                id="support-search"
-                type="search"
-                placeholder="搜索问题，如照片尺寸、采集码"
-                aria-label="搜索常见问题"
-                autoComplete="off"
-                events={[
-                  {
-                    type: "input",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.openId = null;
-                    },
-                  },
-                ]}
-                model={{
-                  read: function (scope, $event, $el) {
-                    return scope.query;
-                  },
-                  write: function (scope, $event, $el) {
-                    scope.query = $event;
-                  },
-                  number: false,
-                  lazy: false,
-                }}
-              ></View>
-            </View>
+            <button className="support-search support-search-entry" type="button" ref={el => {s.$refs.searchEntry = el;}} onClick={() => s.enterSearch()}>
+              <svg aria-hidden="true"><use href="#i-search"/></svg><span>搜索常见问题</span>
+            </button>
             <View
               as="div"
               scope={s}
@@ -305,7 +274,7 @@ export default function SupportPage({ scope, args = [] }) {
               aria-live="polite"
               text={s.copyState === "copied" ? "邮箱已复制" : ""}
             ></View>
-          </View>
+          </View></>}
         </View>
       )}
     </Controller>

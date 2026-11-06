@@ -279,7 +279,7 @@ function Fields({ rows }) {
   );
 }
 function Detail({ s, order: o }) {
-  const isPrint = o.type === "print";
+  const isPrint = ["print", "postcard", "stamp"].includes(o.type);
   const trackingNumber =
     typeof o.tracking === "string" ? o.tracking : o.tracking?.number;
   return (
@@ -358,9 +358,12 @@ function Detail({ s, order: o }) {
             </section>
           )}
           {isPrint && o.fulfillment && (
-            <section className="order-receipt-section" aria-label="冲印进度">
+            <section
+              className="order-receipt-section"
+              aria-label={o.type === "print" ? "冲印进度" : "制作配送进度"}
+            >
               <div className="order-section-heading">
-                <h2>冲印进度</h2>
+                <h2>{o.type === "print" ? "冲印进度" : "制作配送进度"}</h2>
                 <strong className="order-fulfillment-status">
                   {o.fulfillment.label}
                 </strong>

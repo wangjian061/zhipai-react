@@ -44,7 +44,7 @@ export default function SpecificationsPage({ args = [] }) {
           scopeRoot
           className="page specifications-page"
           show={s.page === "specifications"}
-          aria-label="证照规格"
+          aria-label="照片规格"
         >
           <div className="specifications-base" inert={s.opened}>
             <header className="specifications-nav">
@@ -56,7 +56,7 @@ export default function SpecificationsPage({ args = [] }) {
               >
                 {icon("chevron-left")}
               </button>
-              <h1>证照规格</h1>
+              <h1>照片规格</h1>
               <span aria-hidden="true" />
             </header>
             <div className="specifications-scroll">

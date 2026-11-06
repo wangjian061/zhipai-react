@@ -1,3 +1,5 @@
+import { photoCaptureDate } from "./photo-date.js";
+import { OUTFITS, LEGACY_OUTFITS } from "./outfit-catalogue.js";
 import {
   openOrderCenter,
   requireOrderAccount,
@@ -30,7 +32,8 @@ const PHOTO_TOOLS = {
     sources: ["finished", "phone"],
     requiresPortrait: true,
     service: true,
-    steps: ["选照片", "照片精修", "看效果"],
+    inlineWorkspace: true,
+    steps: [],
   },
   outfit: {
     title: "照片换装",
@@ -43,15 +46,16 @@ const PHOTO_TOOLS = {
     sources: ["finished", "phone"],
     requiresPortrait: true,
     service: true,
-    steps: ["选照片", "选服装", "看效果"],
+    inlineWorkspace: true,
+    steps: [],
   },
   spec: {
-    title: "证照规格",
+    title: "照片规格",
     sources: [],
     steps: [],
   },
   crop: {
-    title: "照片裁剪",
+    title: "修改尺寸",
     subtitle: "按尺寸裁剪，也能手动调整",
     infoTitle: "按尺寸裁剪照片",
     description:
@@ -59,7 +63,8 @@ const PHOTO_TOOLS = {
     headline: ["刚好尺寸", "刚好构图"],
     icon: "crop-frame",
     sources: ["finished", "phone"],
-    steps: ["选照片", "裁剪", "保存"],
+    inlineWorkspace: true,
+    steps: [],
   },
   background: {
     title: "更换背景",
@@ -71,7 +76,8 @@ const PHOTO_TOOLS = {
     icon: "tool-background",
     sources: ["finished", "phone"],
     requiresPortrait: true,
-    steps: ["选照片", "换背景", "保存"],
+    inlineWorkspace: true,
+    steps: [],
   },
   format: {
     title: "格式转换",
@@ -82,10 +88,11 @@ const PHOTO_TOOLS = {
     headline: ["换个格式", "方便使用"],
     icon: "tool-convert",
     sources: ["finished", "phone"],
-    steps: ["选照片", "选格式", "保存"],
+    inlineWorkspace: true,
+    steps: [],
   },
   resize: {
-    title: "修改体积",
+    title: "修改大小",
     subtitle: "调整文件体积，满足上传要求",
     infoTitle: "调整文件体积上限",
     description:
@@ -93,7 +100,8 @@ const PHOTO_TOOLS = {
     headline: ["体积小点", "上传轻松"],
     icon: "size",
     sources: ["finished", "phone"],
-    steps: ["选照片", "调体积", "保存"],
+    inlineWorkspace: true,
+    steps: [],
   },
 };
 function photoToolId() {
@@ -363,7 +371,7 @@ registerController("toolStudio", () => ({
   repairBackgroundId: null,
   backgroundEditing: false,
   flowCompleted: false,
-  outfit: "men-suit",
+  outfit: OUTFITS[0].id,
   comparison: 50,
   standardized: false,
   portraitCheck: { status: "idle", reasons: [] },
@@ -443,26 +451,7 @@ registerController("toolStudio", () => ({
       name: "童装",
     },
   ],
-  outfits: ["men", "women", "children"].flatMap((category) => [
-    {
-      id: category + "-suit",
-      name: "西装",
-      category,
-      image: "assets/outfit-" + category + "-suit.svg",
-    },
-    {
-      id: category + "-shirt",
-      name: "衬衫",
-      category,
-      image: "assets/outfit-" + category + "-shirt.svg",
-    },
-    {
-      id: category + "-casual",
-      name: "休闲装",
-      category,
-      image: "assets/outfit-" + category + "-casual.svg",
-    },
-  ]),
+  outfits: OUTFITS,
   init() {
     this.openHandler = (e) => this.enter(e.detail);
     this.chosenHandler = (e) => {
@@ -494,6 +483,9 @@ registerController("toolStudio", () => ({
   },
   get config() {
     return PHOTO_TOOLS[this.action];
+  },
+  get isInlineWorkspace() {
+    return !!this.config.inlineWorkspace;
   },
   get library() {
     return this.$store.photoLibrary;
@@ -550,7 +542,13 @@ registerController("toolStudio", () => ({
     return this.outfits.filter((o) => o.category === this.outfitCategory);
   },
   get chosenOutfit() {
-    return this.outfits.find((o) => o.id === this.outfit);
+    const order = this.currentOrder;
+    if (order && order.status !== "pending" && order.outfitSnapshot)
+      return order.outfitSnapshot;
+    return (
+      this.outfits.find((o) => o.id === this.outfit) ||
+      LEGACY_OUTFITS.find((o) => o.id === this.outfit)
+    );
   },
   get busy() {
     return (
@@ -642,6 +640,8 @@ registerController("toolStudio", () => ({
     return "重新处理";
   },
   get step() {
+    // These tools have a single workspace, including its empty and check states.
+    if (this.isInlineWorkspace) return this.view === "saved" ? 2 : 1;
     if (this.currentOrder?.status === "verifying" && this.photo) return 1;
     return this.view === "saved"
       ? 2
@@ -689,8 +689,7 @@ registerController("toolStudio", () => ({
       this.portraitCheck.status !== "passed" &&
       this.photo &&
       !this.choosingPhoto &&
-      !this.serviceApplied &&
-      (this.action !== "background" || this.step === 0)
+      !this.serviceApplied
     );
   },
   get serviceResult() {
@@ -727,22 +726,32 @@ registerController("toolStudio", () => ({
     if (!this.portraitEligible)
       return this.portraitCheck.status === "awaiting"
         ? "等待检查结果"
-        : "下一步";
+        : this.isInlineWorkspace
+          ? this.portraitCheck.status === "rejected"
+            ? "请先更换照片"
+            : "请先重新检查"
+          : "下一步";
     if (this.action === "background" && !this.backgroundEditing)
       return "下一步";
     if (this.action === "repair" && !this.serviceApplied)
       return this.paid ? "开始精修" : "付款并开始精修";
     if (this.serviceResult) return this.savedRecord ? "再处理一张" : "重试保存";
     if (this.action === "outfit") return "开始换装";
+    if (this.action === "resize") return "确认修改";
     return this.savesToAlbum ? "保存到知拍相册" : "保存到设备";
   },
   get primaryEnabled() {
     if (this.busy) return false;
+    if (this.isInlineWorkspace && !this.photo) return true;
     if (this.currentOrder?.status === "verifying") return true;
     if (this.choosingPhoto) return true;
     if (!this.portraitEligible && this.photo) return false;
     if (this.action === "repair" && this.photo && !this.repairOptionsReady)
       return false;
+    if (this.action === "resize" && this.photo) {
+      const kb = Number(this.targetValue) * (this.sizeUnit === "MB" ? 1024 : 1);
+      if (!Number.isFinite(kb) || kb < 5 || kb > 20480) return false;
+    }
     if (this.error) return !!this.photo && this.step > 0;
     if (!this.photo) return true;
     if (this.action === "background" && !this.backgroundEditing) return true;
@@ -750,6 +759,10 @@ registerController("toolStudio", () => ({
     if (this.config.service && !this.serviceApplied)
       return this.action !== "outfit" || this.standardized;
     if (this.serviceResult && this.savedRecord) return true;
+    if (this.action === "resize") {
+      const kb = Number(this.targetValue) * (this.sizeUnit === "MB" ? 1024 : 1);
+      return Number.isFinite(kb) && kb >= 5 && kb <= 20480;
+    }
     return this.canSave;
   },
   size(bytes) {
@@ -823,7 +836,7 @@ registerController("toolStudio", () => ({
       repairBackgroundId: null,
       backgroundEditing: false,
       flowCompleted: false,
-      outfit: "men-suit",
+      outfit: OUTFITS[0].id,
       outfitCategory: "men",
       standardized: false,
       portraitCheck: { status: "idle", reasons: [] },
@@ -975,7 +988,7 @@ registerController("toolStudio", () => ({
           o.action === this.action &&
           o.status === "verifying",
       );
-    if (pending && !this.entryPhoto) {
+    if (pending) {
       await this.resumeOrder(pending);
       return;
     }
@@ -999,7 +1012,11 @@ registerController("toolStudio", () => ({
       await this.$nextTick(() => {
         if (token === this.task && this.page === "tool" && this.view === "work")
           document
-            .querySelector?.("#tool-page .photo-selection-empty")
+            .querySelector?.(
+              this.isInlineWorkspace
+                ? "#tool-page .tool-workspace-placeholder"
+                : "#tool-page .photo-selection-empty",
+            )
             ?.focus();
       });
     }
@@ -1082,7 +1099,12 @@ registerController("toolStudio", () => ({
     window.dispatchEvent(new Event("zhipai-route"));
   },
   pick() {
-    if (this.busy || this.view !== "work" || this.step !== 0) return;
+    if (
+      this.busy ||
+      this.view !== "work" ||
+      (!this.isInlineWorkspace && this.step !== 0)
+    )
+      return;
     if (this.portraitEligible) this.error = "";
     this.candidateId = this.sourceKind === "finished" ? this.photo?.id : null;
     this.openPanel("album");
@@ -1105,7 +1127,11 @@ registerController("toolStudio", () => ({
       });
   },
   pickPhone() {
-    if (this.busy || this.step !== 0 || !this.config.sources.includes("phone"))
+    if (
+      this.busy ||
+      (!this.isInlineWorkspace && this.step !== 0) ||
+      !this.config.sources.includes("phone")
+    )
       return;
     this.closePanel();
     this.selectionId = photoToolId();
@@ -1153,26 +1179,54 @@ registerController("toolStudio", () => ({
       (context.selectionId && context.selectionId !== this.selectionId)
     )
       return;
+    const pending =
+      this.config.service &&
+      this.ordersStore.items.find(
+        (order) =>
+          order.owner === getStore("account")?.session?.phone &&
+          !order.fixture &&
+          order.action === this.action &&
+          order.status === "verifying",
+      );
+    if (pending) {
+      await this.resumeOrder(pending);
+      return;
+    }
     if (kind === "finished") {
       photo = this.library.finished.find((p) => p.id === photo.id && p.blob);
       if (!photo) return;
     }
-    // Every source confirms a candidate for step one. Only Next may run the tool.
+    // Every tool accepts its candidate in the work page; paid snapshots stay in the order store.
     if (
       this.photo?.id === photo.id &&
       this.photo.blob === photo.blob &&
       this.sourceKind === kind
     ) {
-      this.choosingPhoto = true;
+      this.choosingPhoto = !this.isInlineWorkspace;
       this.closePanel();
+      if (this.isInlineWorkspace) await this.prepareWorkspacePhoto();
       return;
     }
+    const settings = this.isInlineWorkspace
+      ? {
+          specId: this.specId,
+          format: this.format,
+          background: this.background,
+          targetValue: this.targetValue,
+          sizeUnit: this.sizeUnit,
+          repairBackgroundId: this.repairBackgroundId,
+          outfit: this.outfit,
+          outfitCategory: this.outfitCategory,
+        }
+      : null;
     this.reset();
+    if (settings) Object.assign(this, settings);
     this.photo = photo;
     this.sourceKind = kind;
     this.sourceURL = URL.createObjectURL(photo.blob);
     this.saveId = photoToolId();
-    this.format = photo.type === "image/png" ? "png" : "jpeg";
+    if (!this.isInlineWorkspace)
+      this.format = photo.type === "image/png" ? "png" : "jpeg";
     this.view = "work";
     if (this.action === "outfit")
       this.specId =
@@ -1180,7 +1234,43 @@ registerController("toolStudio", () => ({
           (s) => s.width === photo.width && s.height === photo.height,
         )?.id || "two";
     this.stage = "ready";
-    this.choosingPhoto = true;
+    this.choosingPhoto = !this.isInlineWorkspace;
+    if (this.isInlineWorkspace) await this.prepareWorkspacePhoto();
+  },
+  async prepareWorkspacePhoto() {
+    if (
+      !this.isInlineWorkspace ||
+      !this.photo ||
+      this.busy ||
+      this.flowCompleted
+    )
+      return;
+    const action = this.action,
+      photo = this.photo;
+    this.error = "";
+    if (!this.portraitEligible) await this.validatePortraitPhoto();
+    else if (this.action === "background" && !this.standardized) {
+      this.backgroundEditing = true;
+      await this.standardize();
+    } else if (this.action !== "resize" && (!this.output || this.needsPreview))
+      await this.preview();
+    if (this.action !== action || this.photo !== photo) return;
+    await this.focusWorkspace();
+  },
+  async focusWorkspace() {
+    const token = this.task;
+    await this.$nextTick(() => {
+      if (
+        token === this.task &&
+        this.page === "tool" &&
+        this.view === "work" &&
+        !this.panel &&
+        !this.busy
+      )
+        document.querySelector?.("#tool-page .tool-work-scroll")?.focus({
+          preventScroll: true,
+        });
+    });
   },
   async validatePortraitPhoto() {
     if (!this.config.requiresPortrait || !this.photo || this.busy) return;
@@ -1249,6 +1339,7 @@ registerController("toolStudio", () => ({
       if (["outfit", "background"].includes(this.action) && !this.standardized)
         await this.standardize();
     }
+    if (this.isInlineWorkspace) await this.focusWorkspace();
   },
   async retry() {
     if (this.busy || this.flowCompleted) return;
@@ -1302,12 +1393,19 @@ registerController("toolStudio", () => ({
   },
   selectOutfitCategory(id) {
     if (this.busy || this.flowCompleted || this.outfitCategory === id) return;
+    if (!this.outfitCategories.some((category) => category.id === id)) return;
     this.outfitCategory = id;
-    this.outfit = id + "-suit";
+    this.outfit = this.outfits.find((item) => item.category === id)?.id;
     this.invalidateService();
   },
   selectOutfit(id) {
-    if (this.busy || this.flowCompleted || this.outfit === id) return;
+    if (
+      this.busy ||
+      this.flowCompleted ||
+      this.outfit === id ||
+      !this.filteredOutfits.some((item) => item.id === id)
+    )
+      return;
     this.outfit = id;
     this.invalidateService();
   },
@@ -1380,17 +1478,24 @@ registerController("toolStudio", () => ({
     }
   },
   async setFormat(id) {
-    if (this.busy || this.flowCompleted) return;
+    if (this.busy || this.flowCompleted || !["jpeg", "png"].includes(id))
+      return;
     this.format = id;
-    await this.preview();
+    if (this.photo) await this.preview();
   },
   async setBackground(id) {
     if (
       this.busy ||
-      !this.backgroundEditing ||
       this.flowCompleted ||
-      this.view !== "work"
+      this.view !== "work" ||
+      !this.colors.some((color) => color.id === id)
     )
+      return;
+    if (this.isInlineWorkspace && !this.photo) {
+      this.background = id;
+      return;
+    }
+    if (!this.backgroundEditing || !this.portraitEligible || !this.standardized)
       return;
     this.background = id;
     await this.preview();
@@ -1441,6 +1546,13 @@ registerController("toolStudio", () => ({
       }
       return;
     }
+    if (this.action === "resize" && this.photo) {
+      if (this.saveFailed && this.canSave) return this.save();
+      this.error = "";
+      if (!this.output || this.needsPreview) await this.preview();
+      if (!this.error && this.canSave) await this.save();
+      return;
+    }
     if (this.error) return this.retry();
     if (this.action === "background" && !this.backgroundEditing && this.photo) {
       this.backgroundEditing = true;
@@ -1472,6 +1584,7 @@ registerController("toolStudio", () => ({
     await this.save();
   },
   previousStep() {
+    if (this.isInlineWorkspace) return;
     if (this.busy || this.panel) return;
     if (!this.photo || this.choosingPhoto) return;
     if (this.view === "saved" || this.flowCompleted) return;
@@ -1576,6 +1689,10 @@ registerController("toolStudio", () => ({
       outcome = this.paymentOutcome,
       method = this.paymentMethod,
       outfit = this.outfit,
+      outfitSnapshot =
+        this.action === "outfit" && this.chosenOutfit
+          ? { ...this.chosenOutfit }
+          : null,
       output = this.output,
       standardBlob = this.standardBlob,
       repairBackground =
@@ -1600,10 +1717,21 @@ registerController("toolStudio", () => ({
             ...(repairBackground
               ? { backgroundName: repairBackground.name }
               : {}),
+            ...(outfitSnapshot
+              ? {
+                  outfitName:
+                    (this.outfitCategories.find(
+                      (c) => c.id === outfitSnapshot.category,
+                    )?.name || "") +
+                    " · " +
+                    outfitSnapshot.name,
+                }
+              : {}),
           },
           createdAt: Date.now(),
           photo,
           outfit,
+          ...(outfitSnapshot ? { outfitSnapshot } : {}),
           method,
           output: null,
           standardBlob: action === "outfit" ? standardBlob : null,
@@ -1771,6 +1899,7 @@ registerController("toolStudio", () => ({
         blob,
         rawBlob: photo.rawBlob || photo.blob,
         sourceId: photo.id,
+        captureDate: await photoCaptureDate(photo),
         origin: "demo-" + action,
         createdAt: Date.now(),
         spec:
@@ -2019,7 +2148,7 @@ registerController("toolStudio", () => ({
     this.scale = 1;
     this.offsetX = 0;
     this.offsetY = 0;
-    await this.preview();
+    if (this.photo) await this.preview();
   },
 }));
 export {

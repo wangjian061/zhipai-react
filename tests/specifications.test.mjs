@@ -283,7 +283,7 @@ test("specification caller excludes external, self and camera targets", () => {
     assert.equal(specificationsReturnPath(target), "/?page=home");
   assert.equal(
     specificationsReturnPath("/?page=search&q=证照"),
-    "/?page=search&q=%E8%AF%81%E7%85%A7",
+    "/?page=home",
   );
 });
 

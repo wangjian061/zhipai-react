@@ -174,7 +174,9 @@ export function specificationsReturnPath(value, origin = location.origin) {
     const url = new URL(value || "/?page=home", origin);
     if (
       url.origin === origin &&
-      !["camera", "specifications"].includes(url.searchParams.get("page"))
+      !["camera", "specifications", "search"].includes(
+        url.searchParams.get("page") || url.searchParams.get("state"),
+      )
     )
       return url.pathname + url.search + url.hash;
   } catch (_) {

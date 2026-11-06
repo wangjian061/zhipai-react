@@ -8,6 +8,48 @@ import {
 registerController("supportCenter", () => ({
   email: "zpai_service@163.com",
   query: "",
+  searching: false,
+  searchEpoch: 0,
+  listScroll: 0,
+  init() {
+    this.syncSearch = (e) => {
+      const q = new URLSearchParams(location.search);
+      const previous = this.searching;
+      this.searching = q.get("page") === "support" && q.get("view") === "search";
+      if (this.searching) this.category = this.categories[Number(q.get("faqGroup"))] || "全部";
+      this.query = this.searching ? (q.get("q") || "").slice(0,60) : "";
+      if (e?.type === "popstate") this.searchEpoch++;
+      if (previous && !this.searching && q.get("page") === "support")
+        this.$nextTick(() => {
+          if(this.$refs.supportScroll) this.$refs.supportScroll.scrollTop=this.listScroll;
+          this.$refs.searchEntry?.focus({preventScroll:true});
+        });
+    };
+    window.addEventListener("popstate",this.syncSearch);
+    window.addEventListener("zhipai-route",this.syncSearch);
+    this.syncSearch();
+  },
+  enterSearch() {
+    this.listScroll=this.$refs.supportScroll?.scrollTop || 0;
+    const q=new URL(location.href);
+    q.searchParams.set("view","search");
+    q.searchParams.set("faqGroup",String(this.categories.indexOf(this.category)));
+    history.pushState({supportSource:location.pathname+location.search},"",q);
+    window.dispatchEvent(new Event("zhipai-route"));
+  },
+  leaveSearch() {
+    if(history.state?.supportSource && history.length>1) return history.back();
+    const url=new URL(location.href);
+    url.searchParams.delete("view");url.searchParams.delete("q");url.searchParams.delete("faqGroup");
+    history.replaceState({},"",url);
+    window.dispatchEvent(new Event("zhipai-route"));
+  },
+  submitSearch(value) {
+    const url=new URL(location.href), term=value.trim().slice(0,60);
+    if(term) url.searchParams.set("q",term); else url.searchParams.delete("q");
+    history.replaceState(history.state,"",url);
+    this.query=term;
+  },
   category: "全部",
   categories: ["全部", "证件照", "照片工具", "专项采集"],
   openId: null,
@@ -35,7 +77,7 @@ registerController("supportCenter", () => ({
       category: "照片工具",
       question: "怎样调整照片尺寸和文件大小？",
       answer:
-        "证照规格和裁剪用于调整照片尺寸；“修改体积”用于设置目标文件体积（KB），从手机相册选图后压缩并保存照片。该工具保持宽高像素不变，如果目标太小无法达到，可增大目标体积。",
+        "“照片规格”用于先选规格再制作新照片，“修改尺寸”用于调整已有照片的尺寸和构图；“修改大小”用于设置文件体积上限（KB／MB），压缩后保存到设备。修改大小时保持宽高像素不变，如果无法达到目标，可增大体积上限。",
       keywords: "像素 KB MB 压缩 裁剪 大小 尺寸",
     },
     {
@@ -99,6 +141,8 @@ registerController("supportCenter", () => ({
     }
   },
   destroy() {
+    window.removeEventListener("popstate",this.syncSearch);
+    window.removeEventListener("zhipai-route",this.syncSearch);
     clearTimeout(this.copyTimer);
   },
 }));

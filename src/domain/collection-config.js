@@ -2,6 +2,7 @@
 export const COLLECTION_CATEGORIES = [
   {
     id: "enrollment",
+    recordsTitle: "新生采集记录",
     name: "新生入学",
     subtitle: "入学证照 · 规范采集",
     icon: "collection-school",
@@ -10,6 +11,7 @@ export const COLLECTION_CATEGORIES = [
   },
   {
     id: "graduate",
+    recordsTitle: "毕业生采集记录",
     name: "毕业生",
     subtitle: "毕业图像 · 留存档案",
     icon: "collection-graduate",
@@ -18,7 +20,8 @@ export const COLLECTION_CATEGORIES = [
   },
   {
     id: "association",
-    name: "行业协会",
+    recordsTitle: "其它采集记录",
+    name: "其它采集",
     subtitle: "会员证照 · 身份登记",
     icon: "collection-org",
     image: "assets/collection-icon-organization.webp",
