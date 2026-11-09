@@ -252,14 +252,14 @@ function print() {
     },
   };
 }
-test("3D sheet examples never become the input, and both layouts swap to the actual selected photo", () => {
+test("silhouette sheet placeholders never become the input, and both layouts swap to the actual selected photo", () => {
   const f = print(),
     s = f.s;
   try {
     for (const layout of PRINT_LAYOUTS) {
       const demo = s.workspaceSheet(layout.id);
       assert.equal((demo.match(/<image /g) || []).length, layout.count);
-      assert.ok(demo.includes("photo-placeholder-3d-20261105.webp"));
+      assert.ok(demo.includes("photo-placeholder-silhouette-20261106.webp"));
       assert.doesNotMatch(demo, /<text|免剪裁/);
     }
     assert.equal(s.draft.photo, null);

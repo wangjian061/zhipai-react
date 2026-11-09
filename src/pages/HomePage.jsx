@@ -40,7 +40,7 @@ export default function HomePage({ scope: s }) {
         onOpenNotifications={s.openHomeNotifications}
       />
       <View as="div" scope={s} className="home-content" refName="homeContent">
-        <HomeCollectionCard active={s.page === "home"} />
+        <HomeCollectionCard />
         <View
           as="div"
           scope={s}

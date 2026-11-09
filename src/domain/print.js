@@ -889,7 +889,7 @@ registerController("printStudio", () => ({
     if (!plan) return "";
     const source = photo?.blob
       ? actualPhotoURL({ ...photo, id: "print-" + photo.id })
-      : "/assets/photo-placeholder-3d-20261105.webp";
+      : "/assets/photo-placeholder-silhouette-20261106.webp";
     return printSheetMarkup(plan, source, true, false);
   },
   openLayoutPreview(id) {

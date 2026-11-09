@@ -12,7 +12,7 @@ export default function ToolWorkspacePlaceholder({ disabled, onSelect }) {
         disabled={disabled}
         onClick={onSelect}
       >
-        <img src="/assets/photo-placeholder-3d-20261105.webp" alt="" />
+        <img src="/assets/photo-placeholder-silhouette-20261106.webp" alt="" />
       </button>
       <div className="photo-selection-caption">
         <span>请选择您的照片</span>

@@ -1,34 +1,33 @@
 import { collectionHistoryState } from "../domain/collection-history.js";
 import React from "react";
-import HomeCollectionRail from "./HomeCollectionRail.jsx";
 const entries = [
   {
     category: "graduate",
     title: "毕业生采集",
-    subtitle: "大学毕业图像采集",
+    subtitle: "毕业图像采集",
     asset: "graduate",
   },
   {
     category: "enrollment",
     title: "新生采集",
-    subtitle: "大学新生入学采集",
+    subtitle: "大学入学证照",
     asset: "enrollment",
   },
   {
     category: "association",
     title: "其它采集",
-    subtitle: "机构行业证照采集",
+    subtitle: "机构行业证照",
     asset: "other",
   },
 ];
-export default function HomeCollectionCard({ active = true } = {}) {
+export default function HomeCollectionCard() {
   return (
     <section
       className="collection-card home-collection-card home-collection-categories"
       aria-labelledby="home-collection-title"
     >
       <h2 id="home-collection-title">证照采集</h2>
-      <HomeCollectionRail active={active}>
+      <div className="home-collection-grid">
         {entries.map((item) => (
           <a
             key={item.category}
@@ -82,7 +81,7 @@ export default function HomeCollectionCard({ active = true } = {}) {
             </span>
           </a>
         ))}
-      </HomeCollectionRail>
+      </div>
     </section>
   );
 }

@@ -92,7 +92,7 @@ for (const [action, heading] of [
       nodes.filter(
         (n) =>
           n.name === "img" &&
-          n.attribs.src === "/assets/photo-placeholder-3d-20261105.webp",
+          n.attribs.src === "/assets/photo-placeholder-silhouette-20261106.webp",
       ).length,
       1,
     );

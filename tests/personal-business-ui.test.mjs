@@ -91,21 +91,17 @@ function keepsake(kind, view, selected = false) {
 }
 test("each home collection link exposes its own title and description independently of its portrait", () => {
   const { nodes, text } = render("HomeCollectionCard");
-  const entries = nodes.filter(
-    (n) => n.name === "a" && !n.attribs["aria-hidden"],
-  );
-  const copies = nodes.filter(
-    (n) => n.name === "a" && n.attribs["aria-hidden"] === "true",
-  );
-  assert.equal(copies.length, 0, "stopped autoplay renders one set of category cards");
-  assert.ok(copies.every((card) => card.attribs.tabindex === "-1"));
+  const [grid] = byClass(nodes, "home-collection-grid");
+  const entries = grid.children.filter((n) => n.name === "a");
+  assert.equal(byClass(nodes, "home-collection-rail").length, 0);
+  assert.ok(entries.every((card) => !card.attribs["aria-hidden"]));
   assert.equal(nodes.find((n) => n.name === "h2").children[0].data, "证照采集");
   assert.equal(nodes.filter((n) => n.name === "button").length, 0);
   assert.equal(entries.length, 3);
   for (const [index, [category, title, subtitle]] of [
-    ["graduate", "毕业生采集", "大学毕业图像采集"],
-    ["enrollment", "新生采集", "大学新生入学采集"],
-    ["association", "其它采集", "机构行业证照采集"],
+    ["graduate", "毕业生采集", "毕业图像采集"],
+    ["enrollment", "新生采集", "大学入学证照"],
+    ["association", "其它采集", "机构行业证照"],
   ].entries()) {
     const entry = entries[index];
     assert.equal(
@@ -137,11 +133,19 @@ test("each home collection link exposes its own title and description independen
 test("home groups two independent product entries in one keepsake card", () => {
   const { nodes, text } = render("HomeKeepsakes");
   assert.equal(byClass(nodes, "home-keepsake-card").length, 1);
-  assert.equal(byClass(nodes, "keepsake-product-art").length, 2);
-  assert.ok(
-    nodes.some((n) => n.attribs?.src?.endsWith("/stamp-product-inner-20261106.webp")),
+  const [toggle] = byClass(nodes, "home-keepsake-layout-toggle");
+  const [products] = byClass(nodes, "home-keepsake-products");
+  assert.equal(toggle.attribs["aria-controls"], products.attribs.id);
+  assert.equal(products.attribs["data-layout"], "double");
+  const art = nodes.filter((n) => n.name === "img");
+  assert.deepEqual(
+    art.map((n) => n.attribs.src.split("/").at(-1)),
+    ["home-postcard-compact-20261109.webp", "home-stamp-compact-20261109.webp"],
   );
-  assert.equal(text, "照片纪念品明信片推荐邮票推荐");
+  for (const image of art) {
+    assert.ok(fs.existsSync(new URL("../public" + image.attribs.src, import.meta.url)));
+  }
+  assert.equal(text, "照片纪念品切换单列明信片推荐邮票推荐");
   const entries = byClass(nodes, "home-keepsake-entry");
   assert.deepEqual(
     entries.map((n) => n.attribs["aria-label"]),

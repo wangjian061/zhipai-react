@@ -651,7 +651,15 @@ export default function ToolsPage({ scope, args = [] }) {
                     )}
                   </Repeat>
                 </View>
-                <View as="div" scope={s} className="tool-outfit-list">
+                <View
+                  as="div"
+                  scope={s}
+                  key={s.outfitCategory}
+                  className="tool-outfit-list"
+                  role="group"
+                  aria-label="服装款式，可左右滑动"
+                  tabIndex={0}
+                >
                   <Repeat
                     scope={s}
                     items={s.filteredOutfits}

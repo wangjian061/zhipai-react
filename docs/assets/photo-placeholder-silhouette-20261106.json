@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-06",
+  "mode": "builtin image_gen edit",
+  "confirmedByUser": true,
+  "asset": "public/assets/photo-placeholder-silhouette-20261106.webp",
+  "assetSha256": "65572b05838a1293c0faa5f6d0ea5f582ed1774644305696786b7f1c33206a3b",
+  "sourceAsset": "public/assets/photo-placeholder-3d-20261105.webp",
+  "generatedSource": "exec-4ede9701-ceff-4909-aa93-95aa0c0c0c88.png",
+  "sourceDirectory": "/Users/jianwang/.codex/generated_images/01a11fa2-c319-7931-bfc6-0598b402d2dd",
+  "size": [1060, 1484],
+  "bytes": 654292,
+  "ratio": "5:7",
+  "processing": "cwebp -lossless -exact; no resizing, crop, recolor or alpha changes; decoded RGBA equals approved PNG",
+  "usage": "Six empty tool workspaces, photo print empty workspace and unselected print layout previews only; never a real source input",
+  "prompt": "Edit the supplied 5:7 portrait of the young man in the blue-gray blazer into a two-color unselected-photo placeholder. Very pale blue #EAF3FC background and muted blue #91B9E5 whole-person silhouette. Trace the exact outer contour, retaining distinctive hair tufts, both ears, jaw, neck, shoulders, head scale, position and bottom crop. Clothing reaches the bottom edge. Remove all facial features, skin, collar and lapel lines, clothing details and 3D shading. No geometric circles or ellipses, no generic avatar, no different hair shape. No text, watermark, frame, rounded corners or UI. One standalone portrait asset with 5:7 framing. Generated colors may vary slightly; the user approved the actual output."
+}

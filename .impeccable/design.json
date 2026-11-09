@@ -327,7 +327,7 @@
       {
         "name": "公共内容卡",
         "value": "0 2px 8px #29496b06,0 6px 18px -10px #29496b0d",
-        "purpose": "普通内容卡、首页专项、宫格及照片纪念品双入口白卡共同复用--ui-card-shadow；两项产品并排，上为浅薄荷／浅米灰底产品图，下为白底产品名；字号和字重同其它采集，省略箭头与角标。邮折内页正视，商品图使用3D人物；纪念品选图复用常用工具抽屉，照片单选确认与独立制作入口分开；2026-11-04已移除utility-grid旧硬编码覆盖。"
+        "purpose": "普通内容卡、首页专项、宫格及照片纪念品白卡共同复用--ui-card-shadow。证照采集使用独立白卡，固定等宽三列，8px卡间距，三项同屏。照片纪念品双列等宽，上为浅薄荷／浅米灰底商品图，下为白底名称及推荐。单列使用专用横图，与双列单卡等高，名称及推荐叠在图底通栏白色磨砂条，复用--ui-masthead-filter。原型标题右侧可切换布局，正式App读取后台配置自动排版，单件商品占满一行。"
       },
       {
         "name": "底部容器",
@@ -395,18 +395,20 @@
       "navigation": "Existing ToolNavigation, no stepper or previous-step action",
       "photo": {
         "component": "ToolWorkspacePlaceholder",
-        "asset": "/assets/photo-placeholder-3d-20261105.webp",
+        "asset": "/assets/photo-placeholder-silhouette-20261106.webp",
         "ratio": "5/7",
         "maxWidth": "200px",
         "fit": "contain",
         "ground": "portrait-ground",
         "purpose": "Selection affordance only; never a processing input",
-        "palette": "pale blue photo ground; natural-material 3D adult",
+        "palette": "pale blue background; blue silhouette preserving the current portrait actual hair, ears, neck and shoulder outline",
         "shadows": "none",
         "outerContainer": "transparent; no fill, border or shadow",
         "maxHeight": "280px",
         "selectionCaption": "请选择您的照片",
-        "realPhotoMaxWidth": "250px"
+        "realPhotoMaxWidth": "250px",
+        "confirmedAt": "2026-11-06",
+        "details": "no facial features, clothing details or 3D shading; no geometric-avatar approximation"
       },
       "settings": "Reuse each tool existing settings card; allow preselection without a photo",
       "actions": {
@@ -715,6 +717,12 @@
         "men": 14,
         "women": 20,
         "children": 17,
+        "presentation": "single horizontal scrolling row in men, women and children; never a multi-row grid",
+        "cardWidthPx": 96,
+        "gapPx": 10,
+        "categoryChangeScroll": "start of the new category; its first option remains selected by existing rules",
+        "selectionScroll": "preserve current rail position",
+        "accessibility": "focusable horizontal group, natural button order, inset focus outline; page remains vertically scrollable",
         "snapshot": true,
         "legacyOrderCompatibility": true
       },

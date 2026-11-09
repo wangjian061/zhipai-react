@@ -5,6 +5,11 @@
 .home-collection-categories h2 {
   margin: 0 0 16px;
 }
+.home-collection-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
 .home-collection-rail {
   --collection-card-gap: 8px;
   margin-inline-end: calc(-1 * var(--home-page-inset));
@@ -18,11 +23,12 @@
   overflow-anchor: none;
 }
 .home-collection-rail::-webkit-scrollbar { display: none; }
-.home-collection-category {
+.home-collection-rail .home-collection-category {
   flex: 0 0 calc((100% - 2 * var(--collection-card-gap)) / 2.5);
 }
 .home-collection-category,
 .home-keepsake-entry {
+  --home-entry-radius: 14px;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -31,7 +37,7 @@
   text-decoration: none;
   background: white;
   border: 1px solid #e2e8f1;
-  border-radius: 14px;
+  border-radius: var(--home-entry-radius);
 }
 .home-collection-category[data-category="graduate"] {
   --collection-tint: #eaf4ff;
@@ -64,6 +70,11 @@
   mix-blend-mode: multiply;
   pointer-events: none;
 }
+.home-collection-grid .home-collection-art img {
+  top: 8%;
+  left: 8%;
+  width: 84%;
+}
 .home-collection-caption {
   display: grid;
   gap: 2px;
@@ -72,10 +83,18 @@
   line-height: 1.5;
   white-space: nowrap;
 }
+.home-collection-grid .home-collection-caption {
+  padding-block: 10px;
+  /* Keep room for six characters at the existing .75rem caption size. */
+  padding-inline: clamp(3px, calc((100% - 4.5rem) / 2), 8px);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .home-collection-keyword { color:var(--collection-keyword); }
 .home-collection-caption strong { font-size: inherit; font-weight: 650; }
 .home-collection-caption > span { color: var(--ui-body); font-weight: 400; }
 .home-collection-category:focus-visible,
+.home-keepsake-layout-toggle:focus-visible,
 .home-keepsake-entry:focus-visible {
   outline: 2px solid var(--brand-blue);
   outline-offset: -2px;
@@ -118,10 +137,18 @@
   width: 16px;
   height: 16px;
 }
+.home-keepsake-card .home-keepsake-layout-toggle {
+  margin-block: -10px;
+  min-width: 44px;
+  padding-inline: 8px;
+  border-radius: var(--ui-button-radius);
+}
 .home-keepsake-products {
+  --home-keepsake-gap: 10px;
+  --home-keepsake-art-ratio: 1.49;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--home-keepsake-gap);
 }
 .home-keepsake-entry { padding: 0; text-align: start; }
 .home-keepsake-entry[data-kind="postcard"] {
@@ -139,11 +166,55 @@
 }
 .home-keepsake-art {
   width: 100%;
-  aspect-ratio: 1.49;
+  aspect-ratio: var(--home-keepsake-art-ratio);
   background: linear-gradient(140deg, var(--product-tint), var(--product-shade));
 }
-.home-keepsake-art .is-postcard { width: 74%; }
-.home-keepsake-art .is-stamp { width: 82%; }
+.home-keepsake-art img { display: block; width: 88%; height: auto; }
+.home-keepsake-entry[data-kind="stamp"] .home-keepsake-art img { width: 91%; }
+.home-keepsake-products[data-layout="single"] .home-keepsake-entry {
+  position: relative;
+  grid-column: 1 / -1;
+  /* Clip the artwork and backdrop-filter to the same rounded edge. */
+  clip-path: inset(0 round var(--home-entry-radius));
+}
+.home-keepsake-products[data-layout="single"] .home-keepsake-entry::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--home-keepsake-banner) center bottom / cover no-repeat;
+  pointer-events: none;
+}
+.home-keepsake-products[data-layout="single"] .home-keepsake-art {
+  aspect-ratio: auto;
+  background: none;
+}
+.home-keepsake-products[data-layout="single"] .home-keepsake-art::before {
+  /* Match the two-column artwork height after accounting for card borders. */
+  content: "";
+  width: calc((100% - var(--home-keepsake-gap) - 2px) / 2);
+  aspect-ratio: var(--home-keepsake-art-ratio);
+}
+.home-keepsake-products[data-layout="single"] .home-keepsake-art img {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+}
+.home-keepsake-products[data-layout="single"] .home-collection-caption {
+  position: relative;
+  background: #fff;
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .home-keepsake-products[data-layout="single"] .home-collection-caption {
+    background: rgb(255 255 255 / 72%);
+    -webkit-backdrop-filter: var(--ui-masthead-filter);
+    backdrop-filter: var(--ui-masthead-filter);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .home-keepsake-products[data-layout="single"] .home-collection-caption {
+    background: #fff;
+  }
+}
 .keepsake-product-art { display: block; position: relative; width: 80%; isolation: isolate; }
 .keepsake-product-art img { display: block; position: relative; width: 100%; height: auto; box-shadow: 0 2px 5px #20385826; }
 .keepsake-product-art.is-stamp img { box-shadow: none; }
