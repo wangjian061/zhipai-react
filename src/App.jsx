@@ -194,6 +194,14 @@ export default function App() {
             <View as="circle" scope={s} cx="12" cy="7" r="4"></View>
             <View as="path" scope={s} d="M4 22v-3a8 8 0 0 1 16 0v3"></View>
           </View>
+          <View as="symbol" scope={s} id="i-users" viewBox="0 0 24 24">
+            <View as="circle" scope={s} cx="9" cy="8" r="3"></View>
+            <View
+              as="path"
+              scope={s}
+              d="M3 20v-1a6 6 0 0 1 12 0v1M16 5.2a3 3 0 0 1 0 5.6M21 20v-1a6 6 0 0 0-3.4-5.4"
+            ></View>
+          </View>
           <View as="symbol" scope={s} id="i-search" viewBox="0 0 24 24">
             <View as="circle" scope={s} cx="10" cy="10" r="6.5"></View>
             <View as="path" scope={s} d="m15 15 5 5"></View>

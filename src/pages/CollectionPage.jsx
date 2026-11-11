@@ -227,12 +227,28 @@ export default function CollectionPage({ scope, args = [] }) {
             </View>
           </View>
           <CollectionTaskFooter scope={s} />
+          {s.page === "collection" && s.isRecordView && (
+            <View
+              key={s.recordId}
+              as="input"
+              scope={s}
+              refName="collectionCaptureFile"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              hidden
+              onChange={(event) => {
+                const input = event.currentTarget;
+                const file = input.files?.[0];
+                input.value = "";
+                if (file) s.useCaptureFile(file);
+              }}
+            />
+          )}
           <Portal target="#collection-modal-layer">
             <View
               as="div"
               scope={s}
               className="collection-overlay"
-              data-shoot-guide={s.panel === "shootingGuide" || undefined}
               show={s.page === "collection" && s.panel}
               events={[
                 {

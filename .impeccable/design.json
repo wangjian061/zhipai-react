@@ -506,6 +506,9 @@
             "source": "app-home"
           },
           "bodyPx": 92,
+          "sideInsetPx": 16,
+          "firstCardGapPx": 0,
+          "sharedBrandGeometryWith": ["album library", "my overview"],
           "sticky": {
             "extent": "status area through the mascot lower edge",
             "contentAlwaysVisible": [
@@ -587,14 +590,32 @@
         ],
         "collectionNavigation": {
           "categoryPage": [
-            "themed header",
-            "scoped search entry",
-            "personal category-record entry with truthful count",
+            "compact themed header",
+            "scoped search and personal category-record button in one row",
             "project list"
           ],
+          "categoryHeader": {
+            "component": "CollectionHeader compact",
+            "height": "system safe area + shared 92px header body at standard text size",
+            "layout": "equal side columns, 44px back target on the left, single centered title with wrapping, category or archive illustration on the right",
+            "maxIllustrationPx": 72,
+            "scope": "graduate, enrollment and association project and record lists"
+          },
+          "recordPage": [
+            "shared compact themed header with category record title and smaller archive artwork",
+            "progress filters",
+            "independently scrolling personal category records"
+          ],
+          "searchTrailingLabelMinWidthPx": 212,
           "recordEntry": {
-            "component": "collection-center-entry collection-record-entry",
-            "minHeightPx": 52,
+            "component": "collection-record-entry",
+            "layout": "rounded button with archive icon, label and count capsule, to the right of scoped search",
+            "heightPx": 46,
+            "iconSizePx": 20,
+            "label": "采集记录",
+            "countBadge": "brand-tint capsule showing the exact owned category total including zero, only after successful read",
+            "gapFromSearchPx": 8,
+            "accessibleName": "category record title and truthful count or read state",
             "titles": {
               "graduate": "毕业生采集记录",
               "enrollment": "新生采集记录",
@@ -615,8 +636,9 @@
       "profileHeader": {
         "bodyPx": 92,
         "accountLayout": "avatar beside account and security",
-        "bear": "waving, upper body",
-        "photoCardOverlapPx": 16
+        "bear": "waving bear and card, cropped at the shared header lower edge",
+        "photoCardOverlapPx": 0,
+        "scroll": "sticky through the lower edge of the bear on the overview; share the home glass, lower shadow and opaque fallback when overview content passes behind; restore the diffuse fill at the top"
       },
       "recentPhotos": {
         "maxItems": 6,
@@ -738,18 +760,30 @@
       "homeRecommendation": "red 推荐 on repair, postcard and stamp only; no independent action",
       "projectAndHelpSearch": "dedicated page scoped to its source; results and empty state share that page",
       "recentPhotoLine": "manual horizontal scrolling only; keep position after release; individual prints gently sway unless reduced motion is enabled",
-      "collectionShootingGuide": "300px center dialog after capture-method sheet; opt out independently for front and rear on confirmation; album bypasses guide",
+      "collectionCaptureMethods": "The 请选择采集方式 sheet uses the shared grip and 18px title above an equal-width two- or three-column utility grid of project-enabled methods. Each option pairs a 48px transparent blue-white 3D icon with a 13px dark label at weight 650 and a 12px soft-blue caption (#547396). Icon objects are the phone front with a framing reticle, the phone back with rear lenses, and a phone screen with album thumbnails. The rear icon carries a compact red 推荐 pill at its lower-right corner, using the shared recommendation colors and type. The single-lens case opens its guide directly, and the single-album case opens the system file picker directly. Missing configuration defaults to three methods.",
+      "collectionShootingGuide": "Open a white bottom sheet at approximately 90% of the device height, below the status bar. Below the shared grip, one heading stacks a left-aligned 15px lens line and a 22px action line. The pale-blue 3:4 positioning illustration fills the content column width, with 20px between the heading and image. The fixed, non-scrolling content column is up to 288px wide and includes a four-step ordered list in 15px text. All content and the fixed 48px minimum Enter Camera button fit in one view on the 402×874 prototype canvas. The action uses the shared collection primary action and bottom safe area. Closing a guide restores the originating grid and focus or the task detail when the project has one lens. Saved per-mode opt-outs apply when a lens is chosen from the grid.",
       "albumSpaces": {
+        "header": "shared brand geometry and diffuse background, left title and saved count for My Photos, right album bear cropped at the header lower edge, tab card flush to the header in the standard route",
         "tabs": [
           "我的照片",
           "家人照片",
           "证件照片"
         ],
-        "family": "per member ID; one required display name, trimmed and max 30 chars; avatar and photo count; no relationship field or label; legacy names and associations preserved, legacy relationship is name fallback only; member opens SharedSheet with the existing three-column dated photo grid and fixed add-photo footer; returning from detail restores grid position",
+        "tabsPresentation": {
+          "layout": "equal-width three-tab row in its own white card, 8px between tabs, 12px between cards",
+          "topAndLeadingInsetPx": 14,
+          "icons": ["i-nav-album", "i-users", "i-collection-id"],
+          "iconPx": 16,
+          "minimumTouchPx": 44,
+          "whenNarrow": "icon above label, all three tabs visible",
+          "active": "brand tint surface with brand blue icon and label"
+        },
+        "contentCard": "shared white card radius and shadow, 14px inline inset, fixed 16px title and right 管理, scrollable content below the header; My Photos keeps its grid and existing batch selection with the tabs hidden during management",
+        "folderGrid": "three equal columns; 4:3 cover with a pale-blue folder back and a translucent frosted lip using the shared masthead material and solid fallback; left-aligned 13px name and 12px count",
+        "family": "per member ID; first photo in front with up to two more fanned behind; shared blue silhouette placeholder when the first photo is unavailable and 空相册 at zero; member opens SharedSheet with dated photo grid and fixed add-photo footer, returning restores position; Manage opens add, rename and remove actions; name only, trimmed and max 30 chars; whole-album deletion confirms the member and photo count and retains source photos and associated documents with holder name snapshot; stale confirmation requires reconfirming",
         "addPhoto": "shared picker: device multi-select, My Photos single copy, ordinary camera with retake and confirmation into that member",
-        "documentIcons": "identity card, medical card, car, passport globe, general document; shared SpecificationIcon geometry, blue-grey palette, 24px in existing 44px holder",
-        "documents": "document types expand/collapse inline, at most one open; doctype persists expanded state, no secondary type page; keep semantic icons and existing rows; record opens existing SharedSheet; view/delete only, no replace or supplement; per-side and whole deletion require confirmation, retain remaining side and holder; missing face shows 未添加; final-side/whole deletion returns to expanded type and updates count/focus; failed writes retain record and confirmation for retry; stale snapshots rejected transactionally",
-        "detail": "Shared bottom sheet for mine, family, documents and personal center; mine, personal center and single family photo reuse the existing left-photo/right-facts summary, featured services and fixed download footer; document per-side layout stays unchanged; photos enlarge separately; preserve list, source and focus",
+        "documents": "same three-column folder grid as Family Photos; landscape 4:3 inserts contain original images, with a generic card and pale-blue detail lines for empty or unreadable covers; document counts in 份 and the fixed first 本人 entry; member SharedSheet scrolls document titles and three-column 4:3 contained photo thumbnails without captions; 44px 下载 and more controls beside each document title and fixed 添加证件; single original downloads directly, multiple originals use a SharedSheet with the document name and three-column thumbnail download controls; closing restores the list scroll and trigger focus; after shared multi-photo selection, show one optional 30-character 证件名称 field above the grid; append, rename the document or delete it from its menu; individual photos support download, replacement and deletion; confirm document removal when deleting its last photo; preserve legacy files and owners; transactional snapshot guards writes",
+        "detail": "Shared bottom sheet for mine, family, documents and personal center; mine, personal center and single family photo reuse the existing left-photo/right-facts summary, featured services and fixed download footer; document photos enlarge directly from the document list; preserve list, source and focus",
         "date": "YYYY/MM/DD only; capture day first, else known addition day, source in accessible label",
         "storage": "family and document spaces local per signed-in account",
         "finishedActions": "direct delete-photo action below featured services in the body, fixed download footer unchanged; shared confirmation, cancel, busy guard and retry on failure; unreadable records remain deletable; keep library batch management; family deletion affects that member copy only and retains an empty member"

@@ -1,5 +1,6 @@
 import { openOrderCenter } from "./order-routing.js";
 import { HOME_HERO_SLIDES } from "./home-hero.js";
+import { hasPageScrollOffset } from "./device-preview.js";
 import {
   registerController,
   registerStore,
@@ -228,11 +229,8 @@ registerController("phoneDemo", () => ({
         return;
       }
       const viewport = this.$refs.homePage;
-      if (viewport?.clientHeight) {
-        const limit = viewport.scrollHeight - viewport.clientHeight;
-        const offset = Math.max(0, Math.min(viewport.scrollTop, limit));
-        this.homeHeaderOverContent = offset > 0;
-      }
+      if (viewport?.clientHeight)
+        this.homeHeaderOverContent = hasPageScrollOffset(viewport);
       const cards = this.$refs.homeContent?.children;
       const nav = this.$refs.bottomNav;
       if (!cards || !nav || !viewport) {

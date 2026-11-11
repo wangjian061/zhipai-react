@@ -42,14 +42,11 @@ html,body{background:#292b30}
 /* System chrome sits on the poster's authored quiet top; no extra page spacer. */
 .device-fit .home-page{--home-hero-status-height:var(--device-status-height)}
 
-/* Institutional and album heroes reserve space inside the full-bleed background. */
-.device-fit .collection-home-hero{height:196px;padding-top:calc(24px + var(--device-status-height))}
+/* Institutional heroes reserve space inside the full-bleed background. */
+.device-fit .collection-home-hero:where(:not(.is-compact)){height:196px;padding-top:calc(24px + var(--device-status-height))}
 .device-fit .collection-records-inner,.device-fit .collection-services-inner{padding-top:20px}
-.device-fit .collection-themed-hero.has-back{height:238px;padding-top:calc(62px + var(--device-status-height))}
+.device-fit .collection-themed-hero.has-back:where(:not(.is-compact)){height:238px;padding-top:calc(62px + var(--device-status-height))}
 .device-fit .collection-page[data-view="project"] .collection-nav{top:var(--device-status-height)}
-.device-fit .album-hero{flex-basis:calc(20% + var(--device-status-height) * .8);min-height:calc(120px + var(--device-status-height));max-height:calc(176px + var(--device-status-height))}
-.device-fit .album-hero-copy{top:calc(50% + var(--device-status-height) / 2)}
-.device-fit .album-hero-bear{top:var(--device-status-height);height:calc(100% - var(--device-status-height) + 100px)}
 
 /* All service entrance content retains its original geometry below the OS overlay. */
 .device-fit .service-hero{height:calc(320px + var(--device-status-height));min-height:calc(320px + var(--device-status-height));max-height:calc(320px + var(--device-status-height))}
@@ -67,7 +64,7 @@ html,body{background:#292b30}
 .device-fit :is(.share-content,.collection-scan-scroll){padding-bottom:var(--device-home-height)}
 .device-fit .share-page .page-header{top:var(--device-status-height)}
 @media(max-width:360px){
-  .device-fit .collection-home-hero{height:190px;padding-top:calc(20px + var(--device-status-height))}
+  .device-fit .collection-home-hero:where(:not(.is-compact)){height:190px;padding-top:calc(20px + var(--device-status-height))}
   .device-fit .account-welcome-hero{height:calc(268px + var(--device-status-height));padding-top:calc(90px + var(--device-status-height))}
   .device-fit .account-welcome-art{top:calc(73px + var(--device-status-height))}
 }

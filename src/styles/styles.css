@@ -35,7 +35,7 @@
 
 /* Home spacing follows task groups; artwork and navigation keep their geometry. */
 .home-page{
-  --home-page-inset:16px;
+  --home-page-inset:var(--brand-page-inset);
   --home-section-gap:20px;
   --home-card-radius:20px;
   --home-label-color:#374150;
@@ -45,7 +45,7 @@
   display:flex;
   flex-direction:column;
   background:var(--brand-canvas);
-  scroll-padding-top:calc(var(--brand-safe-top) + var(--brand-expanded-body));
+  scroll-padding-top:var(--brand-header-height);
 }
 .home-page .hero{flex:none;background:#f2f5fa;aspect-ratio:auto}
 .home-page .carousel-track{position:relative;inset:auto;aspect-ratio:1612/928}
@@ -54,39 +54,19 @@
 .home-page .hero-cta>.home-hero-image-fallback{position:absolute;inset:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:8px;padding:24px;color:var(--ui-heading);font-size:13px;line-height:20px}
 .home-hero-image-fallback strong{font-size:20px;line-height:28px}
 .home-header-slot {
-  position: sticky;
-  top: 0;
-  z-index: 5;
   flex: none;
-  min-height: calc(var(--brand-safe-top) + var(--brand-expanded-body));
+  min-height: var(--brand-header-height);
   pointer-events: none;
 }
 .home-brand-header {
-  position: relative;
-  padding: var(--brand-safe-top) var(--home-page-inset) 4px;
-  color: var(--ui-heading);
-  background: var(--brand-header-fill);
   pointer-events: auto;
 }
-.home-brand-header[data-over-content="true"] {
-  background: var(--ui-masthead-fill);
-  -webkit-backdrop-filter: var(--ui-masthead-filter);
-  backdrop-filter: var(--ui-masthead-filter);
-  box-shadow: 0 3px 8px -4px rgb(32 56 88 / .18);
+.home-brand-header .home-brand-mascot {
+  inset-inline-end: calc(var(--brand-page-inset) + 36px);
 }
-.home-brand-mascot {
-  position: absolute;
-  right: calc(var(--home-page-inset) + 36px);
-  bottom: 0;
-  width: min(163px, 40%);
-  aspect-ratio: 163 / 89;
-  overflow: hidden;
-  pointer-events: none;
-}
-.home-brand-mascot img { display: block; width: 100%; height: auto; }
 .home-brand-row, .home-brand-row h1 { display: flex; align-items: center; }
 .home-brand-row { justify-content: space-between; min-height: 44px; }
-.home-brand-row h1 { gap: 7px; margin: 0; font-size: 17px; line-height: 24px; font-weight: 600; }
+.home-brand-row h1 { gap: 7px; }
 .home-brand-mark { display: grid; place-items: center; width: 23px; height: 23px; border-radius: 6px; background: #fff; }
 .home-brand-mark img { display: block; width: 15px; height: auto; }
 .home-brand-tagline {
@@ -143,6 +123,7 @@
 .home-page .unavailable-tool{color:#8893a3;opacity:1}
 .home-page .unavailable-tool .tool-icon{--tool-icon-light:#edf0f4;--tool-icon-accent:#a6b0bf;color:#a6b0bf}
 
-.home-page .home-recommend { display:inline-flex; align-items:center; justify-content:center; padding:1px 4px; border-radius:4px; background:#fff0f1; color:#a22636; font-size:10px; font-weight:600; line-height:14px; white-space:nowrap; pointer-events:none; }
+.home-page .home-recommend,
+.collection-shoot-actions .collection-shoot-recommend { display:inline-flex; align-items:center; justify-content:center; padding:1px 4px; border-radius:4px; background:#fff0f1; color:#a22636; font-size:10px; font-weight:600; line-height:14px; white-space:nowrap; pointer-events:none; }
 .home-page .utility-item-icon .home-recommend { position:absolute; top:-3px; left:calc(50% + 5px); }
 .home-page .home-keepsake-entry .home-collection-caption { display:flex; flex-direction:row; gap:5px; align-items:center; }

@@ -510,7 +510,9 @@ registerController("albumCenter", () => ({
     );
   },
   rememberScroll() {
-    if (this.view === "library" && this.$refs.finishedLibraryGrid) this.scrollPositions.library = this.$refs.finishedLibraryGrid.scrollTop;
+    const library = this.$refs.finishedLibraryScroll;
+    if (this.view === "library" && this.space === "mine" && library)
+      this.scrollPositions.library = library.scrollTop;
   },
   syncLocation(event) {
     const query = new URLSearchParams(location.search);
@@ -554,11 +556,11 @@ registerController("albumCenter", () => ({
     this.$nextTick(() => {
       const surface =
         this.view === "library"
-          ? this.$refs.finishedLibraryGrid
+          ? this.$refs.finishedLibraryScroll
           : this.$refs.albumScroll;
       if (surface && this.view==="library") surface.scrollTop = this.scrollPositions.library || 0;
       if (previousId && this.page==="album" && this.view==="library")
-        Array.from(this.$refs.finishedLibraryGrid?.querySelectorAll?.("[data-photo-id]") || []).find(el=>el.dataset.photoId===previousId)?.focus({preventScroll:true});
+        Array.from(this.$refs.finishedLibraryScroll?.querySelectorAll?.("[data-photo-id]") || []).find(el=>el.dataset.photoId===previousId)?.focus({preventScroll:true});
     });
     if (
       event?.type === "popstate" &&
@@ -579,7 +581,7 @@ registerController("albumCenter", () => ({
     url.searchParams.delete("upload");
     if (view === "detail") url.searchParams.set("album", "finished");
     else url.searchParams.delete("album");
-    ["tool", "view", "print", "order", "back", "space", "member", "doctype", "item", "sheet"].forEach((key) =>
+    ["tool", "view", "print", "order", "back", "space", "member", "group", "doctype", "item", "sheet"].forEach((key) =>
       url.searchParams.delete(key),
     );
     if (photoId) {

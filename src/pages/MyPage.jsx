@@ -15,6 +15,14 @@ export default function MyPage({ scope, args = [] }) {
           id="my-page"
           show={s.page === "my"}
           aria-label="我的"
+          events={[
+            {
+              type: "scroll",
+              self: true,
+              passive: true,
+              run: (scope) => scope.updateHeaderOverlap(),
+            },
+          ]}
           transition={{
             enter: "page-enter",
             start: "page-start",

@@ -109,8 +109,11 @@ test("all three entries count only owned non-fixture tasks and open the matching
   for (const category of ["graduate", "enrollment", "association"]) {
     const { s, flow } = setup(category);
     try {
-      assert.equal(s.categoryRecordCountLabel, "1 条");
+      assert.equal(s.categoryRecordSummary.count, 1);
       const projects = render(Projects, s);
+      assert.match(projects, /collection-themed-hero has-back is-compact/);
+      assert.ok(projects.includes(`aria-label="${s.categoryInfo.recordsTitle}，1 条"`));
+      assert.match(projects, /class="collection-record-count" aria-hidden="true">1<\/span>/);
       assert.ok(
         projects.indexOf('role="search"') <
           projects.indexOf("collection-record-entry"),
@@ -127,8 +130,10 @@ test("all three entries count only owned non-fixture tasks and open the matching
         [category],
       );
       const html = render(Records, s);
-      assert.ok(html.includes(s.categoryInfo.recordsTitle));
-      assert.doesNotMatch(html, /collection-record-statistics/);
+      assert.match(html, /collection-themed-hero has-back is-compact/);
+      assert.ok(html.includes(`<h1>${s.categoryInfo.recordsTitle}</h1>`));
+      assert.doesNotMatch(html, /进度追踪 · 照片归档|collection-record-statistics/);
+      assert.ok(html.indexOf("collection-themed-hero") < html.indexOf("collection-record-filters"));
       assert.ok(html.includes('data-record-id="' + category + '"'));
       assert.doesNotMatch(html, /data-record-id="(?:fixture|other-account)"/);
     } finally {

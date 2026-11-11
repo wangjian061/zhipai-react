@@ -105,15 +105,14 @@ const PhotoActionSheet=await compile("src/components/PhotoActionSheet.jsx","Phot
 const FamilyPhotoDetail = await compile("src/components/FamilyPhotoDetail.jsx", "FamilyPhotoDetail", {
   useEffect:React.useEffect, useState:React.useState, PhotoActionSheet,
 });
-const SpecificationIcon=await compile("src/components/SpecificationIcon.jsx","SpecificationIcon",{});
-const {AlbumDate,AlbumTabs,AlbumSpaces} = await compile("src/components/AlbumSpaces.jsx", "({AlbumDate,AlbumTabs,AlbumSpaces})", {
-  ...archiveDomain, PhotoDeleteDialog, SpecificationIcon, useArchiveZoom, ArchiveZoom, SharedSheet, albumDate, useState:React.useState, useRef:React.useRef, useEffect:React.useEffect, useLayoutEffect:React.useLayoutEffect, useCallback:React.useCallback,
+const {AlbumDate,AlbumTabs,AlbumLibraryCard,AlbumSpaces} = await compile("src/components/AlbumSpaces.jsx", "({AlbumDate,AlbumTabs,AlbumLibraryCard,AlbumSpaces})", {
+  ...archiveDomain, PhotoDeleteDialog, useArchiveZoom, ArchiveZoom, SharedSheet, albumDate, useState:React.useState, useRef:React.useRef, useEffect:React.useEffect, useLayoutEffect:React.useLayoutEffect, useCallback:React.useCallback,
 });
 let current;
 const AlbumPage = await compile("src/pages/AlbumPage.jsx", "AlbumPage", {
   View,
   Repeat,
-  PhotoDeleteDialog, PhotoActionSheet, AlbumPhotoViewer, AlbumDate, AlbumTabs, AlbumSpaces,
+  PhotoDeleteDialog, PhotoActionSheet, AlbumPhotoViewer, AlbumDate, AlbumTabs, AlbumLibraryCard, AlbumSpaces,
   formatCaptureDate,
   PhotoOperations: () => null,
   // This fixture has no paid unfinished results; recovery has separate domain tests.
@@ -216,6 +215,11 @@ test("clicking letterbox blank closes the viewer, actual photo content does not"
 test("the existing library opens on My; private spaces offer sign-in without rendering that grid", () => {
   const mine=renderPage(makeState());
   for(const label of ["我的照片","家人照片","证件照片"]) assert.ok(mine.includes(label));
+  assert.match(mine, /<nav class="album-tab-card album-space-tabs"[^>]*>.*<\/nav><section class="album-library-card"/);
+  assert.match(mine, /<h2 id="album-library-title">我的照片<\/h2><div class="album-library-actions"><button[^>]*>管理/);
+  const managing = renderPage(makeState({ managing: true, selected: [photo.id] }));
+  assert.doesNotMatch(managing, /album-tab-card/);
+  assert.match(managing, /已选择 1 张.*取消全选.*取消/);
   for(const space of ["family","documents"]) {
     const html=renderPage(makeState({space,archiveRoute:"page=album&space="+space,photo:null}));
     assert.match(html,/登录后查看/);
@@ -225,57 +229,100 @@ test("the existing library opens on My; private spaces offer sign-in without ren
   assert.match(html,/aria-label="添加日期 2026\/11\/05">2026\/11\/05<\/time>/);
 });
 
-test("document types expand in place; details expose only viewing and deletion with truthful counts", async () => {
+test("document folders count documents and sheets display document names without individual photo names", async () => {
   let injected = false;
-  let archive;
+  const front = { ...photo, id: "front", archiveName: "人像面" };
+  const back = { ...photo, id: "back", archiveName: "国徽面" };
+  const archive = {
+    members: [{ id: "mother", name: "妈妈", photos: [] }, { id: "father", name: "爸爸", photos: [] }],
+    documents: [
+      { id: "id-group", holderId: "mother", name: "身份证", photos: [front, back] },
+      { id: "trip-group", holderId: "mother", name: "旅行资料", photos: [{ ...front, id: "passport", archiveName: "资料页" }] },
+      { id: "old-group", holderId: "removed", holderNameSnapshot: "外婆", name: "医保卡", photos: [front] },
+    ],
+  };
   const Component = await compile("src/components/AlbumSpaces.jsx", "AlbumSpaces", {
-    ...archiveDomain, PhotoDeleteDialog, SpecificationIcon, useArchiveZoom, ArchiveZoom, SharedSheet, albumDate,
-    Portal: renderPortal, useRef:React.useRef, useEffect:React.useEffect,
-    useLayoutEffect:React.useLayoutEffect, useCallback:React.useCallback,
+    ...archiveDomain, PhotoDeleteDialog, useArchiveZoom, ArchiveZoom, SharedSheet, albumDate,
+    FamilyPhotoPicker: ({ member, multiple = true }) => React.createElement("p", { "data-multiple": String(multiple) }, member.name + "选图"),
+    getStore: () => ({ finished: [] }),
+    useRef: React.useRef, useEffect: React.useEffect,
+    useLayoutEffect: React.useLayoutEffect, useCallback: React.useCallback,
     useState(initial) {
-      if (!injected) { injected=true; return React.useState(archive); }
+      if (!injected) { injected = true; return React.useState(archive); }
       return React.useState(initial);
     },
   });
-  const doc={id:"document",type:"identity",holderId:"",front:{...photo,id:"front"},back:{...photo,id:"back"}};
-  const draw=(record,sheet="",detail=true)=>{
-    injected=false;
-    archive={members:[],documents:[record]};
-    return renderToStaticMarkup(React.createElement(Component,{owner:"owner",space:"documents",search:"?space=documents&doctype=identity"+(detail?"&item=document":"")+sheet}));
+  const draw = (params = "") => {
+    injected = false;
+    return renderToStaticMarkup(React.createElement(Component, {
+      owner: "owner", space: "documents", search: "?page=album&space=documents" + params,
+    }));
   };
-  const list=draw(doc,"",false);
-  assert.doesNotMatch(list,/role="dialog"|aria-label="返回"/);
-  assert.match(list,/本人 · 身份证/);
-  assert.equal((list.match(/aria-expanded="true"/g)||[]).length,1);
-  const complete=draw(doc);
-  for (const label of ["删除人像面","删除国徽面","删除整份证件"])
-    assert.ok(complete.includes(label),label);
-  assert.doesNotMatch(complete,/替换人像面|替换国徽面|补充人像面|补充国徽面/);
-  for (const type of archiveDomain.DOCUMENT_TYPES)
-    assert.ok(complete.includes(type.name), type.name);
-  assert.match(complete,/aria-expanded="true" aria-controls="archive-documents-identity"/);
-  assert.doesNotMatch(complete,/aria-label="返回"/);
-  assert.ok(complete.includes("2 张图片"));
-  const partial=draw({...doc,front:null});
-  assert.ok(partial.includes("未添加人像面"));
-  assert.ok(partial.includes("删除国徽面"));
-  assert.ok(partial.includes("1 张图片"));
-  assert.ok(!partial.includes("删除人像面"));
-  const oneSide=draw(doc,"&sheet=delete-front");
-  assert.ok(oneSide.includes('role="alertdialog"'));
-  assert.ok(oneSide.includes("删除人像面？"));
-  assert.ok(oneSide.includes("删除这一面"));
-  assert.ok(!oneSide.includes('id="archive-detail-title"'));
-  const lastSide=draw({...doc,back:null},"&sheet=delete-front");
-  assert.ok(lastSide.includes("这是最后一面图片，删除后将移除整份证件。"));
-  assert.ok(lastSide.includes("删除整份证件"));
+  const folders = draw();
+  assert.equal((folders.match(/class="archive-folder-tile"/g) || []).length, 4);
+  assert.equal((folders.match(/data-cover="document"/g) || []).length, 4);
+  assert.match(folders, /archive-document-placeholder/);
+  assert.doesNotMatch(folders, /photo-placeholder-silhouette/);
+  assert.match(folders, /本人.*0 份.*妈妈.*2 份.*爸爸.*外婆/);
+  assert.doesNotMatch(folders, /role="dialog"|data-document-type|删除证件/);
+  const documents = draw("&member=mother");
+  assert.equal((documents.match(/role="dialog"/g) || []).length, 1);
+  assert.match(documents, /id="document-groups-title">妈妈/);
+  assert.match(documents, /<h3>身份证<\/h3><div class="document-group-actions"><button[^>]*data-document-list-action="download:id-group"[^>]*aria-haspopup="dialog"[^>]*>下载<\/button><button[^>]*aria-label="身份证的操作"/);
+  assert.match(documents, /身份证.*archive-photo-grid.*第 2 张照片.*旅行资料.*archive-photo-grid.*添加证件/);
+  assert.doesNotMatch(documents, /照片组|人像面|国徽面|资料页|删除证件|修改证件名称|>替换</);
+  assert.match(draw("&member=father"), /还没有证件.*添加证件/);
+  assert.doesNotMatch(draw("&member=removed"), /添加证件/);
+  const management = draw("&sheet=manage");
+  assert.match(management, /管理家人相册.*data-archive-action="member"[^>]*>.*添加家人/);
+  assert.doesNotMatch(management, /data-archive-action="(?:edit|delete)-member:self"/);
+  assert.match(draw("&member=self"), /id="document-groups-title">本人.*还没有证件.*添加证件/);
+  const downloads = draw("&member=mother&group=id-group&sheet=download-group");
+  assert.match(downloads, /id="document-download-title">下载证件照片.*<h3[^>]*>身份证.*aria-label="下载第 1 张照片".*>下载<.*aria-label="下载第 2 张照片".*>下载</);
+  assert.doesNotMatch(downloads, /删除证件|修改证件名称|>替换</);
+  const add = draw("&member=mother&sheet=new-group");
+  assert.match(add, /data-multiple="true">妈妈选图/);
+  const groupMenu = draw("&member=mother&group=id-group&sheet=group-actions");
+  assert.match(groupMenu, /添加照片.*修改证件名称.*证件照片.*第 1 张.*第 2 张.*删除证件/);
+  assert.doesNotMatch(groupMenu, /人像面|国徽面|照片组/);
+  const photoMenu = draw("&member=mother&group=id-group&item=back&sheet=group-photo-actions");
+  assert.match(photoMenu, /id="document-photo-actions-title">照片操作.*下载.*替换.*删除照片/);
+  assert.doesNotMatch(photoMenu, /国徽面|重命名|<input/);
+  assert.match(draw("&member=mother&group=id-group&sheet=rename-group"), /修改证件名称.*<label>证件名称.*value="身份证"/);
+  assert.equal(draw("&member=mother&group=id-group&item=back&sheet=rename-group-photo"), photoMenu);
+  assert.match(draw("&member=mother&group=id-group&item=back&sheet=replace-group-photo"), /data-multiple="false">妈妈选图/);
+  const confirm = draw("&member=mother&group=trip-group&item=passport&sheet=delete-group-photo");
+  assert.match(confirm, /role="alertdialog".*最后一张照片.*移除这份证件.*删除证件/);
 });
 
+test("after photo selection only a new document has a name input", async () => {
+  let seeded = false;
+  const photos = [photo, { ...photo, id: "two", archiveName: "旧照片名称" }];
+  const Composer = await compile("src/components/AlbumSpaces.jsx", "DocumentGroupComposer", {
+    ...archiveDomain, SharedSheet,
+    useEffect: React.useEffect, useRef: React.useRef,
+    useState(initial) {
+      if (!seeded) { seeded = true; return React.useState(photos); }
+      return React.useState(initial);
+    },
+  });
+  const draw = (group) => {
+    seeded = false;
+    return renderToStaticMarkup(React.createElement(Composer, { group }));
+  };
+  const added = draw();
+  assert.equal((added.match(/<input/g) || []).length, 1);
+  assert.match(added, /添加证件.*证件名称（选填）.*已选 2 张照片.*继续添加照片.*>保存</);
+  assert.doesNotMatch(added, /照片名称|照片组|证件照\.jpg/);
+  const appended = draw({ name: "身份证", photos: [photo] });
+  assert.match(appended, /添加照片.*已选 2 张照片.*继续添加照片.*保存照片/);
+  assert.doesNotMatch(appended, /<input|照片名称/);
+});
 
 test("family list lives in one sheet; single photos keep the established facts/services/download layout", async () => {
   let injected = false, archive;
   const Component = await compile("src/components/AlbumSpaces.jsx", "AlbumSpaces", {
-    ...archiveDomain, PhotoDeleteDialog, FamilyPhotoDetail, SpecificationIcon,
+    ...archiveDomain, PhotoDeleteDialog, FamilyPhotoDetail,
     useArchiveZoom, ArchiveZoom, SharedSheet, albumDate,
     useRef:React.useRef, useEffect:React.useEffect, useLayoutEffect:React.useLayoutEffect, useCallback:React.useCallback,
     useState(initial) {
@@ -283,18 +330,26 @@ test("family list lives in one sheet; single photos keep the established facts/s
       return React.useState(initial);
     },
   });
-  const draw = (photos, suffix="") => {
+  const draw = (photos, suffix="", withMember=true) => {
     injected=false;
     archive={members:[{id:"member",name:"妈妈",photos}],documents:[]};
-    return renderToStaticMarkup(React.createElement(Component,{scope:{},owner:"owner",space:"family",search:"?space=family&member=member"+suffix}));
+    return renderToStaticMarkup(React.createElement(Component,{scope:{},owner:"owner",space:"family",search:"?space=family"+(withMember?"&member=member":"")+suffix}));
   };
   const member = draw([photo]);
   assert.match(member, /家人相册/);
+  assert.doesNotMatch(member, /class="archive-folder-document"/);
+  assert.match(member, /class="archive-folder-grid"/);
+  assert.equal((member.match(/class="archive-folder-tile"/g) || []).length, 1);
+  assert.match(member, /<strong>妈妈<\/strong><span>1 张<\/span>/);
   assert.match(member, /id="member-photos-title">妈妈/);
   assert.equal((member.match(/role="dialog"/g)||[]).length,1);
   assert.match(member, /archive-photo-grid/);
   assert.match(member, /添加照片/);
-  assert.match(draw([]), /还没有照片/);
+  const empty = draw([]);
+  assert.match(empty, /archive-folder-paper.*photo-placeholder-silhouette-20261106\.webp/);
+  assert.doesNotMatch(empty, /data-cover="document"|archive-document-placeholder/);
+  assert.match(empty, /<strong>妈妈<\/strong><span>空相册<\/span>/);
+  assert.match(empty, /还没有照片/);
   const detail = draw([photo], "&item=one");
   assert.doesNotMatch(detail, /id="member-photos-title"|archive-full-image/);
   for (const content of ["photo-action-summary", "sheet-photo-preview", "照片规格", "413 × 579 px", "精选服务", "下载电子照片", "删除照片"])
@@ -304,6 +359,24 @@ test("family list lives in one sheet; single photos keep the established facts/s
   assert.match(confirmation, /role="alertdialog"/);
   assert.match(confirmation, /原照片和其他家人的照片不会删除/);
   assert.doesNotMatch(confirmation, /photo-action-summary|archive-photo-grid/);
+
+  const photos = [photo, { ...photo, id: "two" }, { ...photo, id: "three" }, { ...photo, id: "four" }];
+  const list = draw(photos, "", false);
+  assert.equal((list.match(/class="archive-folder-paper"/g) || []).length, 3);
+  assert.doesNotMatch(list, /data-archive-action="member"/);
+  const management = draw(photos, "&sheet=manage", false);
+  assert.match(management, /id="album-archive-management-title">管理家人相册/);
+  for (const action of ["member", "edit-member:member", "delete-member:member"])
+    assert.ok(management.includes('data-archive-action="' + action + '"'));
+  const edit = draw(photos, "&sheet=edit-member");
+  assert.match(edit, /id="album-archive-form">编辑家人相册/);
+  assert.match(edit, /value="妈妈"/);
+  assert.doesNotMatch(edit, /id="member-photos-title"|证件类型/);
+  const remove = draw(photos, "&sheet=delete-member");
+  assert.match(remove, /「妈妈」相册及其中 4 张照片将被删除/);
+  assert.match(remove, /取消<\/button><button[^>]*>删除相册及照片<\/button>/);
+  assert.doesNotMatch(remove, /aria-label="关闭"|保留照片/);
+  assert.match(draw([], "&sheet=delete-member"), /<button[^>]*>删除相册<\/button>/);
 });
 
 test("unreadable personal photo keeps a direct delete action outside the services and original footer", () => {

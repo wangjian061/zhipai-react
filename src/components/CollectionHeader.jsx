@@ -1,11 +1,12 @@
 import React from "react";
 import { CollectionIcon } from "./CollectionHome.jsx";
-export default function CollectionHeader({ title, subtitle, image, onBack }) {
+export default function CollectionHeader({ title, subtitle, image, onBack, compact }) {
   return (
     <section
       className={
         "collection-home-hero collection-themed-hero" +
-        (onBack ? " has-back" : "")
+        (onBack ? " has-back" : "") +
+        (compact ? " is-compact" : "")
       }
     >
       {onBack && (
@@ -20,7 +21,7 @@ export default function CollectionHeader({ title, subtitle, image, onBack }) {
       <div className="collection-hero-row">
         <div className="collection-hero-copy">
           <h1>{title}</h1>
-          <p>{subtitle}</p>
+          {!compact && subtitle && <p>{subtitle}</p>}
         </div>
         <img className="collection-hero-art" src={image} alt="" />
       </div>

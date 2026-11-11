@@ -25,6 +25,7 @@ export default function CollectionRecords({ scope: s }) {
   return (
     <>
       <CollectionHeader
+        compact={s.scopedRecords}
         title={s.recordListTitle}
         subtitle="进度追踪 · 照片归档"
         image="assets/collection-icon-records.webp"

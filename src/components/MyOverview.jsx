@@ -58,7 +58,11 @@ export default function MyOverview({ scope: s }) {
   ];
   return (
     <div className="my-overview">
-      <section className="my-personal-hero" aria-label="个人账号">
+      <section
+        className="my-personal-hero brand-page-header brand-page-header--info brand-page-sticky"
+        data-over-content={s.headerOverContent}
+        aria-label="个人账号"
+      >
         <button
           className="my-profile-entry"
           onClick={() =>
@@ -72,20 +76,23 @@ export default function MyOverview({ scope: s }) {
             <Icon name="user" />
           </span>
           <span className="my-profile-copy">
-            <h1>{account.loggedIn ? account.masked : "登录 / 注册"}</h1>
-            <span>
+            <h1 className="brand-page-title">
+              {account.loggedIn ? account.masked : "登录 / 注册"}
+            </h1>
+            <span className="brand-page-caption">
               {account.loggedIn ? "账号安全" : "登录后管理个人服务"}
               <Icon name="chevron" />
             </span>
           </span>
         </button>
-        <img
-          className="my-personal-bear"
-          src="assets/bear-personal-center.png"
-          width="160"
-          height="170"
-          alt=""
-        />
+        <span className="brand-page-mascot" aria-hidden="true">
+          <img
+            src="assets/bear-personal-center.png"
+            width="1254"
+            height="1254"
+            alt=""
+          />
+        </span>
       </section>
       <div className="my-personal-content">
         <>

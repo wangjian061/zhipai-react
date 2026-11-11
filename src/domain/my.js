@@ -1,4 +1,5 @@
 import { createSharePoster, renderSharePoster } from "./share-poster.js";
+import { hasPageScrollOffset } from "./device-preview.js";
 import {
   registerController,
   registerStore,
@@ -107,6 +108,7 @@ registerStore("myUi", {
   opened: false,
 });
 registerController("myCenter", () => ({
+  headerOverContent: false,
   feedbackAttachments: [],
   feedbackReading: false,
   feedbackTask: 0,
@@ -141,10 +143,17 @@ registerController("myCenter", () => ({
       this.closePanel(false);
       this.notice = "";
       this.loadShareContext();
+      this.$nextTick(() => this.updateHeaderOverlap());
     };
     window.addEventListener("popstate", this.onRoute);
     window.addEventListener("zhipai-route", this.onRoute);
     this.loadShareContext();
+    this.$nextTick(() => this.updateHeaderOverlap());
+  },
+  updateHeaderOverlap() {
+    const viewport = this.$el;
+    if (this.page === "my" && this.myView === "overview" && viewport?.clientHeight)
+      this.headerOverContent = hasPageScrollOffset(viewport);
   },
   destroy() {
     window.removeEventListener("popstate", this.onRoute);

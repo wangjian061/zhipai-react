@@ -21,7 +21,7 @@ import {
   resolveCollectionCode,
   validateCollectionCodeFile,
 } from "./collection-code.js";
-import {shootingGuides, skipShootingGuide, rememberShootingGuide} from "./collection-shooting.js";
+import {shootingGuides, skipShootingGuide} from "./collection-shooting.js";
 import { uploadedPhoto, decodePhotoBlob, downloadAlbumBlob } from "./album.js";
 import { readCollectionQRCode } from "./scan.js";
 import {
@@ -38,6 +38,8 @@ import {
   isCollectionFinished,
 } from "./collection-status.js";
 // Roster, OCR, submission and review are replaceable prototype adapters. No institution, CHSI or review API is connected.
+const CAPTURE_METHODS = Object.freeze(["front", "rear", "album"]);
+const CAPTURE_UNAVAILABLE = "当前项目暂无可用采集方式。";
 const COLLECTION_BASE_PROJECTS = [
   {
     id: "enrollment",
@@ -463,7 +465,7 @@ registerController("collectionFlow", () => ({
   },
   panel: null,
   shootingMode: "",
-  skipShootingPrompt: false,
+  captureFileRequest: 0,
   method: "id",
   identity: {
     name: "",
@@ -591,11 +593,12 @@ registerController("collectionFlow", () => ({
   get scopedRecords() {
     return this.view === "records" && !!this.recordCategory;
   },
-  get categoryRecordCountLabel() {
-    if (!this.account.session) return "登录后查看";
-    if (this.recordsStore.error) return "读取失败";
-    if (!this.recordsStore.ready) return "读取中…";
-    return this.recordsInCategory(this.projectCategory).length + " 条";
+  get categoryRecordSummary() {
+    if (!this.account.session) return { count: null, label: "登录后查看" };
+    if (this.recordsStore.error) return { count: null, label: "读取失败" };
+    if (!this.recordsStore.ready) return { count: null, label: "读取中…" };
+    const count = this.recordsInCategory(this.projectCategory).length;
+    return { count, label: `${count} 条` };
   },
   get recordListTitle() {
     return this.categories.find(c => c.id === this.recordCategory)?.recordsTitle || "采集记录";
@@ -813,6 +816,10 @@ registerController("collectionFlow", () => ({
   },
   openPayment() {
     if (this.disabled || !this.needsPayment || !this.guardCollect()) return;
+    if (!this.captureMethods.length && this.current.payment?.status !== "verifying") {
+      this.error = CAPTURE_UNAVAILABLE;
+      return;
+    }
     this.paymentMethod = this.current.payment?.method || "wechat";
     this.openPanel("payment");
   },
@@ -1188,9 +1195,12 @@ registerController("collectionFlow", () => ({
     this.panel = null;
     const layer = history.state?.collectionCaptureLayer;
     if (layer?.record === this.recordId && this.canChooseCapture) {
-      this.shootingMode = layer.mode || "";
-      this.panel = layer.guide && shootingGuides[layer.mode] ? "shootingGuide" : "captureMethod";
-      this.skipShootingPrompt = false;
+      const methods = this.captureMethods;
+      this.shootingMode = methods.includes(layer.mode) ? layer.mode : "";
+      if (layer.guide && Object.hasOwn(shootingGuides, this.shootingMode))
+        this.panel = "shootingGuide";
+      else if (!layer.guide && methods.length > 1)
+        this.panel = "captureMethod";
     }
     const syncToken = this.task;
     this.$nextTick(() => {
@@ -1707,10 +1717,14 @@ registerController("collectionFlow", () => ({
   closePanel() {
     if (this.busy) return;
     if (["captureMethod","shootingGuide"].includes(this.panel)) {
-      this.skipShootingPrompt=false;
+      this.captureFileRequest++;
       if (history.state?.collectionCaptureLayer && typeof history.back === "function") {
         history.back();
-      } else this.panel=this.panel==="shootingGuide" ? "captureMethod" : null;
+      } else {
+        this.panel = this.panel === "shootingGuide" && this.captureMethods.length > 1
+          ? "captureMethod" : null;
+        if (!this.panel) this.$nextTick(() => this.previousFocus?.focus({preventScroll:true}));
+      }
       return;
     }
     this.releaseIdentity();
@@ -1981,25 +1995,40 @@ registerController("collectionFlow", () => ({
       this.error = "此记录用于展示状态，请返回项目创建本人的采集记录";
       return;
     }
-    if (!this.guardCollectionPayment()) return;
-    if (this.panel || !this.canChooseCapture) return;
+    if (this.panel) return;
+    const [method, alternative] = this.captureMethods;
+    if (!method) {
+      this.error = CAPTURE_UNAVAILABLE;
+      return;
+    }
+    if (!this.guardCollectionPayment() || !this.canChooseCapture) return;
     this.previousFocus = document.activeElement;
-    this.shootingMode = "";
-    this.setCaptureLayer(false);
+    if (!alternative && method === "album") {
+      this.chooseCaptureFile();
+      return;
+    }
+    this.shootingMode = alternative ? "" : method;
+    this.setCaptureLayer(!alternative);
+  },
+  get captureMethods() {
+    const configured = this.project?.captureMethods;
+    if (configured === undefined) return CAPTURE_METHODS;
+    return Array.isArray(configured)
+      ? CAPTURE_METHODS.filter((method) => configured.includes(method)) : [];
   },
   get canChooseCapture() {
     return this.isRecordView && !this.disabled && !!this.current && !this.current.fixture &&
       this.current.payment?.status === "paid" && this.canCollect && canEditCollectionPhoto(this.current.status);
   },
   setCaptureLayer(guide) {
-    this.skipShootingPrompt = false;
     this.error = "";
     const layer = { record:this.recordId, mode:this.shootingMode, guide };
     history.pushState({...history.state,collectionCaptureLayer:layer}, "", location.href);
     this.panel = guide ? "shootingGuide" : "captureMethod";
   },
   chooseShootingMode(mode) {
-    if (this.panel !== "captureMethod" || !this.canChooseCapture || !Object.hasOwn(shootingGuides,mode)) return;
+    if (this.panel !== "captureMethod" || !this.canChooseCapture ||
+        !Object.hasOwn(shootingGuides, mode) || !this.captureMethods.includes(mode)) return;
     this.shootingMode = mode;
     if (skipShootingGuide(mode)) this.launchCollectionCamera(mode);
     else {
@@ -2010,23 +2039,36 @@ registerController("collectionFlow", () => ({
   },
   acceptShootingGuide() {
     if (this.panel !== "shootingGuide" || !this.canChooseCapture) return;
-    if (this.skipShootingPrompt) rememberShootingGuide(this.shootingMode);
     this.launchCollectionCamera(this.shootingMode);
   },
+  get canChooseCaptureFile() {
+    const methods = this.captureMethods;
+    return this.canChooseCapture && methods.includes("album") &&
+      (this.panel === "captureMethod" || (!this.panel && methods.length === 1));
+  },
+  chooseCaptureFile() {
+    const input = this.$refs.collectionCaptureFile;
+    if (!input || !this.canChooseCaptureFile) return;
+    this.captureFileRequest++;
+    this.error = "";
+    input.click();
+  },
   async useCaptureFile(file) {
-    if (this.panel !== "captureMethod" || !this.canChooseCapture) return;
-    const record = this.recordId, token=this.task;
+    if (!this.canChooseCaptureFile) return;
+    const request = ++this.captureFileRequest;
+    const { recordId, task, panel } = this;
+    const isCurrent = () => this.captureFileRequest === request && this.task === task &&
+      this.recordId === recordId && this.panel === panel && this.canChooseCaptureFile;
     try {
       if (!file.size || file.size > 30*1048576 || !["image/jpeg","image/png","image/webp"].includes(file.type)) throw Error();
       const photo = await uploadedPhoto(file);
-      if (this.task === token && this.panel === "captureMethod" && this.recordId === record && this.canChooseCapture)
-        this.launchCollectionCamera("album",photo);
+      if (isCurrent()) this.launchCollectionCamera("album", photo);
     } catch {
-      if(this.task === token && this.panel === "captureMethod") this.error="照片无法读取，请选择30 MB以内的 JPG、PNG 或 WebP。";
+      if (isCurrent()) this.error = "照片无法读取，请选择30 MB以内的 JPG、PNG 或 WebP。";
     }
   },
   launchCollectionCamera(mode, photo=null) {
-    if(!this.canChooseCapture) return;
+    if (!this.canChooseCapture || !this.captureMethods.includes(mode)) return;
     const context={intent:"collectionCapture", recordId:this.current.id, captureMode:mode,
       returnTo:location.pathname+location.search};
     const state={...history.state};

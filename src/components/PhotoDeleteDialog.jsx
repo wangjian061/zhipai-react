@@ -3,7 +3,7 @@ import { Portal } from "../runtime/components.jsx";
 
 // The same confirmation and destructive-button treatment in all album spaces.
 export default function PhotoDeleteDialog({ title = "删除这张照片？", description,
-  confirmLabel = "确认删除", busy = false, unavailable = false, error,
+  confirmLabel = "确认删除", busy = false, unavailable = false, error, hideClose = false,
   onClose, onDelete, returnFocusRef, returnFocusSelector = "[data-photo-delete]" }) {
   const ref = useRef(null);
   useEffect(() => {
@@ -29,9 +29,9 @@ export default function PhotoDeleteDialog({ title = "删除这张照片？", des
     <div className="album-overlay" onClick={event => { if (!busy && event.target === event.currentTarget) onClose(); }}>
       <section ref={ref} tabIndex={-1} className="album-dialog" role="alertdialog" aria-modal="true"
         aria-labelledby="photo-delete-title" aria-describedby="photo-delete-description" aria-busy={busy} onKeyDown={trap}>
-        <button type="button" className="dialog-close" aria-label="关闭" disabled={busy} onClick={onClose}>
+        {!hideClose && <button type="button" className="dialog-close" aria-label="关闭" disabled={busy} onClick={onClose}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
-        </button>
+        </button>}
         <h2 id="photo-delete-title">{title}</h2>
         <p id="photo-delete-description" className="dialog-description">{description}</p>
         {error && <div role="alert" className="album-error">{error}</div>}

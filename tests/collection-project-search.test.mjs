@@ -98,13 +98,12 @@ test("all three category lists keep their header, unsearched projects and catego
       assert.equal(s.isProjectSearch, false);
       const html = render(s);
       assert.ok(html.includes("collection-category-page"));
-      assert.match(html, /collection-record-entry/);
-      assert.ok(html.includes(s.categoryInfo.recordsTitle));
-      assert.match(html, /登录后查看/);
-      assert.ok(html.indexOf('role="search"') < html.indexOf("collection-record-entry"));
+      assert.match(html, /class="collection-category-actions"><div role="search">.*?<\/div><button[^>]*class="collection-record-entry"[^>]*><img[^>]*width="20"[^>]*><span>采集记录<\/span><\/button><\/div>/);
+      assert.ok(html.includes(`aria-label="${s.categoryInfo.recordsTitle}，登录后查看"`));
       assert.ok(html.indexOf("collection-record-entry") < html.indexOf("采集项目</h2>"));
-      assert.ok(html.indexOf('role="search"') < html.indexOf("采集项目</h2>"));
       assert.ok(html.includes("collection-home-hero"));
+      assert.ok(html.includes(`<h1>${s.categoryInfo.name}</h1>`));
+      assert.ok(!html.includes(s.categoryInfo.subtitle));
       assert.ok(!html.includes('class="collection-project-search"'));
       assert.ok(s.projectsShown.length > 0);
       assert.ok(s.projectsShown.every((project) => project.type === category));
@@ -271,17 +270,22 @@ test("category browsing remains available while its personal-record count repres
     for (const [ready,error] of [[false,""],[true,"读取错误"],[true,""]]) {
       records.ready=ready; records.error=error;
       const html=render(s);
-      assert.match(html,/collection-record-entry|登录后查看/);
-      assert.doesNotMatch(html,/读取失败|读取中/);
-      assert.match(html,/采集项目/);
+      assert.match(html, /aria-label="新生采集记录，登录后查看"/);
+      assert.doesNotMatch(html, /collection-record-count|读取失败|读取中/);
+      assert.match(html, /采集项目/);
     }
     getStore("account").session={phone:"count-test"};
-    records.ready=false; records.error="";
-    assert.match(render(s),/读取中…/);
-    records.error="failed";
-    assert.match(render(s),/读取失败/);
+    for (const [error, label] of [["", "读取中…"], ["failed", "读取失败"]]) {
+      records.ready = false;
+      records.error = error;
+      const html = render(s);
+      assert.ok(html.includes(`aria-label="新生采集记录，${label}"`));
+      assert.doesNotMatch(html, /collection-record-count/);
+    }
     records.ready=true; records.error="";
-    assert.match(render(s),/0 条/);
+    const empty = render(s);
+    assert.match(empty, /aria-label="新生采集记录，0 条"/);
+    assert.match(empty, /class="collection-record-count" aria-hidden="true">0<\/span>/);
     current=new URL("/?page=collection&view=records&category=enrollment",current);
     s.sync();
     assert.equal(s.scopedRecords,true);

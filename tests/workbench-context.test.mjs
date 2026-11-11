@@ -209,30 +209,56 @@ test("print layout preview keeps its page document and points to the preview sec
 });
 
 test("archive form routing exposes the page guide without member or document IDs",()=>{
-  for (const [space,sheet,section] of [["family","member","家人照片"],["documents","document","证件照片"]]) {
+  for (const [space,sheet,section] of [["family","member","家人照片"],["documents","new-group","证件照片"]]) {
     const c=resolve("?page=album&space="+space+"&sheet="+sheet+"&member=private-id");
     assert.equal(c.section,section);
     assert.ok(!c.address.includes("private-id"));
   }
 });
 
-test("archive member list, established photo detail and delete confirmation have matching documentation", () => {
-  const documents=resolve("?page=album&space=documents&doctype=identity");
-  assert.equal(documents.guide,"album.library");
-  assert.equal(documents.state,"证件类型展开");
-  assert.equal(documents.section,"证件照片");
-  const list = resolve("?page=album&space=family&member=private-member");
+test("archive management sheets show their own operation and stay in the library guide", () => {
+  for (const [space, sheet, member, label, section] of [
+    ["family", "manage", "", "管理家人相册", "家人照片"],
+    ["family", "edit-member", "private-member", "编辑家人相册", "家人照片"],
+    ["family", "delete-member", "private-member", "删除家人相册", "家人照片"],
+    ["documents", "manage", "", "管理家人相册", "家人照片"],
+  ]) {
+    const c = resolve("?page=album&space=" + space + "&sheet=" + sheet + (member ? "&member=" + member : ""));
+    assert.equal(c.guide, "album.library");
+    assert.equal(c.state, label);
+    assert.equal(c.section, section);
+    assert.ok(!c.address.includes("private-member"));
+  }
+});
+
+test("archive lists, document operations and family details open the matching documentation", () => {
+  const documents = resolve("?page=album&space=documents&member=private-holder");
+  assert.equal(documents.guide, "album.library");
+  assert.equal(documents.state, "证件列表");
+  assert.equal(documents.section, "证件照片");
+  const groupPath = "?page=album&space=documents&member=private-holder&group=private-group&item=private-photo";
+  const download = resolve(groupPath + "&sheet=download-group");
+  assert.equal(download.guide, "album.library");
+  assert.equal(download.state, "下载证件照片");
+  assert.equal(download.section, "下载证件照片");
+  assert.ok(!download.address.includes("private-"));
+  for (const [sheet, state] of [["group-photo-actions", "照片操作"], ["rename-group-photo", "照片操作"], ["rename-group", "修改证件名称"], ["delete-group-photo", "删除证件照片"]]) {
+    const context = resolve(groupPath + "&sheet=" + sheet);
+    assert.equal(context.guide, "album.library");
+    assert.equal(context.state, state);
+    assert.equal(context.section, "证件操作");
+    assert.ok(!context.address.includes("private-"));
+  }
+  const listPath = "?page=album&space=family&member=private-member";
+  const list = resolve(listPath);
   assert.equal(list.guide, "album.library");
   assert.equal(list.state, "家人照片列表");
   assert.equal(list.section, "家人照片");
-  for (const space of ["family", "documents"]) {
-    const path = "?page=album&space=" + space + "&member=private-member&doctype=identity&item=private-photo";
-    const detail = resolve(path);
-    assert.equal(detail.guide, "album.detail");
-    assert.equal(detail.section, space === "family" ? "照片信息" : "证件图片管理");
-    const deletion = resolve(path + "&sheet=delete-" + (space === "family" ? "photo" : "front"));
-    assert.equal(deletion.guide, "album.detail");
-    assert.equal(deletion.section, space === "family" ? "删除照片" : "证件图片管理");
-    assert.ok(!deletion.address.includes("private-"));
-  }
+  const detail = resolve(listPath + "&item=private-photo");
+  assert.equal(detail.guide, "album.detail");
+  assert.equal(detail.section, "照片信息");
+  const deletion = resolve(listPath + "&item=private-photo&sheet=delete-photo");
+  assert.equal(deletion.guide, "album.detail");
+  assert.equal(deletion.section, "删除照片");
+  assert.ok(!deletion.address.includes("private-"));
 });

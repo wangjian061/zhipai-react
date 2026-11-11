@@ -4,6 +4,7 @@
   --ui-body:#53637b;
   --ui-muted:#73849a;
   --ui-canvas:#f5f7fb;
+  --brand-canvas:#f1f5fd;
   --ui-card-radius:16px;
   --ui-button-height:48px;
   --ui-button-radius:14px;
@@ -16,7 +17,7 @@
   --card-shadow:var(--ui-card-shadow);
 }
 
-/* The order masthead and full-height home header share the same glass and opaque fallback. */
+/* Order and sticky brand headers share the same glass and opaque fallback. */
 :root {
   --ui-masthead-fill: #edf3ff;
   --ui-masthead-filter: none;
@@ -33,13 +34,75 @@
 @media (prefers-reduced-transparency: reduce) {
   :root { --ui-masthead-fill: #edf3ff; --ui-masthead-filter: none; }
 }
-.home-page, .my-overview {
+.collection-themed-hero.is-compact,
+.home-page,
+.album-page[data-view="library"],
+.my-page {
   --brand-safe-top: var(--device-status-height, env(safe-area-inset-top, 0px));
   --brand-expanded-body: 92px;
-  --brand-canvas: #f1f5fd;
+  --brand-header-height: calc(var(--brand-safe-top) + var(--brand-expanded-body));
+  --brand-page-inset: 16px;
+  --brand-mascot-width: min(163px, 40%);
   --brand-header-fill:
     linear-gradient(to bottom, transparent 58%, var(--brand-canvas)),
     radial-gradient(ellipse 65% 76% at 37% 31%, rgb(155 203 255 / .55), transparent),
     radial-gradient(ellipse 20% 45% at 100% 66%, rgb(211 200 255 / .30), transparent),
     linear-gradient(to bottom, #cfe0ff, var(--brand-canvas));
+}
+
+.brand-page-header {
+  position: relative;
+  flex: none;
+  min-height: var(--brand-header-height);
+  padding: var(--brand-safe-top) var(--brand-page-inset) 4px;
+  color: var(--ui-heading);
+  background: var(--brand-header-fill);
+}
+.brand-page-sticky {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 5;
+}
+.brand-page-header[data-over-content="true"] {
+  background: var(--ui-masthead-fill);
+  -webkit-backdrop-filter: var(--ui-masthead-filter);
+  backdrop-filter: var(--ui-masthead-filter);
+  box-shadow: 0 3px 8px -4px rgb(32 56 88 / .18);
+}
+.brand-page-title {
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.brand-page-caption {
+  margin-block-start: 2px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--ui-body);
+}
+.brand-page-mascot {
+  position: absolute;
+  inset-inline-end: var(--brand-page-inset);
+  inset-block-end: 0;
+  width: var(--brand-mascot-width);
+  aspect-ratio: 163 / 89;
+  overflow: hidden;
+  pointer-events: none;
+}
+.brand-page-mascot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.brand-page-header--info {
+  /* These two mascot assets have less transparent padding than the home art. */
+  --brand-info-mascot-scale: .78;
+  padding-block-start: calc(var(--brand-safe-top) + 10px);
+  padding-inline-end: calc(
+    var(--brand-page-inset) + var(--brand-mascot-width) * var(--brand-info-mascot-scale) + 8px
+  );
+}
+.brand-page-header--info .brand-page-mascot img {
+  width: calc(100% * var(--brand-info-mascot-scale));
+  margin-inline: auto;
 }

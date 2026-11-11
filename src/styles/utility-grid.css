@@ -20,6 +20,9 @@
 .utility-grid[data-columns="3"] {
   --utility-columns: 3;
 }
+.utility-grid[data-columns="2"] {
+  --utility-columns: 2;
+}
 .utility-grid > .utility-grid-item {
   display: flex;
   flex-direction: column;
@@ -40,11 +43,13 @@
   text-align: center;
   overflow-wrap: anywhere;
 }
-.utility-grid:not([data-columns="3"]) > .utility-grid-item:not(:nth-child(4n)),
+.utility-grid:not([data-columns="2"], [data-columns="3"]) > .utility-grid-item:not(:nth-child(4n)),
+.utility-grid[data-columns="2"] > .utility-grid-item:not(:nth-child(2n)),
 .utility-grid[data-columns="3"] > .utility-grid-item:not(:nth-child(3n)) {
   border-inline-end: 1px solid var(--utility-divider);
 }
-.utility-grid:not([data-columns="3"]) > .utility-grid-item:nth-child(n + 5),
+.utility-grid:not([data-columns="2"], [data-columns="3"]) > .utility-grid-item:nth-child(n + 5),
+.utility-grid[data-columns="2"] > .utility-grid-item:nth-child(n + 3),
 .utility-grid[data-columns="3"] > .utility-grid-item:nth-child(n + 4) {
   border-block-start: 1px solid var(--utility-divider);
 }

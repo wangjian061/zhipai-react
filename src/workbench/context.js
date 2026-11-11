@@ -174,7 +174,7 @@ export function resolveWorkbenchContext(
       if (scope?.panel === "serviceHelp")
         state = "采集帮助 · " + (scope.helpArticle?.title || "帮助内容");
     }
-    panel = ({captureMethod:"人像采集",shootingGuide:"拍摄指引"})[scope?.panel] || scope?.panel || "";
+    panel = ({captureMethod:"请选择采集方式",shootingGuide:"拍摄准备"})[scope?.panel] || scope?.panel || "";
   } else if (page === "account") {
     scope = scopes.accountFlow;
     const view = scope?.view || q.get("account") || "welcome";
@@ -299,23 +299,45 @@ export function resolveWorkbenchContext(
     panel = ({ album: "选择照片", keepsakeCrop: "调整构图" })[scope?.panel] || scope?.panel || "";
   } else if (page === "album") {
     scope = scopes.albumCenter;
+    const space = scope?.space || q.get("space");
+    const sheet = q.get("sheet");
     guide =
-      scope?.view === "detail" || q.has("photo") || (q.has("item") && ["family", "documents"].includes(q.get("space")))
+      scope?.view === "detail" || q.has("photo") || (space === "family" && q.has("item"))
         ? "album.detail"
         : "album.library";
-    const space = scope?.space || q.get("space");
     title = guide === "album.detail" ? "照片详情" :
       ({family:"知拍相册 · 家人照片", documents:"知拍相册 · 证件照片"})[space] || "知拍相册";
     source = "";
     panel = scope?.previewHistoryId ? "preview" : scope?.modal || "";
     if (guide==="album.detail" && !panel) panel="照片详情";
-    if (q.has("item") && ["family","documents"].includes(space)) panel=space==="family" ? "家人照片详情" : "证件详情";
+    if (space === "family" && q.has("item")) panel = "家人照片详情";
     if (space === "family" && q.has("member") && !q.has("item")) panel = "家人照片列表";
-    if (space === "family" && q.get("sheet") === "member") panel = "添加家人";
-    if (space === "family" && q.get("sheet") === "photos") panel = "添加照片";
-    if (space === "documents" && q.get("sheet") === "document") panel = "添加证件";
-    if (space === "documents" && q.has("doctype") && !q.has("item") && !q.has("sheet")) panel = "证件类型展开";
-    if (q.get("sheet")?.startsWith("delete-")) panel = space === "documents" ? "删除证件" : "删除照片";
+    if (space === "family" || space === "documents") {
+      panel = ({
+        manage: "管理家人相册",
+        member: "添加家人",
+        "edit-member": "编辑家人相册",
+        "delete-member": "删除家人相册",
+        photos: "添加照片",
+        "delete-photo": "删除照片",
+      })[sheet] || panel;
+    }
+    if (space === "documents") {
+      if (q.has("member") && !sheet) panel = "证件列表";
+      panel = ({
+        "new-group": "添加证件",
+        "append-group": "添加证件照片",
+        "pick-group-photos": "继续添加照片",
+        "download-group": "下载证件照片",
+        "group-actions": "证件操作",
+        "group-photo-actions": "照片操作",
+        "rename-group": "修改证件名称",
+        "rename-group-photo": "照片操作",
+        "replace-group-photo": "替换照片",
+        "delete-group": "删除证件",
+        "delete-group-photo": "删除证件照片",
+      })[sheet] || panel;
+    }
     state = scope?.previewHistoryId
       ? "放大查看"
       : scope?.managing
@@ -485,9 +507,10 @@ export function sectionFor(context) {
         ? "照片来源"
         : "付款与恢复";
   if (page === "album") {
-    if (["添加家人", "添加照片", "家人照片列表"].includes(panel)) return "家人照片";
-    if (["添加证件", "证件类型展开"].includes(panel)) return "证件照片";
-    if (["证件详情", "删除证件"].includes(panel)) return "证件图片管理";
+    if (["管理家人相册", "添加家人", "编辑家人相册", "删除家人相册", "添加照片", "家人照片列表"].includes(panel)) return "家人照片";
+    if (["证件列表", "添加证件", "添加证件照片", "继续添加照片"].includes(panel)) return "证件照片";
+    if (panel === "下载证件照片") return "下载证件照片";
+    if (["证件操作", "照片操作", "修改证件名称", "替换照片", "删除证件", "删除证件照片"].includes(panel)) return "证件操作";
     if (["delete", "删除照片"].includes(panel)) return guide === "album.detail" ? "删除照片" : "管理与删除";
     return panel === "preview" ? "照片预览" : "照片信息";
   }

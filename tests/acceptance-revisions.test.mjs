@@ -421,7 +421,7 @@ test("help search keeps the chosen FAQ category, submits in place, clears and re
   } finally {c.stop();}
 });
 
-test("paid capture guide opt-outs are per lens, never saved by Back; file selection bypasses both guides",async()=>{
+test("paid capture guide honors existing opt-outs per lens, Back restores the picker, and album bypasses the guide",async()=>{
   const c=collection("/?page=collection&view=detail&project=enrollment&record=test"),s=c.scope;
   const records=getStore("collectionRecords"), account=getStore("account");
   const {skipShootingGuide}=await import("../src/domain/collection-shooting.js");
@@ -429,21 +429,128 @@ test("paid capture guide opt-outs are per lens, never saved by Back; file select
   await settle();
   const modes=[];window.addEventListener("zhipai-camera-intent",e=>modes.push(e.detail.captureMode));
   root.scope.go=()=>{};
+  const storage = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  const preferences = new Map();
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: { getItem: (key) => preferences.get(key) ?? null },
+  });
   try {
-    await s.capture();s.chooseShootingMode("front");s.skipShootingPrompt=true;s.closePanel();
+    await s.capture();s.chooseShootingMode("front");s.closePanel();
     assert.equal(s.panel,"captureMethod");assert.equal(skipShootingGuide("front"),false);
     s.chooseShootingMode("front");s.acceptShootingGuide();
     await s.capture();s.chooseShootingMode("front");assert.equal(s.panel,"shootingGuide");
-    s.skipShootingPrompt=true;s.acceptShootingGuide();
-    await s.capture();s.chooseShootingMode("front");assert.equal(s.panel,null);
+    s.closePanel();
+    preferences.set("zhipai.collection.shooting-guide.v1.front","1");
+    s.chooseShootingMode("front");assert.equal(s.panel,null);
     await s.capture();s.chooseShootingMode("rear");assert.equal(s.panel,"shootingGuide");
     history.back();assert.equal(s.panel,"captureMethod");
     await s.useCaptureFile(new File(["bad"],"bad.txt",{type:"text/plain"}));
     assert.equal(s.panel,"captureMethod");assert.match(s.error,/照片无法读取/);
     globalThis.Image=class {naturalWidth=80;naturalHeight=100;async decode(){}};
     await s.useCaptureFile(new File(["mock pixels"],"test.jpg",{type:"image/jpeg"}));
-    assert.deepEqual(modes,["front","front","front","album"]);assert.equal(skipShootingGuide("rear"),false);
-  } finally {c.stop();}
+    assert.deepEqual(modes,["front","front","album"]);assert.equal(skipShootingGuide("rear"),false);
+  } finally {
+    if (storage) Object.defineProperty(globalThis, "localStorage", storage);
+    else delete globalThis.localStorage;
+    c.stop();
+  }
+});
+
+test("configured capture methods filter the picker and a single lens opens only the guide", async () => {
+  const c = collection("/?page=collection&view=detail&project=enrollment&record=test");
+  const s = c.scope;
+  const account = getStore("account");
+  const records = getStore("collectionRecords");
+  account.session = { phone: "13800000001" };
+  records.items = [{ id: "test", owner: account.session.phone, projectId: "enrollment", status: "pending", payment: { status: "paid" } }];
+  const configure = (captureMethods) => {
+    s.projects = s.projects.map((project) => project.id === "enrollment"
+      ? { ...project, captureMethods } : project);
+  };
+  try {
+    await settle();
+    assert.deepEqual([...s.captureMethods], ["front", "rear", "album"]);
+    configure(["album", "front", "front", "unknown"]);
+    assert.deepEqual([...s.captureMethods], ["front", "album"]);
+    await s.capture();
+    assert.equal(s.panel, "captureMethod");
+    s.chooseShootingMode("rear");
+    assert.equal(s.panel, "captureMethod");
+    s.chooseShootingMode("front");
+    assert.equal(s.panel, "shootingGuide");
+    history.back();
+    assert.equal(s.panel, "captureMethod");
+    assert.equal(s.shootingMode, "front");
+    history.back();
+    assert.equal(s.panel, null);
+
+    configure(["rear"]);
+    const taskIndex = index;
+    await s.capture();
+    assert.equal(s.panel, "shootingGuide");
+    assert.equal(s.shootingMode, "rear");
+    assert.equal(index, taskIndex + 1);
+    s.closePanel();
+    assert.equal(index, taskIndex);
+    assert.equal(s.panel, null);
+
+    configure([]);
+    await s.capture();
+    assert.equal(s.panel, null);
+    assert.equal(s.error, "当前项目暂无可用采集方式。");
+  } finally {
+    c.stop();
+  }
+});
+
+test("album-only capture uses the system picker directly and ignores a stale file read", async () => {
+  const c = collection("/?page=collection&view=detail&project=enrollment&record=test");
+  const s = c.scope;
+  const account = getStore("account");
+  account.session = { phone: "13800000001" };
+  getStore("collectionRecords").items = [{ id: "test", owner: account.session.phone, projectId: "enrollment", status: "pending", payment: { status: "paid" } }];
+  s.projects = s.projects.map((project) => project.id === "enrollment"
+    ? { ...project, captureMethods: ["album"] } : project);
+  let opens = 0;
+  c.refs.collectionCaptureFile = { click() { opens++; } };
+  const modes = [];
+  window.addEventListener("zhipai-camera-intent", (event) => modes.push(event.detail.captureMode));
+  const originalImage = globalThis.Image;
+  const photo = new File(["mock pixels"], "test.jpg", { type: "image/jpeg" });
+  try {
+    await settle();
+    await s.capture();
+    assert.equal(opens, 1);
+    assert.equal(s.panel, null);
+    assert.equal(history.length, 1);
+    await s.useCaptureFile(new File(["bad"], "bad.txt", { type: "text/plain" }));
+    assert.match(s.error, /照片无法读取/);
+
+    await s.capture();
+    assert.equal(s.error, "");
+    let finishRead;
+    globalThis.Image = class {
+      naturalWidth = 80;
+      naturalHeight = 100;
+      decode() { return new Promise((resolve) => { finishRead = resolve; }); }
+    };
+    const stale = s.useCaptureFile(photo);
+    await s.capture();
+    finishRead();
+    await stale;
+    assert.equal(opens, 3);
+    assert.deepEqual(modes, []);
+
+    globalThis.Image = class { naturalWidth = 80; naturalHeight = 100; async decode() {} };
+    await s.useCaptureFile(photo);
+    assert.deepEqual(modes, ["album"]);
+    assert.equal(s.panel, null);
+  } finally {
+    if (originalImage) globalThis.Image = originalImage;
+    else delete globalThis.Image;
+    c.stop();
+  }
 });
 
 test("camera framing only passes a single in-frame subject; front captures when eligible and rear waits for its shutter",async()=>{

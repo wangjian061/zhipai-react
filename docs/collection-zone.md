@@ -1,6 +1,10 @@
 # 专项采集专区
 
-2026-11-06最新要求：分类项目页搜索下恢复本人本类采集记录入口及真实条数，分别进入毕业生、新生、其它采集记录页，任务返回恢复原筛选与位置。项目「当前采集任务」和通知保持。旧混合专区及无类别总记录入口不恢复，旧地址按有效类别或首页兜底。以下涉及旧专区导航和混合统计的内容保留为实施历史；当前交付以[分类项目](product/pages/collection.projects.md)、[项目详情](product/pages/collection.project.md)、[任务详情](product/pages/collection.detail.md)为准。
+2026-11-10确认三类项目页使用紧凑头部，左侧返回、分类标题相对屏幕居中、右侧为原有插画。搜索框右侧同排放置「采集记录」，按钮内带档案图标和本人的本类记录数量。高度与排版见[分类主题头部](product/pages/collection.projects.md#分类主题头部)。
+
+三类采集记录页沿用同一紧凑页头，居中展示记录页标题，右侧缩小档案插画，进度筛选和记录列表随页头上移。见[采集记录](product/pages/collection.records.md#头部与范围)。
+
+2026-11-06恢复三个分类的本人记录入口，任务返回恢复原筛选与位置。项目「当前采集任务」和通知继续用于续办。旧混合专区及无类别总记录入口不恢复，旧地址按有效类别或首页兜底。以下旧专区导航和混合统计为实施历史。当前交付以[分类项目](product/pages/collection.projects.md)、[项目详情](product/pages/collection.project.md)、[任务详情](product/pages/collection.detail.md)为准。
 
 
 日期：2026-10-14。实施目录为 `zhipai-react`，本地端口 4180。原项目和已发布站点未改动。

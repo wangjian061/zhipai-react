@@ -9,6 +9,7 @@ import {
 import { LiquidTabIndicator } from "../src/domain/liquid-tabs.js";
 import { createController } from "../src/runtime/state.js";
 await import("../src/domain/app.js");
+await import("../src/domain/my.js");
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} != ${b}`);
 test("phone body proportions and OS-safe dimensions stay correct", () => {
   assert.equal(phone.screenWidth * 3, 1206);
@@ -182,6 +183,41 @@ test("navigation backing clears on reverse scroll, route exit and missing geomet
     globalThis.requestAnimationFrame = old;
   }
 });
+test("the profile header tracks overlap in its own overview and remeasures on return", () => {
+  const route = { page: "my", myView: "overview" };
+  const account = createController("myCenter", [], route);
+  const viewport = { clientHeight: 874, scrollHeight: 1200, scrollTop: 0 };
+  account.setElement(viewport);
+  for (const [offset, height, overContent] of [
+    [0, 1200, false],
+    [0.5, 1200, true],
+    [100, 1200, true],
+    [40, 1200, true],
+    [0, 1200, false],
+    [-8, 1200, false],
+    [12, 874, false],
+    [40, 1200, true],
+  ]) {
+    viewport.scrollTop = offset;
+    viewport.scrollHeight = height;
+    account.scope.updateHeaderOverlap();
+    assert.equal(account.scope.headerOverContent, overContent);
+    assert.equal(viewport.scrollTop, offset);
+  }
+
+  viewport.scrollTop = 0;
+  route.myView = "share";
+  account.scope.updateHeaderOverlap();
+  assert.equal(account.scope.headerOverContent, true);
+  route.myView = "overview";
+  route.page = "album";
+  account.scope.updateHeaderOverlap();
+  assert.equal(account.scope.headerOverContent, true);
+  route.page = "my";
+  account.scope.updateHeaderOverlap();
+  assert.equal(account.scope.headerOverContent, false);
+});
+
 test("full-bleed page hosts use fixed transparent OS chrome with protected controls and drawers", () => {
   const shell = fs.readFileSync("src/components/AppShell.jsx", "utf8");
   assert.ok(shell.includes("<NativePhoneChrome />"));
@@ -214,12 +250,21 @@ test("full-bleed page hosts use fixed transparent OS chrome with protected contr
   );
   for (const element of [
     ".collection-home-hero",
-    ".album-hero-copy",
+    '.album-page[data-view="library"]',
     ".service-hero",
     ".account-welcome-hero",
     ".camera-floating-back",
   ])
     assert.ok(css.includes(element));
+  const foundations = fs.readFileSync("src/styles/ui-foundations.css", "utf8");
+  assert.match(
+    foundations,
+    /\.collection-themed-hero\.is-compact,\s*\.home-page,\s*\.album-page\[data-view="library"\],\s*\.my-page \{[^}]*--brand-safe-top: var\(--device-status-height,[^}]*--brand-expanded-body: 92px;/,
+  );
+  assert.match(
+    foundations,
+    /\.brand-page-header \{[^}]*min-height: var\(--brand-header-height\);[^}]*padding: var\(--brand-safe-top\)/,
+  );
   assert.ok(css.includes(".photo-choice-sheet)"));
   for (const name of ["ToolsPage", "PrintPage"])
     assert.ok(
@@ -240,4 +285,18 @@ test("full-bleed page hosts use fixed transparent OS chrome with protected contr
     "native-home-indicator",
   ])
     assert.ok(chrome.includes(name));
+});
+
+test("the shared compact collection header keeps its height and centered title in the device preview", () => {
+  const collection = fs.readFileSync("src/styles/collection.css", "utf8");
+  const preview = fs.readFileSync("src/styles/device-preview.css", "utf8");
+  assert.match(collection,
+    /\.collection-themed-hero\.is-compact \{[^}]*height:auto;[^}]*min-height:var\(--brand-header-height\);/);
+  assert.match(collection,
+    /\.collection-themed-hero\.is-compact \.collection-hero-row \{[^}]*grid-template-columns:(minmax\(var\(--collection-hero-back-size\),1fr\)) minmax\(0,max-content\) \1;/);
+  assert.match(collection,
+    /\.collection-themed-hero\.is-compact \.collection-hero-copy \{[^}]*grid-column:2; text-align:center;/);
+  assert.match(preview,
+    /\.device-fit \.collection-themed-hero\.has-back:where\(:not\(\.is-compact\)\)\{height:238px/);
+  assert.doesNotMatch(preview, /\.device-fit \.collection-home-hero\{height:/);
 });

@@ -207,6 +207,7 @@ export default function FamilyPhotoPicker({
   onAdd,
   onClose,
   trigger,
+  multiple = true,
 }) {
   const phone = useRef(null);
   const [candidate, setCandidate] = useState(null),
@@ -249,7 +250,7 @@ export default function FamilyPhotoPicker({
         hidden
         type="file"
         accept="image/jpeg,image/png,image/webp"
-        multiple
+        multiple={multiple}
         onChange={(e) => {
           const files = Array.from(e.currentTarget.files || []);
           e.currentTarget.value = "";

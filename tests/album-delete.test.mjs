@@ -123,7 +123,7 @@ test("family deletion retains the member, source photo, other member, and docume
   const archive = await readArchive("family-owner");
   assert.equal(archive.members.length, 2);
   assert.deepEqual(archive.members.map(m => m.photos.length), [0, 1]);
-  assert.equal(archive.documents[0].front.id, "copy");
+  assert.equal(archive.documents[0].photos[0].id, "copy");
   assert.equal((await readAlbumState()).finished.length, 2);
   await updateArchive("family-owner", state => deleteFamilyPhoto(state, one.id, p.id));
   getStore("account").session = {phone:"another"};

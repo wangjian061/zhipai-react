@@ -33,3 +33,11 @@ export function fitPhonePreview(viewportWidth, viewportHeight, gutter = 16) {
   );
   return { scale, width: bodyWidth * scale, height: bodyHeight * scale };
 }
+
+export function hasPageScrollOffset(viewport) {
+  return (
+    viewport?.clientHeight > 0 &&
+    viewport.scrollHeight > viewport.clientHeight &&
+    viewport.scrollTop > 0
+  );
+}

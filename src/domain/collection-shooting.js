@@ -1,49 +1,34 @@
 export const shootingGuides = {
   front: {
-    title: "前置摄像头 · 自动拍摄",
-    alt: "手机竖放在左侧支架上，右侧被拍人正对手机",
+    cameraLabel: "前置摄像头",
+    captureLabel: "自动拍摄",
+    guideTitle: "请固定手机进行拍摄",
+    alt: "左侧支架固定竖直手机，右侧被拍者正对屏幕",
     steps: [
-      [
-        "放稳手机，向后站",
-        "手机竖放，屏幕朝向自己。向后站，让头和双肩完整入框。",
-      ],
-      [
-        "正对镜头，等待自动拍摄",
-        "按屏幕提示调整姿势，保持不动。符合要求后，手机会自动拍摄。",
-      ],
+      "将手机竖着固定在支架上或者桌面上。",
+      "屏幕朝向您，镜头与视线齐平。",
+      "正对镜头，让头和双肩入框。",
+      "站稳等候，取景到位后会自动拍摄。",
     ],
   },
   rear: {
-    title: "后置摄像头 · 他人帮拍",
-    alt: "左侧帮拍人竖握手机，后置镜头正对右侧被拍人",
+    cameraLabel: "后置摄像头",
+    captureLabel: "他人帮拍",
+    guideTitle: "邀请他人帮您拍摄",
+    alt: "左侧同伴竖拿手机，后置镜头朝向右侧站立的被拍者",
     steps: [
-      [
-        "请他人拿稳手机",
-        "请对方竖握手机，用后置镜头正对你。双肩摆正，看向镜头。",
-      ],
-      [
-        "看屏幕提示，由对方按快门",
-        "请对方根据屏幕提示，帮你调整姿势。符合要求后，由对方按下快门。",
-      ],
+      "请同伴竖拿手机，使用后置镜头。",
+      "请同伴将镜头抬到您的视线高度。",
+      "您正对镜头，让头和双肩入框。",
+      "取景到位后，请同伴按下快门。",
     ],
   },
 };
-const skipped = new Set();
-const key = (mode) => "zhipai.collection.shooting-guide.v1." + mode;
 export function skipShootingGuide(mode) {
   try {
-    return skipped.has(mode) || localStorage.getItem(key(mode)) === "1";
+    return localStorage.getItem("zhipai.collection.shooting-guide.v1." + mode) === "1";
   } catch {
-    return skipped.has(mode);
-  }
-}
-export function rememberShootingGuide(mode) {
-  if (!Object.hasOwn(shootingGuides, mode)) return;
-  skipped.add(mode);
-  try {
-    localStorage.setItem(key(mode), "1");
-  } catch {
-    /* Session preference is still available. */
+    return false;
   }
 }
 

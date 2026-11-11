@@ -6,10 +6,13 @@ export default function HomeBrandHeader({
   onOpenNotifications,
 }) {
   return (
-    <div className="home-header-slot">
-      <header className="home-brand-header" data-over-content={overContent}>
+    <div className="home-header-slot brand-page-sticky">
+      <header
+        className="home-brand-header brand-page-header"
+        data-over-content={overContent}
+      >
         <div className="home-brand-row">
-          <h1>
+          <h1 className="brand-page-title">
             <span className="home-brand-mark">
               <img
                 src="/assets/share-brand-logo.png"
@@ -43,7 +46,7 @@ export default function HomeBrandHeader({
             alt="拍照片，用知拍！"
           />
         </p>
-        <span className="home-brand-mascot" aria-hidden="true">
+        <span className="home-brand-mascot brand-page-mascot" aria-hidden="true">
           <img src="/assets/zhipai-mascot.webp" alt="" draggable="false" />
         </span>
       </header>

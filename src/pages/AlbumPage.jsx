@@ -1,4 +1,8 @@
-import AlbumSpaces, { AlbumTabs, AlbumDate } from "../components/AlbumSpaces.jsx";
+import AlbumSpaces, {
+  AlbumDate,
+  AlbumLibraryCard,
+  AlbumTabs,
+} from "../components/AlbumSpaces.jsx";
 import { formatCaptureDate } from "../domain/photo-date.js";
 import PhotoActionSheet from "../components/PhotoActionSheet.jsx";
 import PhotoDeleteDialog from "../components/PhotoDeleteDialog.jsx";
@@ -26,33 +30,29 @@ export default function AlbumPage({ scope, args = [] }) {
             <View
               as="section"
               scope={s}
-              className="album-hero"
+              className="album-hero brand-page-header brand-page-header--info"
             >
-              <View as="div" scope={s} className="album-hero-copy">
-                <View as="h1" scope={s}>
-                  {"知拍相册"}
-                </View>
-                <View
-                  as="p"
-                  scope={s}
-                  show={s.space === "mine"}
-                  text={
-                    s.store.ready
-                      ? "已保存 " + s.photos.length + " 张照片"
-                      : "照片库"
-                  }
-                ></View>
-              </View>
+              <h1 className="brand-page-title">知拍相册</h1>
               <View
-                as="img"
+                as="p"
                 scope={s}
-                src="assets/bear-album.webp"
-                width="1254"
-                height="1254"
-                alt="白熊展示证件照与排版照相册"
-                className="album-hero-bear"
-                decoding="async"
-              ></View>
+                className="brand-page-caption"
+                show={s.space === "mine"}
+                text={
+                  s.store.ready
+                    ? "已保存 " + s.photos.length + " 张照片"
+                    : "照片库"
+                }
+              />
+              <span className="brand-page-mascot">
+                <img
+                  src="assets/bear-album.webp"
+                  width="1254"
+                  height="1254"
+                  alt="白熊展示证件照与排版照相册"
+                  decoding="async"
+                />
+              </span>
             </View>
             <View
               as="button"
@@ -84,298 +84,269 @@ export default function AlbumPage({ scope, args = [] }) {
               className="album-scroll"
               refName="albumScroll"
             >
-              <View
-                as="div"
-                scope={s}
-                className="album-error"
-                show={s.space === "mine" && s.store.error}
-                role="alert"
-              >
-                <View as="p" scope={s} text={s.store.error}></View>
-                <View
-                  as="button"
+              {!s.managing && <AlbumTabs space={s.space} />}
+              {s.space !== "mine" && s.page === "album" && s.view === "library" ? (
+                <AlbumSpaces
                   scope={s}
-                  disabled={s.store.busy}
-                  events={[
-                    {
-                      type: "click",
-                      prevent: false,
-                      stop: false,
-                      self: false,
-                      passive: false,
-                      run: function (scope, $event, $el) {
-                        scope.store.load();
-                      },
-                    },
-                  ]}
-                >
-                  {"重新读取相册"}
-                </View>
-              </View>
-              <View
-                as="div"
-                scope={s}
-                className="album-error"
-                show={s.message && !s.modal}
-                role="alert"
-                text={s.message}
-              ></View>
-              {s.page === "album" && s.view === "library" && s.space === "mine" && !s.managing && (
-                <PendingPhotoResults />
-              )}
-              <View
-                as="section"
-                scope={s}
-                className="album-library-card"
-                >
-                <View as="div" scope={s} className="album-library-toolbar">
-                  {s.managing ? <strong>{"已选择 " + s.selected.length + " 张"}</strong>
-                    : <AlbumTabs space={s.space} />}
-                  <View as="div" scope={s}>
-                    <View
-                      as="button"
-                      scope={s}
-                      show={s.space === "mine" && !s.managing && s.photos.length}
-                      disabled={s.disabled || s.downloading}
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.startManage();
-                          },
-                        },
-                      ]}
-                    >
-                      {"管理"}
-                    </View>
-                    <View
-                      as="button"
-                      scope={s}
-                      show={s.managing}
-                      disabled={s.disabled || s.downloading}
-                      text={
-                        s.selected.length === s.photos.length && s.photos.length
-                          ? "取消全选"
-                          : "全选"
-                      }
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.selectAll();
-                          },
-                        },
-                      ]}
-                    ></View>
-                    <View
-                      as="button"
-                      scope={s}
-                      show={s.managing}
-                      disabled={s.disabled || s.downloading}
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.endManage();
-                          },
-                        },
-                      ]}
-                    >
-                      {"取消"}
-                    </View>
-                  </View>
-                </View>
-                {s.space !== "mine" && s.page === "album" && s.view === "library" ? (
-                  <AlbumSpaces scope={s} key={s.$store.account?.session?.phone || "guest"}
-                    owner={s.$store.account?.session?.phone} space={s.space} search={s.archiveRoute} />
-                ) : <>
-                <View
-                  as="div"
-                  scope={s}
-                  className="album-loading"
-                  show={!s.store.ready && !s.store.error}
-                  role="status"
-                >
-                  <View as="span" scope={s} className="camera-spinner"></View>
-                  <View as="p" scope={s}>
-                    {"正在读取照片…"}
-                  </View>
-                </View>
-                <View
-                  as="div"
-                  scope={s}
-                  className="album-empty-card"
-                  show={s.store.ready && !s.photos.length}
+                  key={s.$store.account?.session?.phone || "guest"}
+                  owner={s.$store.account?.session?.phone}
+                  space={s.space}
+                  search={s.archiveRoute}
+                />
+              ) : (
+                <AlbumLibraryCard
+                  title={s.managing ? "已选择 " + s.selected.length + " 张" : "我的照片"}
+                  actions={
+                    s.managing ? (
+                      <>
+                        <button
+                          type="button"
+                          disabled={s.disabled || s.downloading}
+                          onClick={() => s.selectAll()}
+                        >
+                          {s.selected.length === s.photos.length && s.photos.length
+                            ? "取消全选"
+                            : "全选"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={s.disabled || s.downloading}
+                          onClick={() => s.endManage()}
+                        >
+                          取消
+                        </button>
+                      </>
+                    ) : s.photos.length ? (
+                      <button
+                        type="button"
+                        disabled={s.disabled || s.downloading}
+                        onClick={() => s.startManage()}
+                      >
+                        管理
+                      </button>
+                    ) : null
+                  }
                 >
                   <View
-                    as="span"
+                    as="div"
                     scope={s}
-                    className="album-empty-icon"
-                    aria-hidden="true"
+                    className="album-library-content album-mine-content"
+                    refName="finishedLibraryScroll"
                   >
-                    <View as="svg" scope={s}>
-                      <View as="use" scope={s} href="#i-nav-album"></View>
+                    <View
+                      as="div"
+                      scope={s}
+                      className="album-error"
+                      show={s.store.error}
+                      role="alert"
+                    >
+                      <View as="p" scope={s} text={s.store.error}></View>
+                      <View
+                        as="button"
+                        scope={s}
+                        disabled={s.store.busy}
+                        events={[
+                          {
+                            type: "click",
+                            prevent: false,
+                            stop: false,
+                            self: false,
+                            passive: false,
+                            run: function (scope, $event, $el) {
+                              scope.store.load();
+                            },
+                          },
+                        ]}
+                      >
+                        {"重新读取相册"}
+                      </View>
                     </View>
-                  </View>
-                  <View as="h2" scope={s}>
-                    {"还没有照片"}
-                  </View>
-                  <View as="p" scope={s}>
-                    {"拍摄制作后，照片会保存在这里"}
-                  </View>
-                </View>
-                <View
-                  as="div"
-                  scope={s}
-                  className="photo-grid album-full-grid"
-                  refName="finishedLibraryGrid"
-                  show={s.store.ready && s.photos.length}
-                  dynamicClass={{
-                    "manage-grid": s.managing,
-                  }}
-                >
-                  <Repeat
-                    scope={s}
-                    items={s.photos}
-                    names={["item"]}
-                    keyFor={function (scope, $event, $el) {
-                      return scope.item.id;
-                    }}
-                  >
-                    {(s) => (
-                      <>
-                        <>
-                          <View as="div" scope={s} className="album-photo-cell">
-                            <View
-                              as="button"
-                              scope={s}
-                              className="photo photo-thumb"
-                              data-photo-id={s.item.id}
-                              dynamicClass={{
-                                selected: s.selected.includes(s.item.id),
-                                "photo-added": s.store.addedIds.includes(
-                                  s.item.id,
-                                ),
-                              }}
-                              disabled={s.disabled || s.downloading}
-                              aria-label={
-                                (s.managing
-                                  ? s.selected.includes(s.item.id)
-                                    ? "取消选择 "
-                                    : "选择 "
-                                  : "查看 ") + s.item.name
-                              }
-                              aria-pressed={
-                                s.managing
-                                  ? s.selected.includes(s.item.id)
-                                  : null
-                              }
-                              events={[
-                                {
-                                  type: "click",
-                                  prevent: false,
-                                  stop: false,
-                                  self: false,
-                                  passive: false,
-                                  run: function (scope, $event, $el) {
-                                    scope.openPhoto("finished", scope.item.id);
-                                  },
-                                },
-                              ]}
-                            >
-                              <View
-                                as="img"
-                                scope={s}
-                                show={s.item.blob}
-                                src={s.store.url(s.item.id) || undefined}
-                                alt={s.item.name}
-                                loading="lazy"
-                              ></View>
-                              <View
-                                as="span"
-                                scope={s}
-                                className="album-file-missing"
-                                show={!s.item.blob}
-                              >
-                                <View as="svg" scope={s} aria-hidden="true">
-                                  <View
-                                    as="use"
-                                    scope={s}
-                                    href="#i-alert"
-                                  ></View>
-                                </View>
-                                {"文件不可用"}
-                              </View>
-                              <View
-                                as="span"
-                                scope={s}
-                                className="photo-check"
-                                show={s.managing}
-                              >
+                    <View
+                      as="div"
+                      scope={s}
+                      className="album-error"
+                      show={s.message && !s.modal}
+                      role="alert"
+                      text={s.message}
+                    ></View>
+                    {s.page === "album" && s.view === "library" && !s.managing && (
+                      <PendingPhotoResults />
+                    )}
+                    <View
+                      as="div"
+                      scope={s}
+                      className="album-loading"
+                      show={!s.store.ready && !s.store.error}
+                      role="status"
+                    >
+                      <View as="span" scope={s} className="camera-spinner"></View>
+                      <View as="p" scope={s}>
+                        {"正在读取照片…"}
+                      </View>
+                    </View>
+                    <View
+                      as="div"
+                      scope={s}
+                      className="album-empty-card"
+                      show={s.store.ready && !s.photos.length}
+                    >
+                      <View
+                        as="span"
+                        scope={s}
+                        className="album-empty-icon"
+                        aria-hidden="true"
+                      >
+                        <View as="svg" scope={s}>
+                          <View as="use" scope={s} href="#i-nav-album"></View>
+                        </View>
+                      </View>
+                      <View as="h2" scope={s}>
+                        {"还没有照片"}
+                      </View>
+                      <View as="p" scope={s}>
+                        {"拍摄制作后，照片会保存在这里"}
+                      </View>
+                    </View>
+                    <View
+                      as="div"
+                      scope={s}
+                      className="photo-grid album-full-grid"
+                      show={s.store.ready && s.photos.length}
+                      dynamicClass={{
+                        "manage-grid": s.managing,
+                      }}
+                    >
+                      <Repeat
+                        scope={s}
+                        items={s.photos}
+                        names={["item"]}
+                        keyFor={function (scope, $event, $el) {
+                          return scope.item.id;
+                        }}
+                      >
+                        {(s) => (
+                          <>
+                            <>
+                              <View as="div" scope={s} className="album-photo-cell">
                                 <View
-                                  as="svg"
+                                  as="button"
                                   scope={s}
-                                  show={s.selected.includes(s.item.id)}
-                                  aria-hidden="true"
+                                  className="photo photo-thumb"
+                                  data-photo-id={s.item.id}
+                                  dynamicClass={{
+                                    selected: s.selected.includes(s.item.id),
+                                    "photo-added": s.store.addedIds.includes(
+                                      s.item.id,
+                                    ),
+                                  }}
+                                  disabled={s.disabled || s.downloading}
+                                  aria-label={
+                                    (s.managing
+                                      ? s.selected.includes(s.item.id)
+                                        ? "取消选择 "
+                                        : "选择 "
+                                      : "查看 ") + s.item.name
+                                  }
+                                  aria-pressed={
+                                    s.managing
+                                      ? s.selected.includes(s.item.id)
+                                      : null
+                                  }
+                                  events={[
+                                    {
+                                      type: "click",
+                                      prevent: false,
+                                      stop: false,
+                                      self: false,
+                                      passive: false,
+                                      run: function (scope, $event, $el) {
+                                        scope.openPhoto("finished", scope.item.id);
+                                      },
+                                    },
+                                  ]}
                                 >
                                   <View
-                                    as="use"
+                                    as="img"
                                     scope={s}
-                                    href="#i-check"
+                                    show={s.item.blob}
+                                    src={s.store.url(s.item.id) || undefined}
+                                    alt={s.item.name}
+                                    loading="lazy"
                                   ></View>
+                                  <View
+                                    as="span"
+                                    scope={s}
+                                    className="album-file-missing"
+                                    show={!s.item.blob}
+                                  >
+                                    <View as="svg" scope={s} aria-hidden="true">
+                                      <View
+                                        as="use"
+                                        scope={s}
+                                        href="#i-alert"
+                                      ></View>
+                                    </View>
+                                    {"文件不可用"}
+                                  </View>
+                                  <View
+                                    as="span"
+                                    scope={s}
+                                    className="photo-check"
+                                    show={s.managing}
+                                  >
+                                    <View
+                                      as="svg"
+                                      scope={s}
+                                      show={s.selected.includes(s.item.id)}
+                                      aria-hidden="true"
+                                    >
+                                      <View
+                                        as="use"
+                                        scope={s}
+                                        href="#i-check"
+                                      ></View>
+                                    </View>
+                                  </View>
                                 </View>
+                                <AlbumDate photo={s.item} />
                               </View>
-                            </View>
-                            <AlbumDate photo={s.item} />
-                          </View>
-                        </>
-                      </>
-                    )}
-                  </Repeat>
-                </View>
-                <View
-                  as="footer"
-                  scope={s}
-                  className="album-create-footer"
-                  show={s.store.ready && !s.managing && !s.photos.length}
-                >
-                  <View
-                    as="button"
-                    scope={s}
-                    disabled={s.disabled || s.downloading}
-                    events={[
-                      {
-                        type: "click",
-                        prevent: false,
-                        stop: false,
-                        self: false,
-                        passive: false,
-                        run: function (scope, $event, $el) {
-                          scope.capturePhoto();
-                        },
-                      },
-                    ]}
-                  >
-                    <View as="svg" scope={s} aria-hidden="true">
-                      <View as="use" scope={s} href="#i-camera"></View>
+                            </>
+                          </>
+                        )}
+                      </Repeat>
                     </View>
-                    {"立即拍摄"}
+                    <View
+                      as="footer"
+                      scope={s}
+                      className="album-create-footer"
+                      show={s.store.ready && !s.managing && !s.photos.length}
+                    >
+                      <View
+                        as="button"
+                        scope={s}
+                        disabled={s.disabled || s.downloading}
+                        events={[
+                          {
+                            type: "click",
+                            prevent: false,
+                            stop: false,
+                            self: false,
+                            passive: false,
+                            run: function (scope, $event, $el) {
+                              scope.capturePhoto();
+                            },
+                          },
+                        ]}
+                      >
+                        <View as="svg" scope={s} aria-hidden="true">
+                          <View as="use" scope={s} href="#i-camera"></View>
+                        </View>
+                        {"立即拍摄"}
+                      </View>
+                    </View>
                   </View>
-                </View>
-                </>}
-              </View>
+                </AlbumLibraryCard>
+              )}
             </View>
             <View
               as="div"
