@@ -216,8 +216,9 @@ for (const kind of ["postcard", "stamp"]) {
       if (kind === "postcard") {
         assert.equal(
           byClass(nodes, "postcard-template-rail")[0].children.length,
-          5,
+          6,
         );
+        assert.match(text, /旅行邮记日常问候相聚留影/);
         assert.match(text, /¥10.00.*富士相纸.*六寸.*定制预览/);
       } else {
         assert.equal(

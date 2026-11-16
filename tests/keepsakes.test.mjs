@@ -28,6 +28,7 @@ const {
   STAMP_PANE,
   renderKeepsake,
   sampleArt,
+  frameArt,
   stampViewImage,
 } = await import("../src/domain/keepsake-templates.js");
 const { confirmKeepsakeReceipt } = await import("../src/domain/keepsakes.js");
@@ -43,6 +44,11 @@ const photo = {
   type: "image/png",
   blob: new Blob(["photo"], { type: "image/png" }),
 };
+function embeddedFrame(template) {
+  const url = frameArt(template);
+  const mime = template.kind === "postcard" ? "image/png" : "image/jpeg";
+  return `data:${mime};base64,${fs.readFileSync("public" + url).toString("base64")}`;
+}
 function fixture() {
   globalThis.window = new EventTarget();
   globalThis.location = new URL(
@@ -110,7 +116,7 @@ function fixture() {
 test("all postcard and stamp layouts rasterize the chosen file into every bounded photo slot with one embedded source", () => {
   assert.equal(
     KEEPSAKE_TEMPLATES.filter((x) => x.kind === "postcard").length,
-    5,
+    6,
   );
   assert.equal(KEEPSAKE_TEMPLATES.filter((x) => x.kind === "stamp").length, 1);
   const pixels = new PNG({ width: 2, height: 2 });
@@ -121,14 +127,16 @@ test("all postcard and stamp layouts rasterize the chosen file into every bounde
     "data:image/png;base64," + PNG.sync.write(pixels).toString("base64");
   for (const template of KEEPSAKE_TEMPLATES) {
     const geometry = templateGeometry(template);
+    const frame = embeddedFrame(template);
     const svg = keepsakeSVG(
       template,
       { data, width: 2, height: 2 },
       { scale: 1.5, offsetX: 70, offsetY: -40 },
       "test",
+      frame,
     );
     assert.equal(
-      (svg.match(/data:image\/png;base64/g) || []).length,
+      svg.split(data).length - 1,
       1,
       "do not duplicate large photos per stamp",
     );
@@ -149,14 +157,29 @@ test("all postcard and stamp layouts rasterize the chosen file into every bounde
       assert.deepEqual([...png.data.subarray(i, i + 4)], [240, 32, 50, 255]);
     }
     assert.equal(geometry.slots.length, template.kind === "stamp" ? 5 : 1);
+    if (template.kind === "postcard") {
+      const original = PNG.sync.read(fs.readFileSync("public" + frameArt(template)));
+      assert.equal(original.width, 1800);
+      assert.equal(original.height, 1200);
+      const [{ x, y, w, h }] = geometry.slots;
+      for (let row = 0; row < png.height; row++) {
+        for (let col = 0; col < png.width; col++) {
+          const i = (row * png.width + col) * 4;
+          const inside = col >= x && col < x + w && row >= y && row < y + h;
+          assert.equal(original.data[i + 3], inside ? 0 : 255);
+          assert.equal(png.data[i + 3], 255);
+        }
+      }
+      assert.deepEqual(png.data.subarray(0, 4), original.data.subarray(0, 4));
+    }
   }
 });
 
-test("catalogue shows five 3D product samples and the frontal stamp; samples cannot be submitted as input", async () => {
+test("catalogue shows the six approved postcards and the frontal stamp; samples cannot be submitted as input", async () => {
   const designs = KEEPSAKE_TEMPLATES.filter((t) => t.kind === "postcard");
   assert.deepEqual(
     designs.map((t) => t.name),
-    ["校园来信", "生日祝福", "毕业留念", "旅行邮记", "日常问候"],
+    ["校园来信", "生日祝福", "毕业留念", "旅行邮记", "日常问候", "相聚留影"],
   );
   assert.equal(KEEPSAKE_PRODUCTS.postcard.price, 1000);
   assert.equal(
@@ -178,8 +201,8 @@ test("catalogue shows five 3D product samples and the frontal stamp; samples can
     s.setTransform({ scale: 1.5, offsetX: 20 });
     s.applyCrop();
     const input = s.photo;
-    s.chooseTemplate("postcard-birthday");
-    assert.equal(s.template.name, "生日祝福");
+    s.chooseTemplate("postcard-together");
+    assert.equal(s.template.name, "相聚留影");
     assert.equal(s.photo, input);
     assert.equal(s.transform.scale, 1.5);
     assert.equal(s.output, null);
@@ -580,8 +603,9 @@ test("address creation shares print validation and default-address behavior", as
 
 test("late generation cannot reopen confirmation after system Back within the same business", async () => {
   const f = fixture(),
-    originalImage = globalThis.Image,
-    originalDocument = globalThis.document;
+    originalDocument = globalThis.document,
+    originalFetch = globalThis.fetch,
+    restoreReading = mockPhotoReading();
   let rendered = false;
   globalThis.document = {
     createElement() {
@@ -599,13 +623,26 @@ test("late generation cannot reopen confirmation after system Back within the sa
       };
     },
   };
-  let finishDecode;
+  const frameUrl = frameArt(f.s.template);
+  globalThis.fetch = async (url) => {
+    assert.equal(url, frameUrl);
+    return new Response(fs.readFileSync("public" + frameUrl), {
+      headers: { "Content-Type": "image/png" },
+    });
+  };
+  let finishDecode, signalDecode;
+  const decoding = new Promise((resolve) => { signalDecode = resolve; });
   globalThis.Image = class {
     naturalWidth = 1800;
     naturalHeight = 1200;
-    decode() {
+    async decode() {
+      const blob = await originalFetch(this.src).then((r) => r.blob());
+      if (blob.type !== "image/svg+xml") return;
+      const svg = await blob.text();
+      assert.ok(svg.includes(embeddedFrame(f.s.template)));
       return new Promise((resolve) => {
         finishDecode = resolve;
+        signalDecode();
       });
     }
   };
@@ -616,6 +653,8 @@ test("late generation cannot reopen confirmation after system Back within the sa
     s.release();
     const generation = s.confirm();
     assert.equal(s.busy, true);
+    await Promise.race([decoding, generation]);
+    assert.equal(typeof finishDecode, "function");
     history.pushState({}, "", "/?page=keepsake&kind=postcard&view=templates");
     window.dispatchEvent(new Event("popstate"));
     finishDecode();
@@ -630,7 +669,8 @@ test("late generation cannot reopen confirmation after system Back within the sa
     assert.equal(s.output, null);
     assert.equal(location.searchParams.get("view"), "work");
   } finally {
-    globalThis.Image = originalImage;
+    restoreReading();
+    globalThis.fetch = originalFetch;
     globalThis.document = originalDocument;
     f.close();
   }
@@ -995,9 +1035,10 @@ test("quarter turns rotate the rectangular photo in place, fill the window and l
     image.data.set(colors[(x>=20?1:0)+(y>=12?2:0)],(y*40+x)*4);
   const source={data:"data:image/png;base64,"+PNG.sync.write(image).toString("base64"),width:40,height:24};
   const template=KEEPSAKE_TEMPLATES[0],slot=templateGeometry(template).slots[0];
+  const frame = embeddedFrame(template);
   let stationaryPixel;
   for(const [rotation,expected] of [[0,[0,1,2,3]],[90,[2,0,3,1]],[180,[3,2,1,0]],[270,[1,3,0,2]]]) {
-    const png=PNG.sync.read(new Resvg(keepsakeSVG(template,source,{rotation})).render().asPng());
+    const png=PNG.sync.read(new Resvg(keepsakeSVG(template,source,{rotation},"test",frame)).render().asPng());
     const get=(x,y)=>[...png.data.subarray((y*png.width+x)*4,(y*png.width+x)*4+4)];
     for(const [i,[rx,ry]] of [[.02,.02],[.98,.02],[.02,.98],[.98,.98]].entries()) {
       assert.deepEqual(get(Math.round(slot.x+rx*slot.w),Math.round(slot.y+ry*slot.h)),colors[expected[i]],rotation+" degrees, corner "+i);

@@ -13,7 +13,7 @@
 
 ## 商品展示图
 
-首页及商品页默认使用[新内页正视图](../../public/assets/keepsakes/stamp-product-inner-20261106.webp)，四个视角均使用2026-11-06生成的透明底商品图，沿用实物主题及3D人物。此前的[合成内页](../../public/assets/keepsakes/stamp-youth-sample.webp)仍作为定制区未选图时的局部版面示意，保持原版面坐标。五款明信片的商品样图按成品模板渲染，人物来自项目既有3D素材。样品独立于用户输入、学生证和最终订单。
+首页及商品页默认使用[新内页正视图](../../public/assets/keepsakes/stamp-product-inner-20261106.webp)，四个视角均使用2026-11-06生成的透明底商品图，沿用实物主题及3D人物。此前的[合成内页](../../public/assets/keepsakes/stamp-youth-sample.webp)仍作为定制区未选图时的局部版面示意，保持原版面坐标。展示样品独立于用户输入、学生证和最终订单。明信片的款式见[明信片制作](../product/pages/keepsake.postcard.work.md)。
 
 ## 新生成素材（2026-11-06，已接入页面，待验收）
 

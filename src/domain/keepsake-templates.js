@@ -26,41 +26,37 @@ export const KEEPSAKE_TEMPLATES = [
     id: "postcard-enrollment",
     kind: "postcard",
     name: "校园来信",
-    theme: "campus",
-    ground: "#E9F1E9",
-    ink: "#255445",
+    photoWindow: { x: 64, y: 64, w: 1120, h: 1072 },
   },
   {
     id: "postcard-birthday",
     kind: "postcard",
     name: "生日祝福",
-    theme: "birthday",
-    ground: "#FAE8DF",
-    ink: "#984839",
+    photoWindow: { x: 80, y: 64, w: 1640, h: 912 },
   },
   {
     id: "postcard-graduate",
     kind: "postcard",
     name: "毕业留念",
-    theme: "graduate",
-    ground: "#E6ECF9",
-    ink: "#244678",
+    photoWindow: { x: 64, y: 64, w: 1672, h: 896 },
   },
   {
     id: "postcard-city",
     kind: "postcard",
     name: "旅行邮记",
-    theme: "travel",
-    ground: "#F7EFDD",
-    ink: "#805A32",
+    photoWindow: { x: 58, y: 58, w: 1684, h: 904 },
   },
   {
     id: "postcard-everyday",
     kind: "postcard",
     name: "日常问候",
-    theme: "daily",
-    ground: "#F0EBF4",
-    ink: "#64506F",
+    photoWindow: { x: 660, y: 64, w: 1076, h: 1072 },
+  },
+  {
+    id: "postcard-together",
+    kind: "postcard",
+    name: "相聚留影",
+    photoWindow: { x: 48, y: 50, w: 1704, h: 895 },
   },
   {
     id: "stamp-youth",
@@ -83,9 +79,12 @@ export const STAMP_VIEWS = [
   ["cover", "封面"],
   ["back", "封底"],
 ];
+const postcardArtRoot = `${import.meta.env?.BASE_URL || "/"}assets/keepsakes/postcards-20261116/`;
+// Catalogue samples never become photos in the editor or in a new order.
 export const sampleArt = (template) =>
-  `/assets/keepsakes/${template.id}-sample.webp`;
-// Product-only artwork. Keep sampleArt aligned to the editable template coordinates.
+  template.kind === "postcard"
+    ? `${postcardArtRoot}${template.id}-sample.webp`
+    : `/assets/keepsakes/${template.id}-sample.webp`;
 const STAMP_PRODUCT_IMAGES = Object.fromEntries(
   STAMP_VIEWS.map(([view]) => [
     view,
@@ -95,7 +94,10 @@ const STAMP_PRODUCT_IMAGES = Object.fromEntries(
 export function stampViewImage(view) {
   return STAMP_PRODUCT_IMAGES[view] || STAMP_PRODUCT_IMAGES.inner;
 }
-const stampFrame = "/assets/keepsakes/stamp-frame.jpg";
+export const frameArt = (template) =>
+  template.kind === "postcard"
+    ? `${postcardArtRoot}${template.id}.png`
+    : "/assets/keepsakes/stamp-frame.jpg";
 // Visible stamp pane in the original inner-page artwork coordinates.
 export const STAMP_PANE = { x: 258, y: 129, width: 648, height: 560 };
 export function templateGeometry(template) {
@@ -103,7 +105,7 @@ export function templateGeometry(template) {
     return {
       width: 1800,
       height: 1200,
-      slots: [{ x: 60, y: 60, w: 1116, h: 960 }],
+      slots: [template.photoWindow],
     };
   return {
     width: 960,
@@ -116,49 +118,6 @@ export function templateGeometry(template) {
       { x: 753, y: 558, w: 142, h: 125, group: "corners" },
     ],
   };
-}
-// Paper ornament and the editable photograph are separate layers in the final print.
-const POSTCARD_ART = {
-  campus: {
-    series: "CAMPUS LETTER",
-    motif:
-      '<path d="M12 35V15l24-9 24 9v20M8 35h56M22 34V21h5v13m7 0V17h5v17m7 0V21h5v13"/>',
-  },
-  birthday: {
-    series: "HAPPY BIRTHDAY",
-    motif:
-      '<path d="M12 33h48v-14H12zm0-14q6 9 12 0 6 9 12 0 6 9 12 0 6 9 12 0M26 18v-7m12 7V9m11 9v-7"/><path d="M26 7q-4-3 1-6m10 5q-3-3 2-6m9 7q-3-3 2-6"/>',
-  },
-  graduate: {
-    series: "GRADUATION",
-    motif: '<path d="m5 14 31-12 31 12-31 13zm12 6v9q16 10 38 0v-9m8-4v14"/>',
-  },
-  travel: {
-    series: "TRAVEL NOTES",
-    motif:
-      '<path d="m7 31 18-20 13 13L52 7l15 24zM9 37h53"/><circle cx="16" cy="8" r="4"/>',
-  },
-  daily: {
-    series: "EVERYDAY MAIL",
-    motif:
-      '<path d="M8 33C28 15 41 14 63 4M23 22Q9 19 10 9q15-2 21 9m6-4q0-14 17-14-1 9-12 12m-2 3q10 6 23-2-16-7-23 2"/>',
-  },
-};
-function postcardPaper(t) {
-  const { series, motif } = POSTCARD_ART[t.theme];
-  return `<g transform="scale(6)" font-family="sans-serif" fill="${t.ink}">
-    <rect width="300" height="200" fill="${t.ground}"/>
-    <rect x="7" y="7" width="192" height="166" fill="#fff"/>
-    <path d="M208 10v160" stroke="${t.ink}" opacity=".21" stroke-dasharray="1 2"/>
-    <text x="219" y="28" font-size="6" letter-spacing="1">POST CARD</text>
-    <g font-family="serif" font-size="24" font-weight="600">
-      <text x="218" y="63">${t.name.slice(0, 2)}</text><text x="218" y="91">${t.name.slice(2)}</text>
-    </g>
-    <g transform="translate(217 104)" fill="none" stroke="${t.ink}" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round">${motif}</g>
-    <path d="M219 151h65m-65 8h45M10 178h280" stroke="${t.ink}" stroke-width=".6" opacity=".6"/>
-    <text x="10" y="191" font-size="7" letter-spacing="1.2">${series}</text>
-    <text x="290" y="191" font-size="6" text-anchor="end">知拍 · 明信片</text>
-  </g>`;
 }
 // Map the original pixels into the positive-coordinate frame used for cropping and dragging.
 export function orientedPhoto(photo, angle = 0) {
@@ -176,37 +135,39 @@ export function keepsakeSVG(
   photo = null,
   transform = {},
   instance = "preview",
-  frame = stampFrame,
+  frame = frameArt(template),
   viewport,
 ) {
   const { width, height, slots } = templateGeometry(template);
+  const postcard = template.kind === "postcard";
   const prefix = `${template.id}-${instance}`.replace(/[^a-zA-Z0-9_-]/g, "");
   const real = photo?.data && photo.width > 0 && photo.height > 0;
   const source = real
     ? `<defs><image id="${prefix}-source" href="${xml(photo.data)}" width="${photo.width}" height="${photo.height}"/></defs>`
     : "";
-  const paper =
-    template.kind === "stamp"
-      ? `<image href="${xml(frame)}" width="${width}" height="${height}"/>`
-      : postcardPaper(template);
+  const paper = `<image href="${xml(frame)}" width="${width}" height="${height}"/>`;
   const frames = slots
     .map((s, i) => {
+      const bounds = `x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}"`;
       let content;
       if (real) {
         const settings = transform[s.group] || transform;
-        const oriented = orientedPhoto(photo, template.kind === "postcard" ? settings.rotation : 0);
+        const oriented = orientedPhoto(photo, postcard ? settings.rotation : 0);
         const crop = photoCropBounds(oriented.width, oriented.height, s.w, s.h, settings);
         const factor = s.w / crop.w;
         content = `<use href="#${prefix}-source" transform="translate(${s.x - crop.x * factor} ${s.y - crop.y * factor}) scale(${factor}) ${oriented.matrix}"/>`;
       } else {
         const size = Math.min(s.w, s.h) * 0.12;
-        content = `<rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" fill="#E5E9E7"/><g transform="translate(${s.x + s.w / 2} ${s.y + s.h / 2})"><circle r="${size}" fill="#F6F8F7"/><path d="M-${size / 2} 0h${size} M0 -${size / 2}v${size}" fill="none" stroke="#798C9B" stroke-width="${size * 0.09}"/></g>`;
+        content = `<rect ${bounds} fill="#E5E9E7"/><g transform="translate(${s.x + s.w / 2} ${s.y + s.h / 2})"><circle r="${size}" fill="#F6F8F7"/><path d="M-${size / 2} 0h${size} M0 -${size / 2}v${size}" fill="none" stroke="#798C9B" stroke-width="${size * 0.09}"/></g>`;
       }
-      return `<defs><clipPath id="${prefix}-${i}"><rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}"/></clipPath></defs><g clip-path="url(#${prefix}-${i})">${content}</g>`;
+      return `<defs><clipPath id="${prefix}-${i}"><rect ${bounds}/></clipPath></defs><g clip-path="url(#${prefix}-${i})">${content}</g>`;
     })
     .join("");
   const view = viewport || { x: 0, y: 0, width, height };
-  return `<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" width="${view.width}" height="${view.height}" viewBox="${view.x} ${view.y} ${view.width} ${view.height}">${source}${paper}${frames}</svg>`;
+  const layers = postcard
+    ? `<rect width="${width}" height="${height}" fill="#fff"/>${frames}${paper}`
+    : paper + frames;
+  return `<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" width="${view.width}" height="${view.height}" viewBox="${view.x} ${view.y} ${view.width} ${view.height}">${source}${layers}</svg>`;
 }
 export async function decodeKeepsakePhoto(photo) {
   if (
@@ -236,10 +197,17 @@ export async function renderKeepsake(template, photo, transform) {
     throw Error("请先选取可用的照片。");
   }
   let frame;
-  if (template.kind === "stamp") {
-    const response = await fetch(stampFrame);
-    if (!response.ok) throw Error("邮折版面读取失败，请重试。");
+  try {
+    const response = await fetch(frameArt(template));
+    if (!response.ok) throw Error("frame unavailable");
+    // SVGs decoded as images cannot load external template resources.
     frame = (await photoData({ blob: await response.blob() })).data;
+  } catch {
+    throw Error(
+      template.kind === "postcard"
+        ? "明信片模板读取失败，请重试。"
+        : "邮折版面读取失败，请重试。",
+    );
   }
   const svg = keepsakeSVG(template, photo, transform, "export", frame);
   const blob = new Blob([svg], { type: "image/svg+xml" });
