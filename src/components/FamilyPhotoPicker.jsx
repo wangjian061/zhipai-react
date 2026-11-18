@@ -1,263 +1,147 @@
-import React, { useEffect, useRef, useState } from "react";
-import SharedSheet, { SheetFrame } from "./SharedSheet.jsx";
+import React, { useRef, useState } from "react";
+import { SheetFrame } from "./SharedSheet.jsx";
 import ToolPhotoSelection from "./ToolPhotoSelection.jsx";
-import { captureCameraPhoto } from "../domain/camera.js";
+import {
+  assertDocumentPhotoCount,
+  compressDocumentPhoto,
+  DOCUMENT_PHOTO_MAX_BYTES,
+} from "../domain/document-photos.js";
 import {
   copyFinishedForMember,
   importArchiveImage,
+  importDocumentImage,
 } from "../domain/album-spaces.js";
 
-function CapturedPhoto({ photo }) {
-  const [url, setUrl] = useState("");
-  useEffect(() => {
-    const next = URL.createObjectURL(photo.blob);
-    setUrl(next);
-    return () => URL.revokeObjectURL(next);
-  }, [photo]);
-  return (
-    url && (
-      <img src={url} alt="本次拍摄的照片" className="member-camera-preview" />
-    )
-  );
-}
-
-function MemberCamera({ member, busy, error, onAdd, onClose, trigger }) {
-  const video = useRef(null),
-    native = useRef(null),
-    session = useRef(0);
-  const [attempt, setAttempt] = useState(0),
-    [draft, setDraft] = useState(null);
-  const [ready, setReady] = useState(false),
-    [capturing, setCapturing] = useState(false);
-  const [message, setMessage] = useState("");
-  useEffect(() => {
-    const token = ++session.current;
-    setReady(false);
-    setCapturing(false);
-    setMessage("");
-    if (draft) return;
-    let stream;
-    const element = video.current;
-    function stop() {
-      stream?.getTracks().forEach((track) => track.stop());
-      if (element && element.srcObject === stream) element.srcObject = null;
-    }
-    async function start() {
-      try {
-        if (!navigator.mediaDevices?.getUserMedia) throw Error("unsupported");
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
-          audio: false,
-        });
-        if (session.current !== token) {
-          stop();
-          return;
-        }
-        element.srcObject = stream;
-        await element.play();
-        if (session.current === token) setReady(true);
-      } catch (e) {
-        stop();
-        if (session.current === token) {
-          setReady(false);
-          setMessage(
-            e.name === "NotAllowedError"
-              ? "请允许使用相机后重试，或使用设备拍照。"
-              : "相机暂不可用，可重新开启或使用设备拍照。",
-          );
-        }
-      }
-    }
-    function visibility() {
-      if (!document.hidden) return;
-      session.current++;
-      stop();
-      setReady(false);
-      setCapturing(false);
-      setMessage("相机已暂停，可重新开启。");
-    }
-    document.addEventListener("visibilitychange", visibility);
-    if (!document.hidden) start();
-    else visibility();
-    return () => {
-      session.current++;
-      document.removeEventListener("visibilitychange", visibility);
-      stop();
-    };
-  }, [draft, attempt]);
-
-  async function take(file) {
-    if (capturing || busy) return;
-    const token = session.current;
-    setCapturing(true);
-    setMessage("");
-    try {
-      const photo = file
-        ? await importArchiveImage(file)
-        : await captureCameraPhoto(video.current);
-      if (session.current === token) setDraft(photo);
-    } catch {
-      if (session.current === token) setMessage("照片未能读取，请重新拍照。");
-    } finally {
-      if (session.current === token) setCapturing(false);
-    }
-  }
-  return (
-    <SharedSheet
-      opened
-      id="member-camera-title"
-      title={draft ? "确认照片" : "为成员拍照"}
-      onClose={onClose}
-      busy={busy}
-      returnFocusRef={trigger}
-      footer={
-        draft ? (
-          <div className="member-camera-actions">
-            <button
-              type="button"
-              className="tool-secondary"
-              disabled={busy}
-              onClick={() => setDraft(null)}
-            >
-              重拍
-            </button>
-            <button
-              type="button"
-              className="tool-primary"
-              disabled={busy}
-              onClick={() =>
-                onAdd(async () => [{ ...draft, addedAt: Date.now() }])
-              }
-            >
-              {busy ? "正在添加…" : "使用这张照片"}
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className="tool-primary"
-            disabled={!ready || capturing}
-            onClick={() => take()}
-          >
-            拍照
-          </button>
-        )
-      }
-    >
-      <p className="member-camera-owner">{member.name}的相册</p>
-      {draft ? (
-        <CapturedPhoto photo={draft} />
-      ) : (
-        <video
-          ref={video}
-          className="member-camera-preview"
-          autoPlay
-          muted
-          playsInline
-          aria-label="相机预览"
-        />
-      )}
-      {message && (
-        <p role="status" className="member-camera-status">
-          {message}
-        </p>
-      )}
-      {!draft && (
-        <div className="member-camera-options">
-          {!ready && message && (
-            <button type="button" onClick={() => setAttempt((a) => a + 1)}>
-              重新开启相机
-            </button>
-          )}
-          <button
-            type="button"
-            disabled={capturing}
-            onClick={() => native.current?.click()}
-          >
-            使用设备拍照
-          </button>
-          <input
-            ref={native}
-            hidden
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => {
-              const file = e.currentTarget.files?.[0];
-              e.currentTarget.value = "";
-              if (file) take(file);
-            }}
-          />
-        </div>
-      )}
-      {error && (
-        <p className="album-error" role="alert">
-          {error}
-        </p>
-      )}
-    </SharedSheet>
-  );
-}
-
 export default function FamilyPhotoPicker({
-  member,
   library,
   busy,
   error,
   onAdd,
   onClose,
+  onTakePhoto,
   trigger,
-  multiple = true,
+  documentSlots,
 }) {
   const phone = useRef(null);
-  const [candidate, setCandidate] = useState(null),
-    [camera, setCamera] = useState(false);
-  if (camera)
-    return (
-      <MemberCamera {...{ member, busy, error, onAdd, onClose, trigger }} />
-    );
-  return (
-    <SheetFrame
-      id="family-photo-picker"
-      opened
-      className="photo-selection-sheet"
-      returnFocusRef={trigger}
-      busy={busy}
-      onClose={onClose}
-    >
-      <ToolPhotoSelection
-        forMember
-        titleId="family-photo-picker"
-        library={library}
-        selectedId={candidate}
-        mascot="/assets/bear-album.webp"
-        busy={busy}
-        error={error}
-        onClose={onClose}
-        onPhone={() => phone.current?.click()}
-        onCreate={() => setCamera(true)}
-        onSelect={setCandidate}
-        onConfirm={() =>
-          onAdd(async () => [
-            await copyFinishedForMember(
-              library.finished.find((photo) => photo.id === candidate),
-            ),
-          ])
+  const [candidate, setCandidate] = useState(null);
+  const [activity, setActivity] = useState("");
+  const [pickError, setPickError] = useState("");
+  const forDocument = documentSlots !== undefined;
+  function openPhone() {
+    setPickError("");
+    phone.current?.click();
+  }
+  async function pickPhone(event) {
+    const files = Array.from(event.currentTarget.files || []);
+    event.currentTarget.value = "";
+    if (!files.length || busy) return;
+    setPickError("");
+    if (forDocument) {
+      try {
+        assertDocumentPhotoCount(files.length, documentSlots);
+      } catch (failure) {
+        setPickError(failure.message);
+        return;
+      }
+      return onAdd(async () => {
+        setActivity(
+          files.some(({ size }) => size > DOCUMENT_PHOTO_MAX_BYTES)
+            ? "正在压缩照片…"
+            : "正在读取照片…",
+        );
+        try {
+          const images = [];
+          for (const file of files)
+            images.push(await importDocumentImage(file));
+          return images;
+        } finally {
+          setActivity("");
         }
-      />
+      });
+    }
+    if (files.length !== 1) {
+      setPickError("每次只能选择 1 张照片。");
+      return;
+    }
+    return onAdd(async () => {
+      // The Web prototype demonstrates acceptance without recognizing the photo.
+      setActivity("正在校验证件照（演示）…");
+      try {
+        return [await importArchiveImage(files[0])];
+      } catch (failure) {
+        throw new Error(
+          failure instanceof DOMException
+            ? "图片未能读取，请重新选择。"
+            : failure.message || "图片未能读取，请重新选择。",
+        );
+      } finally {
+        setActivity("");
+      }
+    }, "phone");
+  }
+  function confirmLibrary() {
+    const photo = library.finished.find((image) => image.id === candidate);
+    setPickError("");
+    if (!forDocument)
+      return onAdd(async () => [await copyFinishedForMember(photo)]);
+    if (!documentSlots) {
+      setPickError("这份证件已达到 5 张照片的上限。");
+      return;
+    }
+    return onAdd(async () => {
+      setActivity(
+        photo?.blob?.size > DOCUMENT_PHOTO_MAX_BYTES
+          ? "正在压缩照片…"
+          : "正在读取照片…",
+      );
+      try {
+        return [
+          await compressDocumentPhoto(await copyFinishedForMember(photo)),
+        ];
+      } finally {
+        setActivity("");
+      }
+    });
+  }
+  return (
+    <>
       <input
         ref={phone}
         hidden
         type="file"
         accept="image/jpeg,image/png,image/webp"
-        multiple={multiple}
-        onChange={(e) => {
-          const files = Array.from(e.currentTarget.files || []);
-          e.currentTarget.value = "";
-          if (files.length)
-            onAdd(() => Promise.all(files.map(importArchiveImage)));
-        }}
+        multiple={forDocument && documentSlots > 1}
+        onChange={pickPhone}
       />
-    </SheetFrame>
+      <SheetFrame
+        id="family-photo-picker"
+        opened
+        className="photo-selection-sheet"
+        returnFocusRef={trigger}
+        busy={busy}
+        onClose={onClose}
+      >
+        <ToolPhotoSelection
+          forMember
+          titleId="family-photo-picker"
+          library={library}
+          selectedId={candidate}
+          mascot="/assets/bear-album.webp"
+          busy={busy}
+          error={pickError || error}
+          selectionHint={
+            forDocument
+              ? `本次最多选 ${documentSlots} 张，单张超过 5 MB 会自动压缩。`
+              : "从手机相册每次选 1 张。"
+          }
+          activity={activity}
+          onClose={onClose}
+          onPhone={openPhone}
+          onCreate={onTakePhoto}
+          onSelect={setCandidate}
+          onConfirm={confirmLibrary}
+        />
+      </SheetFrame>
+    </>
   );
 }

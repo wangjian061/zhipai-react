@@ -2,6 +2,12 @@ import { albumPhotoId, openAlbumDatabase, uploadedPhoto } from "./album.js";
 import { photoCaptureDate } from "./photo-date.js";
 import { decodePhotoBlob } from "./photo-readability.js";
 import { getStore, registerStore } from "../runtime/state.js";
+import {
+  DOCUMENT_PHOTO_MAX_BYTES,
+  assertDocumentPhotoCount,
+  compressDocumentPhoto,
+  remainingDocumentPhotoSlots,
+} from "./document-photos.js";
 
 registerStore("albumSpacesUi", { opened: false });
 
@@ -44,6 +50,18 @@ export function backInArchive(parent) {
   else if (ancestor >= 0 && trail.length - ancestor < history.length)
     history.go(ancestor - trail.length);
   else navigateArchive(parent, true);
+}
+
+export function openFamilyAlbumCamera(owner, memberId) {
+  requireOwner(owner);
+  const returnTo = archivePath("family", { member: memberId });
+  window.dispatchEvent(new CustomEvent("zhipai-camera-open", { detail: { returnTo } }));
+  window.dispatchEvent(new CustomEvent("zhipai-camera-intent", {
+    detail: { intent: "familyAlbum", returnTo, owner, memberId },
+  }));
+  // Replace the picker entry so system Back returns to the member, not the picker.
+  history.replaceState({ ...history.state, familyCameraReturn: returnTo }, "", "/?page=camera&camera=capture");
+  window.dispatchEvent(new Event("zhipai-route"));
 }
 
 function requireOwner(owner) {
@@ -210,11 +228,14 @@ function documentName(value) {
 function groupPhotos(photos) {
   if (!photos.length || photos.some((photo) => !(photo?.blob instanceof Blob) || !photo.blob.size))
     throw new Error("请添加可用的照片。");
+  if (photos.some(({ blob }) => blob.size > DOCUMENT_PHOTO_MAX_BYTES))
+    throw new Error("证件照片单张不得超过 5 MB。");
   return photos.map((photo) => ({ ...photo, id: albumPhotoId() }));
 }
 export function addDocumentGroup(state, holderId, name, photos) {
   if (holderId && !state.members.some((member) => member.id === holderId))
     throw new Error("这个家人相册已不存在。");
+  assertDocumentPhotoCount(photos.length, remainingDocumentPhotoSlots());
   const count = state.documents.filter((group) => group.holderId === holderId).length;
   const chosenName = documentName(name);
   const group = {
@@ -244,6 +265,7 @@ function documentPhotoIndex(group, photoId) {
 }
 export function appendDocumentGroupPhotos(state, snapshot, photos) {
   const group = currentDocumentGroup(state, snapshot);
+  assertDocumentPhotoCount(photos.length, remainingDocumentPhotoSlots(group.photos.length));
   group.photos.push(...groupPhotos(photos));
 }
 export function renameDocumentGroup(state, snapshot, name) {
@@ -276,6 +298,18 @@ export async function importArchiveImage(file) {
     throw new Error("请选择 30 MB 以内的 JPG、PNG 或 WebP 图片。");
   const photo = await uploadedPhoto(file);
   return { ...photo, addedAt: photo.createdAt };
+}
+
+export async function importDocumentImage(file) {
+  if (!file?.size || !["image/jpeg", "image/png", "image/webp"].includes(file.type))
+    throw new Error("请选择 JPG、PNG 或 WebP 图片。");
+  let photo;
+  try {
+    photo = await uploadedPhoto(file);
+  } catch {
+    throw new Error("这张照片无法读取，请重新选择。");
+  }
+  return compressDocumentPhoto({ ...photo, addedAt: photo.createdAt });
 }
 
 export async function copyFinishedForMember(photo) {

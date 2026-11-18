@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Portal } from "../runtime/components.jsx";
+import { FeedbackToast } from "./Feedback.jsx";
 
 // Shared fixed heading/footer, scrollable body and focus restoration for new sheets.
 export function SheetFrame({
@@ -91,7 +92,7 @@ export function SheetFrame({
   );
 }
 
-export default function SharedSheet({ title, footer, children, bodyRef, ...props }) {
+export default function SharedSheet({ title, footer, children, bodyRef, toast, ...props }) {
   const { id, onClose, busy } = props;
   return (
     <SheetFrame {...props}>
@@ -116,6 +117,7 @@ export default function SharedSheet({ title, footer, children, bodyRef, ...props
           </footer>
         )}
       </div>
+      <FeedbackToast message={toast} sheet />
     </SheetFrame>
   );
 }

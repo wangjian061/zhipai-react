@@ -13,6 +13,7 @@ import {
   cameraDetectionItems,
 } from "../src/domain/camera-detection.js";
 import { observable } from "../src/runtime/state.js";
+import { FAMILY_PORTRAIT_DEMO_MESSAGE } from "../src/domain/album-portrait.js";
 const generate = generateModule.default || generateModule;
 async function compile(file, names, deps = {}) {
   const ast = parse(fs.readFileSync(file, "utf8"), {
@@ -49,7 +50,7 @@ const { CameraResultVersions } = await compile(
 const components = await compile(
   "src/components/CameraWorkflow.jsx",
   ["CameraConfirmationPage", "CameraResultPage", "CameraWorkflowModal"],
-  { View, CameraConfirmationSettings, CameraResultVersions },
+  { View, CameraConfirmationSettings, CameraResultVersions, FAMILY_PORTRAIT_DEMO_MESSAGE },
 );
 const sheetComponents = await compile(
   "src/components/CameraTaskSheet.jsx",
@@ -699,4 +700,14 @@ test("comparison dragging remains in logical photo pixels when the phone preview
     2,
   );
   assert.deepEqual(edge, { x: 100, y: -140 });
+});
+
+
+test("family camera confirmation labels the demo and offers album save rather than photo production", () => {
+  const html = renderToStaticMarkup(React.createElement(components.CameraConfirmationPage, {
+    scope: state({ familyCamera: true, canSaveFamilyPhoto: true }),
+  }));
+  assert.match(html, /单人检测通过（演示）/);
+  assert.match(html, /<button[^>]*class="primary-button">使用这张照片/);
+  assert.doesNotMatch(html, /开始制作|当前无法完成单人检测/);
 });

@@ -9,6 +9,8 @@ export default function ToolPhotoSelection({
   error,
   requiresPortrait = false,
   forMember = false,
+  selectionHint,
+  activity,
   titleId,
   onClose,
   onPhone,
@@ -34,11 +36,12 @@ export default function ToolPhotoSelection({
         </button>
       </header>
       <div className="photo-selection-controls">
-        {!forMember && (
+        {(selectionHint || !forMember) && (
           <p className="photo-selection-description">
-            {requiresPortrait
-              ? "请选择一张单人正面证件照，选取后需通过照片检查。"
-              : "每次仅选择一张照片，不限制照片内容。"}
+            {selectionHint ||
+              (requiresPortrait
+                ? "请选择一张单人正面证件照，选取后需通过照片检查。"
+                : "每次仅选择一张照片，不限制照片内容。")}
           </p>
         )}
         <div className="photo-selection-sources">
@@ -48,16 +51,18 @@ export default function ToolPhotoSelection({
             </svg>
             <span>手机相册</span>
           </button>
-          <button
-            type="button"
-            disabled={busy || (!forMember && !library.ready)}
-            onClick={onCreate}
-          >
-            <svg aria-hidden="true">
-              <use href="#i-camera" />
-            </svg>
-            <span>{forMember ? "为成员拍照" : "制作一张"}</span>
-          </button>
+          {onCreate && (
+            <button
+              type="button"
+              disabled={busy || (!forMember && !library.ready)}
+              onClick={onCreate}
+            >
+              <svg aria-hidden="true">
+                <use href="#i-camera" />
+              </svg>
+              <span>{forMember ? "为成员拍照" : "制作一张"}</span>
+            </button>
+          )}
         </div>
         <div className="photo-selection-heading">
           <h3>知拍相册</h3>
@@ -92,7 +97,9 @@ export default function ToolPhotoSelection({
             <strong>知拍相册暂无照片</strong>
             <p>
               {forMember
-                ? "可从手机相册添加，或为成员拍照。"
+                ? onCreate
+                  ? "可从手机相册添加，或为成员拍照。"
+                  : "可从手机相册添加照片。"
                 : "可从手机相册选取，或制作一张新照片。"}
             </p>
           </div>
@@ -147,7 +154,13 @@ export default function ToolPhotoSelection({
           disabled={busy || library.busy || !library.ready || !selected}
           onClick={onConfirm}
         >
-          {forMember ? "添加到此相册" : "使用这张照片"}
+          {activity ? (
+            <span role="status">{activity}</span>
+          ) : forMember ? (
+            "添加到此相册"
+          ) : (
+            "使用这张照片"
+          )}
         </button>
       </footer>
     </div>

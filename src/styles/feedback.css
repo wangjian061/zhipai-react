@@ -1,0 +1,36 @@
+#toast-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 33;
+  pointer-events: none;
+}
+.feedback-toast {
+  position: absolute;
+  z-index: 2;
+  bottom: calc(
+    max(var(--toast-reserved, 0px), env(safe-area-inset-bottom, 0px)) +
+      var(--ui-toast-gap)
+  );
+  inset-inline: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  max-width: calc(100% - 48px);
+  min-height: var(--ui-touch-min);
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--ui-toast-radius);
+  background: var(--ui-toast-fill);
+  color: white;
+  font-size: var(--ui-toast-font);
+  line-height: 1.5;
+  text-align: center;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+.feedback-toast[hidden] {
+  display: none;
+}

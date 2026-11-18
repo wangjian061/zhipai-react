@@ -1,5 +1,6 @@
 import React from "react";
 import { View } from "../runtime/components.jsx";
+import { FAMILY_PORTRAIT_DEMO_MESSAGE } from "../domain/album-portrait.js";
 import CameraConfirmationSettings from "./CameraConfirmationSettings.jsx";
 import CameraResultVersions from "./CameraResultVersions.jsx";
 import "../styles/camera-dual-results.css";
@@ -10,7 +11,7 @@ function Header({ scope: s }) {
     <header className="camera-stage-header">
       <button
         type="button"
-        aria-label={s.step === "editor" ? "返回" : s.confirmationBackLabel}
+        aria-label={s.familyCamera || s.step === "editor" ? "返回" : s.confirmationBackLabel}
         disabled={s.busy}
         onClick={() => s.back()}
       >
@@ -26,7 +27,7 @@ function Header({ scope: s }) {
         }
         tabIndex={-1}
       >
-        证件照制作
+        {s.familyCamera ? "确认照片" : "证件照制作"}
       </View>
       <span />
     </header>
@@ -38,50 +39,56 @@ export function CameraConfirmationPage({ scope: s }) {
   return (
     <div
       className="camera-confirm"
-      data-configurable={!s.collectionCapture}
-      aria-busy={s.processing}
+      data-configurable={!s.collectionCapture && !s.familyCamera}
+      aria-busy={s.processing || (s.familyCamera && s.selectionSaving)}
     >
       <Header scope={s} />
       <div className="camera-stage-scroll camera-confirm-scroll">
         <figure className="capture-confirm-photo" aria-label="照片预览区域">
-          <img src={s.sourceURL || undefined} alt="待制作的原照片" />
+          <img src={s.sourceURL || undefined} alt={s.familyCamera ? "本次选择的照片" : "待制作的原照片"} />
         </figure>
-        <p className="camera-stage-hint">请确认人像清晰、正面无遮挡</p>
+        {s.familyCamera ? (
+          <p className="camera-stage-hint" role="status">
+            {FAMILY_PORTRAIT_DEMO_MESSAGE}
+          </p>
+        ) : <p className="camera-stage-hint">请确认人像清晰、正面无遮挡</p>}
         {s.error && !s.workflowModal && !s.taskSheet && (
           <p className="camera-error" role="alert">
             {s.error}
           </p>
         )}
-        <CameraConfirmationSettings
-          specs={s.quickSpecs}
-          colors={s.confirmationBackgroundState.colors}
-          selectedSpec={s.draft?.specId}
-          sizeLabel={s.confirmationSizeLabel}
-          background={s.confirmationBackgroundState.background}
-          backgroundMessage={s.confirmationBackgroundState.message}
-          disabled={!s.canConfigureConfirmation}
-          locked={s.collectionCapture}
-          onSpec={(id) => s.setConfirmationSpec(id)}
-          onMoreSpec={() => s.openPanel("spec")}
-          onBackground={(value) => s.setConfirmationBackground(value)}
-        />
+        {!s.familyCamera && (
+          <CameraConfirmationSettings
+            specs={s.quickSpecs}
+            colors={s.confirmationBackgroundState.colors}
+            selectedSpec={s.draft?.specId}
+            sizeLabel={s.confirmationSizeLabel}
+            background={s.confirmationBackgroundState.background}
+            backgroundMessage={s.confirmationBackgroundState.message}
+            disabled={!s.canConfigureConfirmation}
+            locked={s.collectionCapture}
+            onSpec={(id) => s.setConfirmationSpec(id)}
+            onMoreSpec={() => s.openPanel("spec")}
+            onBackground={(value) => s.setConfirmationBackground(value)}
+          />
+        )}
       </div>
       <footer className="camera-stage-actions camera-confirm-actions">
         <button
           type="button"
           className="camera-outline-button"
           disabled={s.busy}
-          onClick={() => s.replaceConfirmationPhoto()}
+          onClick={() => s.familyCamera ? s.retakeFamilyPhoto() : s.replaceConfirmationPhoto()}
         >
-          {s.confirmationReplaceLabel}
+          {s.familyCamera ? "重拍" : s.confirmationReplaceLabel}
         </button>
         <button
           type="button"
           className="primary-button"
-          disabled={!s.canStartCreation}
-          onClick={() => s.processDraft()}
+          disabled={s.familyCamera ? !s.canSaveFamilyPhoto : !s.canStartCreation}
+          onClick={() => s.familyCamera ? s.saveFamilyPhoto() : s.processDraft()}
         >
-          开始制作
+          {s.familyCamera ? (s.selectionSaving ? "正在保存…" : "使用这张照片") : "开始制作"}
         </button>
       </footer>
     </div>

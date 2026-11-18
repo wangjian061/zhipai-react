@@ -156,6 +156,9 @@
   gap: 12px;
   margin-bottom: 26px;
 }
+.photo-selection-sources > button:only-child {
+  grid-column: 1 / -1;
+}
 .photo-selection-sources > button {
   display: flex;
   align-items: center;

@@ -1,4 +1,5 @@
 import {faceInFrame} from "./collection-shooting.js";
+import { appendFamilyPhotos, archivePath, backInArchive, updateArchive } from "./album-spaces.js";
 import { captureDayAt, photoCaptureDate } from "./photo-date.js";
 import {
   CAMERA_DETECTION_CONFIG,
@@ -320,8 +321,10 @@ registerController("cameraStudio", () => ({
       this.creationContext = {
         ...e.detail,
       };
+      if (this.familyCamera) this.focusCameraBack();
     };
     this.chosenHandler = (e) => {
+      if (this.familyCamera) return;
       const { context, photo, kind } = e.detail;
       if (externalPhotoIntents.has(context.intent)) return;
       if (
@@ -387,6 +390,13 @@ registerController("cameraStudio", () => ({
   },
   get confirmationBackLabel() {
     return "退出证件照制作";
+  },
+  get familyCamera() {
+    return this.creationContext?.intent === "familyAlbum";
+  },
+  get canSaveFamilyPhoto() {
+    return this.familyCamera && this.step === "confirm" &&
+      !!this.sourcePhoto?.blob && !this.busy;
   },
   get collectionCapture() {
     return this.creationContext?.intent === "collectionCapture";
@@ -748,6 +758,7 @@ registerController("cameraStudio", () => ({
     this.detection = null;
     this.confirmationWrite = null;
     this.confirmationRevision = 0;
+    this.phoneContext = null;
     this.sourcePhoto = null;
     this.standardBlob = null;
     this.standardWidth = 0;
@@ -807,6 +818,25 @@ registerController("cameraStudio", () => ({
   },
   async syncLocation() {
     const q = new URLSearchParams(location.search);
+    const familyReturn = q.get("page") === "camera" && history.state?.familyCameraReturn;
+    if (this.familyCamera) {
+      const context = this.creationContext;
+      if (familyReturn !== context.returnTo || context.owner !== getStore("account")?.session?.phone) {
+        this.reset();
+      } else {
+        const next = q.get("camera") === "confirm" && this.sourcePhoto ? "confirm" : "capture";
+        if (q.get("camera") !== next) this.route(next, true);
+        else if (next === "confirm") this.stopCamera();
+        else if (this.cameraAllowed && !liveCameraStream && !this.cameraStarting)
+          this.$nextTick(() => this.startCamera());
+        return;
+      }
+    }
+    // A refresh or browser Forward must not turn a family photo into a personal order.
+    if (familyReturn) {
+      backInArchive(cameraReturnPath(familyReturn, archivePath("family")));
+      return;
+    }
     if (
       this.draft &&
       !this.restoring &&
@@ -1205,7 +1235,10 @@ registerController("cameraStudio", () => ({
     if (next !== "capture" && this.draft)
       u.searchParams.set("session", this.draft.id);
     this.step = this.cameraStep = next;
-    history[replace ? "replaceState" : "pushState"]({}, "", u);
+    if (this.familyCamera)
+      history.replaceState(history.state, "", u);
+    else
+      history[replace ? "replaceState" : "pushState"]({}, "", u);
     window.dispatchEvent(new Event("zhipai-route"));
   },
   exit(replace = false) {
@@ -1245,6 +1278,7 @@ registerController("cameraStudio", () => ({
       this.closePanel();
       return;
     }
+    if (this.familyCamera) return this.finishFamilyCamera();
     if (this.step === "editor") {
       if (
         this.draft?.order?.owner &&
@@ -1324,6 +1358,7 @@ registerController("cameraStudio", () => ({
     const file = e.target.files?.[0];
     e.target.value = "";
     const sourceRoute = location.pathname + location.search,
+      task = this.task,
       context = this.phoneContext || {
         intent: this.editingFrom,
         returnTo: this.returnTo,
@@ -1337,7 +1372,11 @@ registerController("cameraStudio", () => ({
       )
         throw Error("file");
       const photo = await uploadedPhoto(file);
-      if (sourceRoute !== location.pathname + location.search) return;
+      if (sourceRoute !== location.pathname + location.search || task !== this.task) return;
+      if (this.familyCamera) {
+        this.prepareFamilyPhoto(photo);
+        return;
+      }
       if (
         context.replaceSession &&
         (context.replaceSession !== this.draft?.id ||
@@ -1373,6 +1412,7 @@ registerController("cameraStudio", () => ({
         !!context.replaceSession,
       );
     } catch (_) {
+      if (sourceRoute !== location.pathname + location.search || task !== this.task) return;
       const message = "照片无法读取，请选择30 MB以内的 JPG、PNG 或 WebP。";
       if (externalPhotoIntents.has(context.intent))
         window.dispatchEvent(
@@ -1523,7 +1563,68 @@ registerController("cameraStudio", () => ({
       this.captureBusy = false;
     }
   },
+  focusCameraBack() {
+    this.$nextTick(() => {
+      if (this.active && this.familyCamera && this.step === "capture")
+        this.$refs.captureBack?.focus({ preventScroll: true });
+    });
+  },
+  finishFamilyCamera() {
+    const { returnTo } = this.creationContext;
+    this.reset();
+    backInArchive(returnTo);
+  },
+  prepareFamilyPhoto(photo) {
+    if (!this.familyCamera || !this.active || this.step !== "capture" || !photo?.blob) return;
+    let url;
+    try {
+      url = URL.createObjectURL(photo.blob);
+    } catch {
+      this.toast("照片未能读取，请重试。");
+      return;
+    }
+    this.task++;
+    this.releaseURLs();
+    this.sourcePhoto = photo;
+    this.sourceURL = url;
+    this.error = "";
+    this.route("confirm", true);
+    this.focusStageTitle();
+  },
+  retakeFamilyPhoto() {
+    if (!this.familyCamera || this.step !== "confirm" || this.busy) return;
+    this.task++;
+    this.releaseURLs();
+    this.sourcePhoto = null;
+    this.error = "";
+    this.cameraAllowed = true;
+    this.route("capture", true);
+    this.focusCameraBack();
+  },
+  async saveFamilyPhoto() {
+    if (!this.canSaveFamilyPhoto || !this.active) return;
+    const task = this.task;
+    const { owner, memberId } = this.creationContext;
+    const photo = { ...this.sourcePhoto, addedAt: Date.now() };
+    this.selectionSaving = true;
+    this.error = "";
+    try {
+      await updateArchive(owner, (state) => {
+        if (task !== this.task || !this.active) throw new Error("已退出拍摄。");
+        appendFamilyPhotos(state, memberId, [photo]);
+      });
+      if (task === this.task && this.active) this.finishFamilyCamera();
+    } catch (error) {
+      if (task === this.task && this.active)
+        this.error = /已不存在|请登录/.test(error.message || "")
+          ? error.message
+          : "照片未能保存，请重试。";
+    } finally {
+      if (task === this.task) this.selectionSaving = false;
+    }
+  },
   async newDraft(source, photo, preserveSettings = false) {
+    if (this.familyCamera) return this.prepareFamilyPhoto(photo);
     if (!photo?.blob) {
       this.toast("照片文件不可用，请重新选图。");
       return;

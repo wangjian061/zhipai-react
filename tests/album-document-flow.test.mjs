@@ -9,26 +9,32 @@ import { parse } from "@babel/parser";
 import generateModule from "@babel/generator";
 import { transformWithOxc } from "vite";
 import * as domain from "../src/domain/album-spaces.js";
+import * as documentPhotos from "../src/domain/document-photos.js";
 import { getStore, registerStore } from "../src/runtime/state.js";
 import { database } from "./helpers/memory-indexeddb.mjs";
 
 const generate = generateModule.default || generateModule;
-const ast = parse(fs.readFileSync("src/components/AlbumSpaces.jsx", "utf8"), {
-  sourceType: "module",
-  plugins: ["jsx"],
-});
-ast.program.body = ast.program.body
-  .filter((n) => n.type !== "ImportDeclaration")
-  .map((n) =>
-    ["ExportDefaultDeclaration", "ExportNamedDeclaration"].includes(n.type)
-      ? n.declaration
-      : n,
-  );
-const transformed = await transformWithOxc(
-  generate(ast).code,
-  "AlbumSpaces.jsx",
-  { jsx: { runtime: "classic" } },
-);
+async function transpile(filename) {
+  const ast = parse(fs.readFileSync(filename, "utf8"), {
+    sourceType: "module",
+    plugins: ["jsx"],
+  });
+  ast.program.body = ast.program.body
+    .filter((n) => n.type !== "ImportDeclaration")
+    .map((n) =>
+      ["ExportDefaultDeclaration", "ExportNamedDeclaration"].includes(n.type)
+        ? n.declaration
+        : n,
+    );
+  return transformWithOxc(generate(ast).code, filename, {
+    jsx: { runtime: "classic" },
+  });
+}
+
+const [transformed, phonePicker] = await Promise.all([
+  transpile("src/components/AlbumSpaces.jsx"),
+  transpile("src/components/FamilyPhotoPicker.jsx"),
+]);
 
 globalThis.indexedDB = database();
 globalThis.window = new EventTarget();
@@ -40,7 +46,7 @@ async function fixture(
   back = image("back"),
 ) {
   registerStore("account", { session: { phone: owner } });
-  const family = side === "member";
+  const family = side === "member" || side === "member-import";
   const space = family ? "family" : "documents";
   await domain.updateArchive(owner, (state) => {
     if (family) {
@@ -57,7 +63,7 @@ async function fixture(
   const path = domain.archivePath(
     space,
     family
-      ? { member: row.id, sheet: "delete-member" }
+      ? { member: row.id, sheet: side === "member-import" ? "photos" : "delete-member" }
       : {
           member: "self", group: row.id, item: side === "front" || side === "replace" ? row.photos[0].id : null,
           sheet: side === "replace" ? "replace-group-photo" : side === "front" ? "delete-group-photo" : "delete-group",
@@ -78,6 +84,7 @@ async function fixture(
   const updates = [];
   const deps = {
     ...domain,
+    ...documentPhotos,
     getStore,
     useArchiveZoom: () => ({ side: "" }),
     SharedSheet: () => null,
@@ -119,7 +126,7 @@ async function fixture(
       search: location.search,
     }),
   );
-  assert.ok(side === "replace" ? picker : confirmation, "the requested archive panel is rendered");
+  assert.ok(["replace", "member-import"].includes(side) ? picker : confirmation, "the requested archive panel is rendered");
   return { owner, row, path, confirmation, picker, updates };
 }
 
@@ -264,7 +271,7 @@ test("replacement picker is single-select, retains the original after failure an
   const f = await fixture("replace-photo", "replace", (...args) =>
     fail ? Promise.reject(new DOMException("quota", "QuotaExceededError")) : domain.updateArchive(...args),
   );
-  assert.equal(f.picker.multiple, false);
+  assert.equal(f.picker.documentSlots, 1);
   await f.picker.onAdd(async () => [image("replacement")]);
   assert.match(f.updates[1], /保存失败/);
   assert.equal(location.pathname + location.search, f.path);
@@ -358,4 +365,59 @@ test("visible download starts a single original immediately and selects individu
   list.bodyRef(body)();
   assert.equal(body.scrollTop, 144);
   assert.equal(focused, "download:identity");
+});
+
+
+function phoneSelection(picker, files) {
+  const deps = {
+    ...domain, ...documentPhotos,
+    useRef: React.useRef, useState: React.useState,
+    SheetFrame: () => null, ToolPhotoSelection: () => null,
+  };
+  const Component = new Function(
+    "React", ...Object.keys(deps),
+    phonePicker.code + ";return FamilyPhotoPicker;",
+  )({
+    ...React,
+    createElement(type, props, ...children) {
+      if (type === "input" && props.type === "file") fn = props.onChange;
+      return React.createElement(type, props, ...children);
+    },
+  }, ...Object.values(deps));
+  let fn;
+  renderToStaticMarkup(React.createElement(Component, picker));
+  assert.ok(fn, "the picker exposes a file input");
+  return fn({ currentTarget: { files, value: "选中的文件" } });
+}
+
+test("a family phone import saves the original with one selection and returns to that member", async () => {
+  const fixtureData = await fixture("family-phone-auto", "member-import");
+  const { owner, row, picker, updates } = fixtureData;
+  globalThis.Image = class {
+    naturalWidth = 413;
+    naturalHeight = 579;
+    async decode() {}
+  };
+  const file = new File(["original bytes"], "新证件照.jpg", { type: "image/jpeg" });
+  await phoneSelection(picker, []);
+  await phoneSelection(picker, [file, file]);
+  assert.equal((await domain.readArchive(owner)).members[0].photos.length, 1);
+  await phoneSelection(picker, [file]);
+  const [first, previous] = (await domain.readArchive(owner)).members[0].photos;
+  assert.equal(first.name, file.name);
+  assert.equal(await first.blob.text(), await file.text());
+  assert.equal(previous.id, "copy");
+  assert.equal(location.pathname + location.search, domain.archivePath("family", { member: row.id }));
+  assert.equal(updates[3], row.id);
+});
+
+test("an unreadable family phone photo stays in the picker without adding a photo", async () => {
+  const { owner, picker, path, updates } = await fixture("family-phone-retry", "member-import");
+  globalThis.Image = class {
+    async decode() { throw new DOMException("bad file", "EncodingError"); }
+  };
+  await phoneSelection(picker, [new File(["bad bytes"], "bad.jpg", { type: "image/jpeg" })]);
+  assert.equal((await domain.readArchive(owner)).members[0].photos.length, 1);
+  assert.equal(location.pathname + location.search, path);
+  assert.equal(updates[1], "图片未能读取，请重新选择。");
 });

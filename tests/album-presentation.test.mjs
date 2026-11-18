@@ -10,6 +10,7 @@ import { transformWithOxc } from "vite";
 import { observable, withLocals } from "../src/runtime/state.js";
 import {photoFacts} from "../src/domain/photo-actions.js";
 import * as archiveDomain from "../src/domain/album-spaces.js";
+import * as documentPhotos from "../src/domain/document-photos.js";
 import { albumDate, formatCaptureDate } from "../src/domain/photo-date.js";
 import { visiblePhotoBounds } from "../src/components/photo-processing.js";
 const generate = generateModule.default || generateModule;
@@ -90,8 +91,11 @@ const makeState = (extra = {}) =>
     ...extra,
   });
 const renderPortal=({target,children})=>React.createElement("div",{"data-portal-target":target},children);
+const FeedbackToast = await compile("src/components/Feedback.jsx", "FeedbackToast", {
+  useLayoutEffect: React.useLayoutEffect, useRef: React.useRef, Portal: renderPortal,
+});
 const {SharedSheet,SheetFrame}=await compile("src/components/SharedSheet.jsx","({SharedSheet,SheetFrame})",{
-  useEffect:React.useEffect,useRef:React.useRef,Portal:renderPortal,
+  useEffect:React.useEffect,useRef:React.useRef,Portal:renderPortal,FeedbackToast,
 });
 const {useArchiveZoom,ArchiveZoom}=await compile("src/components/ArchiveZoom.jsx","({useArchiveZoom,ArchiveZoom})",{
   useEffect:React.useEffect,useRef:React.useRef,useState:React.useState,Portal:renderPortal,
@@ -242,8 +246,8 @@ test("document folders count documents and sheets display document names without
     ],
   };
   const Component = await compile("src/components/AlbumSpaces.jsx", "AlbumSpaces", {
-    ...archiveDomain, PhotoDeleteDialog, useArchiveZoom, ArchiveZoom, SharedSheet, albumDate,
-    FamilyPhotoPicker: ({ member, multiple = true }) => React.createElement("p", { "data-multiple": String(multiple) }, member.name + "选图"),
+    ...archiveDomain, ...documentPhotos, PhotoDeleteDialog, useArchiveZoom, ArchiveZoom, SharedSheet, albumDate,
+    FamilyPhotoPicker: ({ member, documentSlots }) => React.createElement("p", { "data-document-slots": String(documentSlots) }, member.name + "选图"),
     getStore: () => ({ finished: [] }),
     useRef: React.useRef, useEffect: React.useEffect,
     useLayoutEffect: React.useLayoutEffect, useCallback: React.useCallback,
@@ -281,7 +285,7 @@ test("document folders count documents and sheets display document names without
   assert.match(downloads, /id="document-download-title">下载证件照片.*<h3[^>]*>身份证.*aria-label="下载第 1 张照片".*>下载<.*aria-label="下载第 2 张照片".*>下载</);
   assert.doesNotMatch(downloads, /删除证件|修改证件名称|>替换</);
   const add = draw("&member=mother&sheet=new-group");
-  assert.match(add, /data-multiple="true">妈妈选图/);
+  assert.match(add, /data-document-slots="5">妈妈选图/);
   const groupMenu = draw("&member=mother&group=id-group&sheet=group-actions");
   assert.match(groupMenu, /添加照片.*修改证件名称.*证件照片.*第 1 张.*第 2 张.*删除证件/);
   assert.doesNotMatch(groupMenu, /人像面|国徽面|照片组/);
@@ -290,7 +294,7 @@ test("document folders count documents and sheets display document names without
   assert.doesNotMatch(photoMenu, /国徽面|重命名|<input/);
   assert.match(draw("&member=mother&group=id-group&sheet=rename-group"), /修改证件名称.*<label>证件名称.*value="身份证"/);
   assert.equal(draw("&member=mother&group=id-group&item=back&sheet=rename-group-photo"), photoMenu);
-  assert.match(draw("&member=mother&group=id-group&item=back&sheet=replace-group-photo"), /data-multiple="false">妈妈选图/);
+  assert.match(draw("&member=mother&group=id-group&item=back&sheet=replace-group-photo"), /data-document-slots="1">妈妈选图/);
   const confirm = draw("&member=mother&group=trip-group&item=passport&sheet=delete-group-photo");
   assert.match(confirm, /role="alertdialog".*最后一张照片.*移除这份证件.*删除证件/);
 });
@@ -299,7 +303,7 @@ test("after photo selection only a new document has a name input", async () => {
   let seeded = false;
   const photos = [photo, { ...photo, id: "two", archiveName: "旧照片名称" }];
   const Composer = await compile("src/components/AlbumSpaces.jsx", "DocumentGroupComposer", {
-    ...archiveDomain, SharedSheet,
+    ...archiveDomain, ...documentPhotos, SharedSheet,
     useEffect: React.useEffect, useRef: React.useRef,
     useState(initial) {
       if (!seeded) { seeded = true; return React.useState(photos); }
@@ -317,6 +321,9 @@ test("after photo selection only a new document has a name input", async () => {
   const appended = draw({ name: "身份证", photos: [photo] });
   assert.match(appended, /添加照片.*已选 2 张照片.*继续添加照片.*保存照片/);
   assert.doesNotMatch(appended, /<input|照片名称/);
+  const filled = draw({ name: "身份证", photos: [photo, photo, photo] });
+  assert.match(filled, /已选 2 张照片.*保存照片/);
+  assert.doesNotMatch(filled, /继续添加照片/);
 });
 
 test("family list lives in one sheet; single photos keep the established facts/services/download layout", async () => {

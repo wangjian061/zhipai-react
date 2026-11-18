@@ -14,7 +14,9 @@ import { getStore } from "../runtime/state.js";
 import { accountRoute } from "../domain/account.js";
 import { downloadAlbumBlob } from "../domain/album.js";
 import { albumDate } from "../domain/photo-date.js";
+import { assertDocumentPhotoCount, remainingDocumentPhotoSlots } from "../domain/document-photos.js";
 import {
+  openFamilyAlbumCamera,
   DOCUMENT_NAME_LIMIT,
   SELF_DOCUMENT_ALBUM,
   archivePath,
@@ -164,6 +166,7 @@ export default function AlbumSpaces({ owner, space, search, scope }) {
   const [data, setData] = useState(null),
     [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [phoneImportNotice, setPhoneImportNotice] = useState(null);
   const reading = useRef(0),
     writing = useRef(false),
     mounted = useRef(false);
@@ -196,6 +199,9 @@ export default function AlbumSpaces({ owner, space, search, scope }) {
   const photo = member?.photos.find((p) => p.id === itemId);
   const deletingPhoto = family && sheet === "delete-photo";
   const memberListOpen = family && !!memberId && !itemId && !sheet;
+  useEffect(() => {
+    if (!memberListOpen && sheet !== "photos") setPhoneImportNotice(null);
+  }, [memberListOpen, sheet]);
   const managementOpen = sheet === "manage" && !memberId && !itemId;
   const editingMember = sheet === "edit-member" && !itemId;
   const deletingMember = sheet === "delete-member" && !itemId;
@@ -268,6 +274,7 @@ export default function AlbumSpaces({ owner, space, search, scope }) {
   const go = (params) => navigateArchive(archivePath(space, params));
   const openSheet = (name) => {
     setError("");
+    setPhoneImportNotice(null);
     go({ ...fields, sheet: name });
   };
   const closeSheet = () => {
@@ -490,6 +497,7 @@ export default function AlbumSpaces({ owner, space, search, scope }) {
           bodyRef={memberBody}
           returnFocusRef={memberTrigger}
           onClose={() => backInArchive(root)}
+          toast={phoneImportNotice === memberId ? "证件照校验通过（演示），已添加" : ""}
           footer={
             member && (
               <button
@@ -571,17 +579,20 @@ export default function AlbumSpaces({ owner, space, search, scope }) {
       {space === "family" && sheet === "photos" && member && !itemId && (
         <FamilyPhotoPicker
           key={member.id}
-          member={member}
           library={getStore("photoLibrary")}
           trigger={addPhotoButton}
           busy={busy}
           error={error}
           onClose={closeSheet}
-          onAdd={(prepare) =>
+          onTakePhoto={() => openFamilyAlbumCamera(owner, member.id)}
+          onAdd={(prepare, source) =>
             save(async () => {
               const images = await prepare();
               return (state) => appendFamilyPhotos(state, member.id, images);
-            }, closeSheet)
+            }, () => {
+              if (source === "phone") setPhoneImportNotice(member.id);
+              closeSheet();
+            })
           }
         />
       )}
@@ -860,7 +871,9 @@ function DocumentAlbums({ owner, data, search, managementOpen, busy, error, save
       panel = (
         <SharedSheet opened id="document-group-actions-title" title={group.name}
           className="archive-management-sheet" onClose={() => back(listPath)} busy={busy} bodyRef={groupMenuBody}>
-          <DocumentAction onClick={() => go({ group: groupId, sheet: "append-group" })}>添加照片</DocumentAction>
+          {remainingDocumentPhotoSlots(group.photos.length) > 0 && (
+            <DocumentAction onClick={() => go({ group: groupId, sheet: "append-group" })}>添加照片</DocumentAction>
+          )}
           <DocumentAction onClick={() => go({ group: groupId, sheet: "rename-group" })}>修改证件名称</DocumentAction>
           {group.photos.length > 0 && (
             <section className="document-group-action-photos" aria-labelledby="group-photo-actions-heading">
@@ -898,7 +911,7 @@ function DocumentAlbums({ owner, data, search, managementOpen, busy, error, save
       );
     } else if (photo && sheet === "replace-group-photo") {
       panel = (
-        <FamilyPhotoPicker member={album} library={getStore("photoLibrary")} multiple={false}
+        <FamilyPhotoPicker member={album} library={getStore("photoLibrary")} documentSlots={1}
           busy={busy} error={error} onClose={() => back(photoMenu)}
           onAdd={(prepare) => save(async () => {
             const [image] = await prepare();
@@ -1038,6 +1051,7 @@ function DocumentGroupComposer({ album, group, busy, error, pickingMore, onPickM
   const [name, setName] = useState("");
   const [preparing, setPreparing] = useState(false), [readError, setReadError] = useState("");
   const active = useRef(false), preparingRef = useRef(false);
+  const remaining = remainingDocumentPhotoSlots(group?.photos.length, photos.length);
   useEffect(() => {
     active.current = true;
     return () => { active.current = false; };
@@ -1051,6 +1065,7 @@ function DocumentGroupComposer({ album, group, busy, error, pickingMore, onPickM
     try {
       const images = await prepare();
       if (!active.current || source !== currentArchiveRoute()) return;
+      assertDocumentPhotoCount(images.length, remaining);
       setPhotos((current) => [...current, ...images]);
       if (pickingMore) onReturnFromPicker();
     } catch (failure) {
@@ -1061,10 +1076,15 @@ function DocumentGroupComposer({ album, group, busy, error, pickingMore, onPickM
       if (active.current) setPreparing(false);
     }
   }
-  if (!photos.length || pickingMore)
+  if ((!photos.length || pickingMore) && remaining > 0)
     return <FamilyPhotoPicker member={album} library={getStore("photoLibrary")}
-      busy={busy || preparing} error={readError || error} onAdd={select}
+      documentSlots={remaining} busy={busy || preparing} error={readError || error} onAdd={select}
       onClose={pickingMore ? onReturnFromPicker : onClose} />;
+
+  if (!photos.length)
+    return <SharedSheet opened id="document-group-composer-title" title="添加照片" onClose={onClose}>
+      <p className="member-camera-status">这份证件已达到 5 张照片的上限。</p>
+    </SharedSheet>;
 
   return (
     <SharedSheet opened id="document-group-composer-title" title={group ? "添加照片" : "添加证件"}
@@ -1083,10 +1103,12 @@ function DocumentGroupComposer({ album, group, busy, error, pickingMore, onPickM
         <div className="archive-photo-grid" role="group" aria-label={"已选 " + photos.length + " 张照片"}>
           {photos.map((photo) => <DocumentThumbnail key={photo.id} photo={photo} />)}
         </div>
-        <button type="button" className="document-group-add" onClick={() => {
-          setReadError("");
-          onPickMore();
-        }}>继续添加照片</button>
+        {remaining > 0 ? (
+          <button type="button" className="document-group-add" onClick={() => {
+            setReadError("");
+            onPickMore();
+          }}>继续添加照片</button>
+        ) : <p className="member-camera-status">已达到 5 张照片的上限。</p>}
       </fieldset>
       {error && <p className="album-error" role="alert">{error}</p>}
     </SharedSheet>

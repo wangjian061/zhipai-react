@@ -22,7 +22,7 @@ export default function CameraPage({ scope, args = [] }) {
           data-step={s.step}
           data-guided-lens={s.guidedLens || undefined}
           data-task-tone={s.draft?.status === "failed" ? "red" : "blue"}
-          aria-label="证件照制作"
+          aria-label={s.familyCamera ? "为成员拍照" : "证件照制作"}
         >
           <View
             as="input"

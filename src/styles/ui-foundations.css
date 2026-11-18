@@ -11,6 +11,11 @@
   --ui-button-font:15px;
   --ui-sheet-radius:24px;
   --ui-sheet-title:18px;
+  --ui-touch-min:44px;
+  --ui-toast-fill:#26364a;
+  --ui-toast-radius:12px;
+  --ui-toast-font:14px;
+  --ui-toast-gap:16px;
   --ui-container-shadow:0 -3px 16px #29496b06;
   --ui-card-shadow:0 2px 8px #29496b06,0 6px 18px -10px #29496b0d;
   --ui-sheet-shadow:0 -10px 32px #20385812;
