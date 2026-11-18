@@ -1,4 +1,7 @@
 import React from "react";
+import { FeedbackToast } from "../components/Feedback.jsx";
+import { PaymentChoices, PaymentRecovery } from "../components/PaymentHandoff.jsx";
+import { checkoutLabel } from "../domain/payment-handoff.js";
 import {
   CameraConfirmationPage,
   CameraResultPage,
@@ -411,18 +414,7 @@ export default function CameraPage({ scope, args = [] }) {
               {"正在恢复照片…"}
             </View>
           </View>
-          <View
-            as="p"
-            scope={s}
-            className="camera-toast"
-            show={s.notice && s.page === "camera"}
-            text={s.notice}
-            role="status"
-            transition={{
-              opacity: true,
-              duration: 150,
-            }}
-          ></View>
+          <FeedbackToast message={s.page === "camera" && !s.panel && s.notice} />
           <Portal target="#camera-modal-layer">
             <CameraWorkflowModal scope={s} />
             <CameraTaskSheet scope={s} />
@@ -579,65 +571,17 @@ export default function CameraPage({ scope, args = [] }) {
                         {"¥" + s.electronicPrice}
                       </View>
                     </View>
-                    <View
-                      as="fieldset"
-                      scope={s}
-                      className="camera-payment-methods"
-                    >
-                      <View as="legend" scope={s}>
-                        {"支付方式"}
-                      </View>
-                      <View as="label" scope={s}>
-                        <View as="span" scope={s}>
-                          {"微信支付"}
-                        </View>
-                        <View
-                          as="input"
-                          scope={s}
-                          type="radio"
-                          name="camera-payment"
-                          value="wechat"
-                          disabled={
-                            s.paying || s.draft?.order?.status === "verifying"
-                          }
-                          model={{
-                            read: function (scope, $event, $el) {
-                              return scope.paymentMethod;
-                            },
-                            write: function (scope, $event, $el) {
-                              scope.paymentMethod = $event;
-                            },
-                            number: false,
-                            lazy: false,
-                          }}
-                        ></View>
-                      </View>
-                      <View as="label" scope={s}>
-                        <View as="span" scope={s}>
-                          {"支付宝支付"}
-                        </View>
-                        <View
-                          as="input"
-                          scope={s}
-                          type="radio"
-                          name="camera-payment"
-                          value="alipay"
-                          disabled={
-                            s.paying || s.draft?.order?.status === "verifying"
-                          }
-                          model={{
-                            read: function (scope, $event, $el) {
-                              return scope.paymentMethod;
-                            },
-                            write: function (scope, $event, $el) {
-                              scope.paymentMethod = $event;
-                            },
-                            number: false,
-                            lazy: false,
-                          }}
-                        ></View>
-                      </View>
-                    </View>
+                    {s.draft?.order?.status === "verifying" ? (
+                      <PaymentRecovery order={s.draft.order} busy={s.paying}
+                        resolution={s.checkoutResolution} setResolution={(value) => { s.checkoutResolution = value; }}
+                      />
+                    ) : (
+                      <PaymentChoices kind="electronic" method={s.paymentMethod}
+                        setMethod={(value) => { s.paymentMethod = value; }}
+                        outcome={s.paymentOutcome} setOutcome={(value) => { s.paymentOutcome = value; }}
+                        disabled={s.paying}
+                      />
+                    )}
                     <View
                       as="p"
                       scope={s}
@@ -653,7 +597,7 @@ export default function CameraPage({ scope, args = [] }) {
                       scope={s}
                       className="primary-button camera-pay-button"
                       disabled={s.paying}
-                      text={s.paymentLabel}
+                      text={s.paying ? "正在确认…" : checkoutLabel("electronic", s.paymentMethod, s.draft?.order)}
                       events={[
                         {
                           type: "click",
@@ -664,7 +608,7 @@ export default function CameraPage({ scope, args = [] }) {
                           run: function (scope, $event, $el) {
                             scope.draft?.order?.status === "verifying"
                               ? scope.queryPayment()
-                              : scope.pay();
+                              : scope.pay({ handoff: true });
                           },
                         },
                       ]}

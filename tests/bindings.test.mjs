@@ -6,6 +6,7 @@ import path from 'node:path';
 import {parse} from '@babel/parser';
 import generateModule from '@babel/generator';
 import {createController,withLocals} from '../src/runtime/state.js';
+import {checkoutLabel} from '../src/domain/payment-handoff.js';
 const generate=generateModule.default||generateModule;
 globalThis.location=new URL('http://127.0.0.1:4180/?page=home');
 Object.defineProperty(globalThis,'navigator',{value:{onLine:true},configurable:true});
@@ -13,7 +14,7 @@ globalThis.window=new EventTarget();globalThis.document={hidden:false,querySelec
 await import('../src/domain/index.js');
 const root=createController('phoneDemo').scope;
 const mapping={AppShell:'phoneDemo',ImageCarousel:'imageCarousel',AlbumPage:'albumCenter',CameraPage:'cameraStudio',SpecificationsPage:'specificationPicker',ScanPage:'collectionScanner',ToolsPage:'toolStudio',SupportPage:'supportCenter',PrintPage:'printStudio',MyPage:'myCenter',PhotoPicker:'photoChooser',AccountPage:'accountFlow',CollectionPage:'collectionFlow',LiquidTabs:'liquidTabs'};
-const read=(node,s)=>new Function('s','args','return ('+generate(node).code+')')(s,[]);
+const read=(node,s)=>new Function('s','args','checkoutLabel','return ('+generate(node).code+')')(s,[],checkoutLabel);
 test('all initial JSX data bindings resolve against the migrated domain state',()=>{
  let count=0;const errors=[];
  for(const folder of ['components','pages'])for(const file of fs.readdirSync('src/'+folder).filter(n=>n.endsWith('.jsx'))){

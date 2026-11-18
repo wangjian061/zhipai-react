@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-04T12:02:56Z",
+  "generatedAt": "2026-11-17T04:54:19Z",
   "title": "Design System: 知拍",
   "extensions": {
     "colorMeta": {
@@ -383,7 +383,7 @@
       }
     ],
     "freeToolWorkspace": {
-      "confirmedAt": "2026-11-04",
+      "confirmedAt": "2026-11-17",
       "status": "local implementation; awaiting acceptance",
       "mode": "operate",
       "tools": [
@@ -394,23 +394,15 @@
       ],
       "navigation": "Existing ToolNavigation, no stepper or previous-step action",
       "photo": {
-        "component": "ToolWorkspacePlaceholder",
-        "asset": "/assets/photo-placeholder-silhouette-20261106.webp",
-        "ratio": "5/7",
-        "maxWidth": "200px",
-        "fit": "contain",
-        "ground": "portrait-ground",
-        "purpose": "Selection affordance only; never a processing input",
-        "palette": "pale blue background; blue silhouette preserving the current portrait actual hair, ears, neck and shoulder outline",
-        "shadows": "none",
-        "outerContainer": "transparent; no fill, border or shadow",
-        "maxHeight": "280px",
-        "selectionCaption": "请选择您的照片",
-        "realPhotoMaxWidth": "250px",
-        "confirmedAt": "2026-11-06",
-        "details": "no facial features, clothing details or 3D shading; no geometric-avatar approximation"
+        "component": "src/components/ToolCapabilityPoster.jsx",
+        "artworkConfig": "toolPosterArtwork",
+        "ratio": "1200/896",
+        "width": "full workspace content width",
+        "fit": "original aspect ratio",
+        "purpose": "Tool-specific poster before selection. Processing uses the chosen photo.",
+        "realPhotoMaxWidth": "250px"
       },
-      "settings": "Reuse each tool existing settings card; allow preselection without a photo",
+      "settings": "Options can be preselected before photo selection. The poster stays fixed.",
       "actions": {
         "component": "PhotoSelectionActions",
         "empty": "选取照片",
@@ -421,7 +413,7 @@
         "retry": "重试保存"
       },
       "portraitCheck": "Only background, automatically in this workspace; pass opens options silently; failure and error stay here",
-      "scope": "Default-photo refinement shared by all seven workspaces; real-photo geometry and processing are unchanged"
+      "scope": "The same poster component displays tool-specific images for crop, background, format and resize. Photo specifications use a three-column nine-item catalog."
     },
     "personalBusiness": {
       "confirmedAt": "2026-11-04",
@@ -450,7 +442,33 @@
         "ratioCheck": {
           "print": "5:7"
         },
-        "resizePrimary": "确认修改"
+        "resizePrimary": "确认修改",
+        "emptyPreview": {
+          "component": "src/components/ToolCapabilityPoster.jsx",
+          "artworkConfig": "toolPosterArtwork",
+          "assets": {
+            "print": "public/assets/tool-print-banner-20261117.jpg",
+            "repair": "public/assets/tool-repair-banner-20261117.jpg",
+            "outfit": "public/assets/tool-outfit-banner-20261117.jpg",
+            "crop": "public/assets/tool-crop-banner-20261117.jpg",
+            "background": "public/assets/tool-background-banner-20261117.jpg",
+            "format": "public/assets/tool-format-banner-20261117.jpg",
+            "resize": "public/assets/tool-resize-banner-20261117.jpg"
+          },
+          "stageAspectRatio": "1200/896",
+          "width": "full workspace content width",
+          "sampleOnly": true,
+          "replacedWhenPhotoChosen": true,
+          "changesWithSettings": false,
+          "opens": "shared photo selection drawer"
+        },
+        "specificationsHero": {
+          "component": "src/pages/SpecificationsPage.jsx",
+          "artworkConfig": "toolPosterArtwork.specifications",
+          "asset": "public/assets/specifications-hero-series-20261117.webp",
+          "dimensions": "1644×957px",
+          "usage": "Decorative heading image with three unlabeled 3D portraits below navigation. The specification grid opens the color drawer."
+        }
       },
       "sharedComponents": [
         "ToolNavigation",
@@ -459,7 +477,8 @@
         "ToolResult",
         "SharedSheet",
         "PhotoOperations",
-        "ShippingAddressFields"
+        "ShippingAddressFields",
+        "ToolCapabilityPoster"
       ],
       "photoOperations": [
         "print",
@@ -508,7 +527,10 @@
           "bodyPx": 92,
           "sideInsetPx": 16,
           "firstCardGapPx": 0,
-          "sharedBrandGeometryWith": ["album library", "my overview"],
+          "sharedBrandGeometryWith": [
+            "album library",
+            "my overview"
+          ],
           "sticky": {
             "extent": "status area through the mascot lower edge",
             "contentAlwaysVisible": [
@@ -750,6 +772,12 @@
       },
       "printPresentation": {
         "name": "照片冲印",
+        "priceShownAt": "order confirmation",
+        "layoutCardFooter": {
+          "finish": "背胶模切",
+          "restriction": "每单 1 版，不支持加印",
+          "presentation": "Static pale-blue pill at the start and secondary text at the end, baseline-aligned with natural wrapping."
+        },
         "exampleOnlyWhenEmpty": true,
         "previewDoesNotSelect": true,
         "sourceAfterSelection": "current actual/cropped input",
@@ -772,7 +800,11 @@
         "tabsPresentation": {
           "layout": "equal-width three-tab row in its own white card, 8px between tabs, 12px between cards",
           "topAndLeadingInsetPx": 14,
-          "icons": ["i-nav-album", "i-users", "i-collection-id"],
+          "icons": [
+            "i-nav-album",
+            "i-users",
+            "i-collection-id"
+          ],
           "iconPx": 16,
           "minimumTouchPx": 44,
           "whenNarrow": "icon above label, all three tabs visible",
@@ -794,6 +826,41 @@
         "postcard": "one window; 90° CCW/CW turns of the photo, stationary paper and type, same crop used at checkout",
         "stamp": "center and corners"
       }
+    },
+    "messageFeedback": {
+      "confirmedAt": "2026-11-17",
+      "contract": "docs/design/message-feedback-guidelines.md",
+      "toast": {
+        "component": "src/components/Feedback.jsx#FeedbackToast",
+        "fill": "#26364A",
+        "ink": "#FFFFFF",
+        "radiusPx": 12,
+        "fontSizePx": 14,
+        "minHeightPx": 44,
+        "horizontalInsetPx": 24,
+        "gapAboveActionBarPx": 16,
+        "durationMs": {
+          "singleLine": 2000,
+          "twoLines": 3000
+        }
+      },
+      "confirmation": {
+        "component": "src/components/ConfirmationDialog.jsx",
+        "surface": "white",
+        "radiusPx": 16,
+        "titleSizePx": 18,
+        "buttonHeightPx": 48,
+        "actions": [
+          "photo deletion",
+          "discard photo result",
+          "confirm receipt"
+        ]
+      },
+      "paymentRecovery": {
+        "component": "src/components/PaymentHandoff.jsx#PaymentRecovery",
+        "presentation": "persistent inline module feedback with the original action position"
+      },
+      "reasons": "Use existing shared bottom sheet patterns."
     }
   },
   "components": [

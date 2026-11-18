@@ -1,4 +1,5 @@
 import React from "react";
+import { PaymentRecovery } from "./PaymentHandoff.jsx";
 import PhotoProcessingEffect, {
   PhotoProcessingStatus,
 } from "./PhotoProcessingEffect.jsx";
@@ -139,6 +140,9 @@ export default function CollectionTaskDetail({
               {s.projectState.message}
             </p>
           )}
+          {!s.panel && <PaymentRecovery order={record.payment} busy={s.busy}
+            resolution={s.checkoutResolution} setResolution={(value) => { s.checkoutResolution = value; }}
+          />}
           {error && !s.panel && (
             <div className="collection-task-error" role="alert">
               <p>{error}</p>
@@ -185,7 +189,7 @@ export function CollectionTaskFooter({ scope: s }) {
         className="collection-primary"
         disabled={
           s.disabled ||
-          (requiresCollection && !s.canCollect) ||
+          (requiresCollection && !s.canCollect && record.payment?.status !== "verifying") ||
           (status === "draft" && !record.photo?.blob) ||
           (record.fixture && !["reviewing", "processing"].includes(status))
         }

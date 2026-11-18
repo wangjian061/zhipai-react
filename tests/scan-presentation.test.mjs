@@ -43,6 +43,7 @@ const ScanPage = await compile("src/pages/ScanPage.jsx", "ScanPage", {
   guideContent: collectionCodeHelp,
   View,
   Controller: ({ children }) => children(currentState),
+  FeedbackToast: () => null,
   Portal: ({ children }) => children,
 });
 function render(extra = {}) {

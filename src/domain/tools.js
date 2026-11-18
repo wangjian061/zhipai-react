@@ -20,6 +20,10 @@ import {
 } from "./album.js";
 import { paymentResult } from "./order-status.js";
 import { transactOrder } from "./order-payment.js";
+import {
+  createHandoff, finishHandoff, handoffStatus, lockPayment,
+  paymentReturnBlocked, presentHandoff,
+} from "./payment-handoff.js";
 const PHOTO_TOOLS = {
   repair: {
     title: "照片精修",
@@ -218,7 +222,8 @@ async function replaceToolBackground(blob, color, format = "png") {
       ).length,
     }))
     .sort((a, b) => b.count - a.count)[0].v;
-  const rgb = color
+  const transparent = color === "transparent";
+  const rgb = transparent ? [0, 0, 0] : color
       .slice(1)
       .match(/.{2}/g)
       .map((v) => parseInt(v, 16)),
@@ -254,7 +259,7 @@ async function replaceToolBackground(blob, color, format = "png") {
     d[k] = rgb[0];
     d[k + 1] = rgb[1];
     d[k + 2] = rgb[2];
-    d[k + 3] = 255;
+    d[k + 3] = transparent ? 0 : 255;
     if (i % w) visit(i - 1);
     if (i % w < w - 1) visit(i + 1);
     visit(i - w);
@@ -383,11 +388,13 @@ registerController("toolStudio", () => ({
   orderError: "",
   paymentMethod: "wechat",
   paymentOutcome: "success",
+  checkoutResolution: "unknown",
   paying: false,
   savedRecord: null,
   saveId: null,
   candidateId: null,
   outfitCategory: "men",
+  outfitExampleActive: false,
   cropPointers: {},
   cropGesture: null,
   entryPhoto: null,
@@ -718,10 +725,12 @@ registerController("toolStudio", () => ({
           : this.stage === "standardizing"
             ? "标准化处理中…"
             : "正在处理…";
-    if (this.currentOrder?.status === "verifying") return "查询付款结果";
+    if (this.currentOrder?.status === "verifying") return "查询支付结果";
     if (this.choosingPhoto && this.photo) return "下一步";
     if (!this.photo) return "选取照片";
     if (this.flowCompleted) return "再处理一张";
+    if (!this.error && this.currentOrder?.status === "pending" && this.currentOrder.handoff)
+      return this.currentOrder.handoff.outcome === "unavailable" ? "重试打开收银台" : "继续支付";
     if (this.error && this.step > 0) return this.recoveryLabel;
     if (!this.portraitEligible)
       return this.portraitCheck.status === "awaiting"
@@ -838,6 +847,7 @@ registerController("toolStudio", () => ({
       flowCompleted: false,
       outfit: OUTFITS[0].id,
       outfitCategory: "men",
+      outfitExampleActive: false,
       standardized: false,
       portraitCheck: { status: "idle", reasons: [] },
       outfitOutputSize: null,
@@ -879,6 +889,7 @@ registerController("toolStudio", () => ({
     return this.start();
   },
   syncLocation() {
+    if (paymentReturnBlocked()) return;
     const q = new URLSearchParams(location.search);
     if (q.get("page") !== "tool") {
       this.cancelTask();
@@ -1101,6 +1112,7 @@ registerController("toolStudio", () => ({
   pick() {
     if (
       this.busy ||
+      this.currentOrder?.status === "verifying" ||
       this.view !== "work" ||
       (!this.isInlineWorkspace && this.step !== 0)
     )
@@ -1392,8 +1404,11 @@ registerController("toolStudio", () => ({
     if (this.standardBlob) this.setOutput(this.standardBlob);
   },
   selectOutfitCategory(id) {
-    if (this.busy || this.flowCompleted || this.outfitCategory === id) return;
+    if (this.busy || this.flowCompleted) return;
+    if (this.currentOrder?.status === "verifying") return;
     if (!this.outfitCategories.some((category) => category.id === id)) return;
+    if (!this.photo) this.outfitExampleActive = true;
+    if (this.outfitCategory === id) return;
     this.outfitCategory = id;
     this.outfit = this.outfits.find((item) => item.category === id)?.id;
     this.invalidateService();
@@ -1402,10 +1417,12 @@ registerController("toolStudio", () => ({
     if (
       this.busy ||
       this.flowCompleted ||
-      this.outfit === id ||
+      this.currentOrder?.status === "verifying" ||
       !this.filteredOutfits.some((item) => item.id === id)
     )
       return;
+    if (!this.photo) this.outfitExampleActive = true;
+    if (this.outfit === id) return;
     this.outfit = id;
     this.invalidateService();
   },
@@ -1627,7 +1644,7 @@ registerController("toolStudio", () => ({
     this.paymentOutcome = "success";
     this.openPanel("payment");
   },
-  async restoreExistingPayment() {
+  async restoreExistingPayment({ automatic = false } = {}) {
     const order = this.currentOrder;
     if (!order || order.status === "pending") return false;
     if (order.status === "paid") {
@@ -1635,11 +1652,30 @@ registerController("toolStudio", () => ({
       return true;
     }
     if (order.status === "verifying") {
+      if (this.busy) return true;
       const token = this.task;
       this.paying = true;
       this.error = "";
+      let unlock;
       try {
-        await transactOrder(
+        if (order.handoff) {
+          unlock = lockPayment(order.action + ":" + order.id);
+          if (navigator.onLine === false) throw Error("网络不可用，请恢复连接后查询。");
+          const status = handoffStatus(order.handoff, {
+            query: true, resolution: automatic ? "unknown" : this.checkoutResolution,
+          });
+          if (status !== "verifying") {
+            await this.ordersStore.commit((items) => {
+              const current = items.find((item) => item.id === order.id && item.owner === order.owner);
+              if (current?.status !== "verifying" || current.handoff?.id !== order.handoff.id)
+                throw Error("订单状态已变化，请刷新后重试。");
+              current.status = status;
+              current.paymentResult = paymentResult(status, order.handoff.outcome);
+              if (status === "paid") current.paidAt = Date.now();
+            });
+            finishHandoff(order.id, order.handoff);
+          }
+        } else await transactOrder(
           {
             key: `${order.action}:${order.id}`,
             type: order.action,
@@ -1652,17 +1688,18 @@ registerController("toolStudio", () => ({
         if (token === this.task)
           this.error = error.message || "付款结果尚未确认，请重试查询。";
       } finally {
+        unlock?.();
         if (token === this.task) this.paying = false;
       }
       if (token === this.task && this.currentOrder?.status === "paid")
-        await this.resumeOrder(this.currentOrder);
+        await this.resumeOrder(this.currentOrder, { startPaidService: !!order.handoff });
       return true;
     }
     this.panel = null;
     this.error = "当前订单已关闭，请重新选择照片。";
     return true;
   },
-  async pay() {
+  async pay({ handoff = false } = {}) {
     const owner = requireOrderAccount();
     if (!owner || (this.orderId && !this.currentOrder)) return;
     if (
@@ -1675,6 +1712,10 @@ registerController("toolStudio", () => ({
       (this.action === "outfit" && (!this.standardized || !this.chosenOutfit))
     )
       return;
+    if (handoff && navigator.onLine === false) {
+      this.error = "网络不可用，请恢复连接后重试。";
+      return;
+    }
     if (this.currentOrder && this.currentOrder.status !== "pending") {
       await this.restoreExistingPayment();
       return;
@@ -1699,9 +1740,12 @@ registerController("toolStudio", () => ({
         this.action === "repair" ? { ...this.repairColor } : null,
       specId = this.specId,
       orders = this.ordersStore;
+    const attempt = handoff ? createHandoff(action, method, outcome) : null;
     let id = this.orderId;
+    let unlock;
     this.paying = true;
     this.error = "";
+    this.checkoutResolution = "unknown";
     try {
       if (!id) {
         id = photoToolId();
@@ -1756,40 +1800,70 @@ registerController("toolStudio", () => ({
           };
         });
       }
-      if (outcome !== "success") {
+      let status = outcome === "success" ? "paid" : "pending";
+      if (attempt) {
+        unlock = lockPayment(action + ":" + id);
         await orders.commit((items) => {
           const order = items.find((o) => o.id === id && o.owner === owner);
-          if (!order || order.status !== "pending")
+          if (order?.status !== "pending") throw Error("payment changed");
+          order.status = "verifying";
+          order.handoff = attempt;
+          order.method = attempt.method;
+          order.paymentResult = paymentResult("verifying");
+        });
+        if (token === this.task && owner === getStore("account")?.session?.phone) {
+          const url = new URL(location.href);
+          url.searchParams.set("resume", id);
+          history.replaceState(history.state, "", url);
+          this.resumeRequest = id;
+          status = await presentHandoff(attempt, { id, owner, amount: this.currentOrder.amount });
+        } else status = "verifying";
+      }
+      if (status !== "paid") {
+        if (status === "verifying") {
+          if (token === this.task) this.panel = null;
+          return;
+        }
+        await orders.commit((items) => {
+          const order = items.find((o) => o.id === id && o.owner === owner);
+          if (!order || order.status !== (attempt ? "verifying" : "pending"))
             throw Error("payment changed");
+          order.status = "pending";
           order.paymentResult = paymentResult("pending", outcome);
         });
-        if (token === this.task)
-          this.error =
-            outcome === "cancel"
-              ? "已取消付款，照片与设置已保留"
-              : "付款未完成，可重试";
+        finishHandoff(id, attempt);
+        if (token === this.task) {
+          if (attempt) this.panel = null;
+          else this.error = outcome === "cancel"
+            ? "已取消付款，照片与设置已保留"
+            : "付款未完成，可重试";
+        }
         return;
       }
       await orders.commit((items) => {
         const o = items.find((o) => o.id === id && o.owner === owner);
-        if (!o || o.status !== "pending") throw Error("payment changed");
+        if (!o || o.status !== (attempt ? "verifying" : "pending")) throw Error("payment changed");
         o.status = "paid";
         o.paymentResult = paymentResult("paid", "success");
         o.paidAt = Date.now();
-        o.method = method;
+        o.method = attempt?.method || method;
         if (action === "outfit") {
           o.standardBlob = standardBlob;
           o.specId = specId;
         }
       });
+      finishHandoff(id, attempt);
       if (token !== this.task || owner !== getStore("account")?.session?.phone)
         return;
       this.paid = true;
       this.unlocked = true;
       this.panel = null;
     } catch (_) {
-      if (token === this.task) this.error = "付款状态保存失败，请重试。";
+      if (token === this.task) this.error = this.currentOrder?.status === "verifying"
+        ? "暂时无法确认支付结果，请查询原订单。"
+        : "付款状态保存失败，请重试。";
     } finally {
+      unlock?.();
       if (token === this.task) this.paying = false;
     }
     if (
@@ -1940,7 +2014,7 @@ registerController("toolStudio", () => ({
     this.notice = "";
     this.route("saved");
   },
-  async resumeOrder(order) {
+  async resumeOrder(order, { startPaidService = false } = {}) {
     if (
       this.busy ||
       !order?.owner ||
@@ -1965,14 +2039,21 @@ registerController("toolStudio", () => ({
     this.unlocked = this.paid;
     this.stage = "ready";
     this.saveId = order.id;
-    this.route("work");
+    const route = new URLSearchParams(globalThis.location?.search);
+    if (route.get("page") !== "tool" || route.get("tool") !== action ||
+        route.get("view") !== "work" || route.get("resume") !== order.id)
+      this.route("work");
     if (order.status === "verifying") {
       this.choosingPhoto = false;
-      this.error = "付款结果尚未确认，请先查询原订单。";
+      if (order.handoff) {
+        this.portraitCheck = { status: "passed", reasons: [] };
+        this.standardBlob = order.standardBlob || null;
+        this.standardized = !!this.standardBlob;
+      } else this.error = "付款结果尚未确认，请先查询原订单。";
       return;
     }
     if (this.config.requiresPortrait) {
-      if (this.paid && order.output)
+      if (this.paid && (order.output || order.handoff))
         this.portraitCheck = { status: "passed", reasons: [] };
       else {
         await this.validatePortraitPhoto();
@@ -2026,6 +2107,8 @@ registerController("toolStudio", () => ({
     }
     if (token === this.task && !this.paid && action === "repair")
       await this.openPayment();
+    if (token === this.task && startPaidService && this.paid && !this.serviceApplied)
+      await this.runService();
   },
   openOrders() {
     if (!this.busy) openOrderCenter(this.action);

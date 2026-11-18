@@ -34,7 +34,7 @@ const photo = {
   spec: "一寸",
   blob: new Blob(["real input"], { type: "image/jpeg" }),
 };
-function render(action, selected = false, status = "passed") {
+function render(action, selected = false, status = "passed", settings = {}) {
   runtime.registerController("toolStudio", () =>
     Object.assign(Object.defineProperties({}, definition), {
       page: "tool",
@@ -52,6 +52,7 @@ function render(action, selected = false, status = "passed") {
       backgroundEditing: selected && status === "passed",
       portraitCheck: { status: selected ? status : "idle", reasons: [] },
       repairBackgroundId: selected && status === "passed" ? "white" : null,
+      ...settings,
     }),
   );
   const tree = parseDocument(
@@ -74,6 +75,23 @@ function render(action, selected = false, status = "passed") {
 }
 const byClass = (nodes, name) =>
   nodes.filter((n) => (n.attribs?.class || "").split(" ").includes(name));
+const posterSource = ({ nodes }) =>
+  byClass(nodes, "tool-capability-poster-art")[0]?.attribs.src;
+
+test("preselecting parameters keeps the poster fixed for its tool", () => {
+  const format = render("format", false, "idle", { format: "png" });
+  const formatButtons = byClass(format.nodes, "tool-format-list")[0].children;
+  assert.equal(formatButtons[0].attribs["aria-pressed"], "false");
+  assert.equal(formatButtons[1].attribs["aria-pressed"], "true");
+  assert.equal(posterSource(format), posterSource(render("format")));
+
+  const resize = render("resize");
+  const size = resize.nodes.find(
+    (node) => node.name === "input" && node.attribs["aria-label"] === "目标文件体积",
+  );
+  assert.equal(size.attribs.disabled, undefined);
+  assert.notEqual(posterSource(resize), posterSource(format));
+});
 for (const [action, heading] of [
   ["crop", "裁剪尺寸"],
   ["background", "背景颜色"],
@@ -82,31 +100,29 @@ for (const [action, heading] of [
   ["repair", "背景颜色"],
   ["outfit", "选择服装"],
 ]) {
-  test(`${action}: empty real workspace shows default photo, settings and selection without old step navigation`, () => {
+  test(`${action}: empty workspace shows an example and selection without old step navigation`, () => {
     const { nodes, content } = render(action);
     assert.match(content, new RegExp(heading));
     assert.equal(byClass(nodes, "tool-stepper").length, 0);
     assert.equal(byClass(nodes, "photo-selection-empty").length, 0);
-    assert.equal(byClass(nodes, "tool-workspace-placeholder").length, 1);
-    assert.equal(
-      nodes.filter(
-        (n) =>
-          n.name === "img" &&
-          n.attribs.src === "/assets/photo-placeholder-silhouette-20261106.webp",
-      ).length,
-      1,
-    );
+    const [poster] = byClass(nodes, `${action}-workspace-poster`);
+    assert.equal(poster.name, "button");
+    assert.equal(poster.attribs["aria-label"], "选取照片");
+    assert.equal(poster.attribs["aria-haspopup"], "dialog");
+    assert.equal(posterSource({ nodes }), `./assets/tool-${action}-banner-20261117.jpg`);
+    assert.equal(byClass(nodes, "tool-photo-range").length, 0);
+    assert.doesNotMatch(content, /效果示例 · 未选照片/);
     assert.doesNotMatch(content, /上一步|下一步/);
     assert.equal(byClass(nodes, "photo-selection-replace").length, 0);
     assert.match(content, /选取照片/);
-    assert.match(content, /请选择您的照片/);
     assert.doesNotMatch(content, /知拍相册 \/ 手机相册/);
   });
   test(`${action}: chosen real photo exposes only replacement and save with the existing settings`, () => {
     const { nodes, content } = render(action, true);
     assert.match(content, new RegExp(heading));
     assert.equal(byClass(nodes, "tool-stepper").length, 0);
-    assert.equal(byClass(nodes, "tool-workspace-placeholder").length, 0);
+    assert.equal(byClass(nodes, "tool-capability-poster").length, 0);
+    assert.doesNotMatch(content, /效果示例 · 未选照片/);
     assert.doesNotMatch(content, /上一步|下一步/);
     assert.equal(byClass(nodes, "photo-selection-replace").length, 1);
     assert.match(
@@ -124,6 +140,22 @@ for (const [action, heading] of [
     );
   });
 }
+test("repair poster stays static when choosing a background, then yields to real input and its result comparison", () => {
+  const first = render("repair");
+  const chosen = render("repair", false, "idle", { repairBackgroundId: "red" });
+  assert.equal(posterSource(first), posterSource(chosen));
+  assert.equal(byClass(chosen.nodes, "photo-selection-next").length, 1);
+  assert.match(chosen.content, /选取照片/);
+
+  const real = render("repair", true, "passed", { output: null, outputURL: "", repairBackgroundId: "red" });
+  assert.equal(posterSource(real), undefined);
+  assert.ok(real.nodes.some((node) => node.name === "img" && node.attribs.src === "blob:original"));
+  assert.equal(byClass(real.nodes, "tool-photo-range").length, 0);
+
+  const result = render("repair", true, "passed", { serviceApplied: true });
+  assert.equal(posterSource(result), undefined);
+  assert.equal(byClass(result.nodes, "tool-photo-range").length, 1);
+});
 test("rejected background visibly disables its colors and save while keeping replacement and reasons", () => {
   const { nodes, content } = render("background", true, "rejected");
   assert.match(content, /照片不符合证件照要求.*查看原因/);

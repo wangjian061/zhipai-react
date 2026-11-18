@@ -461,7 +461,7 @@ registerController("collectionScanner", () => ({
   toast(message) {
     this.notice = message;
     clearTimeout(this.noticeTimer);
-    this.noticeTimer = setTimeout(() => (this.notice = ""), 2800);
+    this.noticeTimer = setTimeout(() => (this.notice = ""), 3200);
   },
   back() {
     if (this.guideOpen) {

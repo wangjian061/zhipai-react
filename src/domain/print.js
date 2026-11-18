@@ -23,6 +23,10 @@ import {
 } from "./album.js";
 import { openZhipaiShare } from "./my.js";
 import {
+  createHandoff, finishHandoff, handoffStatus, lockPayment,
+  paymentReturnBlocked, presentHandoff,
+} from "./payment-handoff.js";
+import {
   paymentResult,
   printFulfillment,
   transactionState,
@@ -208,7 +212,7 @@ export function isCurrentPrintOrder(order) {
   );
 }
 // Transaction-only writes retain the checkout fulfillment and draft semantics.
-export async function updatePrintTransaction(id, owner, expectedStatus, patch) {
+export async function updatePrintTransaction(id, owner, expectedStatus, patch, expectedAttempt) {
   const store = getStore("printLibrary");
   await store.commit((state) => {
     const order = state.orders.find(
@@ -217,7 +221,8 @@ export async function updatePrintTransaction(id, owner, expectedStatus, patch) {
     if (
       getStore("account")?.session?.phone !== owner ||
       !order ||
-      order.status !== expectedStatus
+      order.status !== expectedStatus ||
+      (expectedAttempt && order.handoff?.id !== expectedAttempt)
     )
       throw Error("订单状态已变化，请刷新后重试。");
     const now = new Date().toISOString();
@@ -340,6 +345,7 @@ function plainPrintState(state) {
       total: o.total,
       method: o.method || null,
       attempt: o.attempt || null,
+      handoff: o.handoff ? storageValue(o.handoff) : null,
       paymentResult: o.paymentResult ? storageValue(o.paymentResult) : null,
       refund: o.refund ? storageValue(o.refund) : null,
       fulfillment: o.fulfillment ? storageValue(o.fulfillment) : null,
@@ -581,6 +587,7 @@ registerController("printStudio", () => ({
   paymentMethod: "wechat",
   demoOutcome: "success",
   resolution: "paid",
+  checkoutResolution: "unknown",
   processing: false,
   crop: { scale: 1, offsetX: 0, offsetY: 0 },
   cropTask: 0,
@@ -769,6 +776,41 @@ registerController("printStudio", () => ({
       ) || null
     );
   },
+  get checkoutOrder() {
+    const order = this.order;
+    return this.view === "confirm" && order?.handoff &&
+      ["pending", "verifying"].includes(order.status) ? order : null;
+  },
+  get checkoutAddress() {
+    return this.checkoutOrder?.address || this.address;
+  },
+  get checkoutLayout() {
+    const order = this.checkoutOrder;
+    return order?.layoutSnapshot ||
+      (order && PRINT_LAYOUTS.find((layout) => layout.id === order.layout)) ||
+      this.layout;
+  },
+  get checkoutSheet() {
+    const order = this.checkoutOrder;
+    if (!order) return this.sheet(this.draft.layout);
+    const photo = order.photo;
+    return printSheetMarkup(
+      this.checkoutLayout,
+      photo?.blob ? actualPhotoURL({ ...photo, id: "print-" + photo.id }) : "",
+    );
+  },
+  get checkoutQuantity() {
+    return this.checkoutOrder?.quantity ?? this.draft.quantity;
+  },
+  get checkoutQuote() {
+    const order = this.checkoutOrder;
+    return order ? {
+      unitPrice: order.base,
+      subtotal: order.base * order.quantity,
+      shipping: order.shipping,
+      total: order.total,
+    } : this.quote;
+  },
   get orders() {
     return this.store.orders
       .filter((o) => o.owner && o.owner === getStore("account")?.session?.phone)
@@ -889,7 +931,7 @@ registerController("printStudio", () => ({
     if (!plan) return "";
     const source = photo?.blob
       ? actualPhotoURL({ ...photo, id: "print-" + photo.id })
-      : "/assets/photo-placeholder-silhouette-20261106.webp";
+      : "./assets/photo-placeholder-silhouette-20261106.webp";
     return printSheetMarkup(plan, source, true, false);
   },
   openLayoutPreview(id) {
@@ -1058,7 +1100,7 @@ registerController("printStudio", () => ({
     if (!order) return false;
     this.route("confirm", { order: order.id }, true);
     this.orderId = order.id;
-    this.showModal("resolution");
+    if (!order.handoff) this.showModal("resolution");
     this.message = "请先确认原订单付款结果，再发起新的冲印。";
     return true;
   },
@@ -1286,6 +1328,7 @@ registerController("printStudio", () => ({
     if (!this.processing) openOrderCenter("print");
   },
   syncLocation(event) {
+    if (paymentReturnBlocked()) return;
     if (event?.type === "popstate" && this.modal === "layoutPreview") {
       const samePage =
         location.pathname + location.search === this.previewReturn;
@@ -1349,8 +1392,11 @@ registerController("printStudio", () => ({
     ].includes(next)
       ? next
       : "select";
+    this.orderId = q.get("order") || (this.view === "confirm" ? this.draft.orderId : null);
+    const originalCheckout = this.view === "confirm" && this.order?.handoff;
     if (
       ["crop", "confirm"].includes(this.view) &&
+      !originalCheckout &&
       this.store.ready &&
       (!this.draft.photo || !["finished", "phone"].includes(this.draft.kind))
     ) {
@@ -1359,6 +1405,7 @@ registerController("printStudio", () => ({
     }
     if (
       ["layouts", "confirm"].includes(this.view) &&
+      !originalCheckout &&
       this.store.ready &&
       this.draft.photo &&
       !isPrintRatio(this.draft.photo)
@@ -1366,12 +1413,12 @@ registerController("printStudio", () => ({
       this.route("crop", {}, true);
       return;
     }
-    this.orderId = q.get("order");
+    if (this.order?.method && this.view === "confirm") this.paymentMethod = this.order.method;
     this.flowCompleted =
       this.view === "confirm" &&
       !!this.store.orders.find(
         (o) =>
-          o.id === this.draft.completedOrderId &&
+          o.id === (q.get("order") || this.draft.completedOrderId) &&
           o.owner &&
           o.owner === getStore("account")?.session?.phone &&
           [
@@ -1394,8 +1441,8 @@ registerController("printStudio", () => ({
     if (this.view === "address") this.readAddressFields(q.get("address"));
     if (this.view === "addresses" || this.view === "address")
       this.addressReturn = q.get("back") === "preview" ? "preview" : "confirm";
-    if (this.store.ready && !this.flowCompleted) this.loadLayouts();
-    if (this.view === "confirm" && !this.flowCompleted) this.loadQuote();
+    if (this.store.ready && !this.flowCompleted && !originalCheckout) this.loadLayouts();
+    if (this.view === "confirm" && !this.flowCompleted && !originalCheckout) this.loadQuote();
     if (this.view === "select") this.syncCandidate();
     this.$nextTick(() => {
       this.$el
@@ -1710,13 +1757,17 @@ registerController("printStudio", () => ({
       first.focus();
     }
   },
-  async submitOrder() {
+  async submitOrder({ handoff = false } = {}) {
     if (this.disabled || this.flowCompleted) return;
     const owner = requireOrderAccount();
     if (!owner) return;
     if (!this.online) {
       this.error = "请检查网络连接后重试。";
       return;
+    }
+    if (handoff && this.checkoutOrder?.status === "pending") {
+      this.checkoutPayment = true;
+      return this.pay({ handoff: true });
     }
     if (this.guardPendingPayment()) return;
     if (!this.draft.photo) {
@@ -1797,8 +1848,13 @@ registerController("printStudio", () => ({
       if (location.pathname + location.search === submitLocation) {
         this.orderId = id;
         this.checkoutPayment = true;
-        this.demoOutcome = "success";
-        this.showModal("payment");
+        if (handoff) {
+          this.checkoutResolution = "unknown";
+          await this.pay({ handoff: true });
+        } else {
+          this.demoOutcome = "success";
+          this.showModal("payment");
+        }
       }
     } catch (_) {
       this.error = "订单提交失败，请重试。未发起支付。";
@@ -1815,7 +1871,7 @@ registerController("printStudio", () => ({
     this.demoOutcome = "success";
     this.showModal("payment");
   },
-  async pay() {
+  async pay({ handoff = false } = {}) {
     if (this.disabled || this.order?.status !== "pending") return;
     if (!isCurrentPrintOrder(this.order)) {
       this.message = "此订单使用旧冲印规格或价格，请取消后按新规格重新下单。";
@@ -1825,28 +1881,50 @@ registerController("printStudio", () => ({
       this.message = "请检查网络连接后重试。";
       return;
     }
-    const id = this.order.id,
-      method = this.paymentMethod,
-      outcome = this.demoOutcome;
+    const order = this.order;
+    const id = order.id;
+    let origin = location.pathname + location.search;
+    const stillHere = () => this.order?.id === id && location.pathname + location.search === origin;
+    const attempt = handoff ? createHandoff("print", this.paymentMethod, this.demoOutcome) : null;
+    const method = attempt?.method || this.paymentMethod;
+    const outcome = attempt?.outcome || this.demoOutcome;
+    let unlock;
     this.processing = true;
     try {
+      if (attempt) unlock = lockPayment("print:" + id);
       await this.store.commit((state) => {
         const o = state.orders.find((o) => o.id === id);
+        if (!o || o.owner !== order.owner || o.status !== "pending" ||
+            order.owner !== getStore("account")?.session?.phone)
+          throw Error("订单状态已变化。");
         o.status = "verifying";
         o.method = method;
+        if (attempt) o.handoff = attempt;
         o.attempt = "processing";
         o.paymentResult = paymentResult("verifying");
       });
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      if (outcome === "timeout") {
-        await this.store.commit((state) => {
-          state.orders.find((o) => o.id === id).attempt = "timeout";
-        });
-        this.modal = null;
-        this.$store.printUi.opened = false;
-        this.message = "支付响应超时，请先查询结果，避免重复付款。";
-      } else if (outcome === "success") {
-        await this.completePayment(id);
+      if (attempt && stillHere() && this.view === "confirm") {
+        const url = new URL(location.href);
+        url.searchParams.set("order", id);
+        origin = url.pathname + url.search;
+        history.replaceState(history.state, "", origin);
+      }
+      if (!attempt) await new Promise((resolve) => setTimeout(resolve, 1000));
+      const result = attempt
+        ? stillHere() ? await presentHandoff(attempt, { ...order, amount: order.total }) : "verifying"
+        : outcome === "timeout" ? "verifying" : outcome === "success" ? "paid" : "pending";
+      if (result === "verifying") {
+        if (!attempt) await updatePrintTransaction(id, order.owner, "verifying", { attempt: "timeout" });
+        if (stillHere()) {
+          this.modal = null;
+          this.$store.printUi.opened = false;
+          if (!attempt) this.message = "支付响应超时，请先查询结果，避免重复付款。";
+        }
+      } else if (result === "paid") {
+        await updatePrintTransaction(id, order.owner, "verifying",
+          { status: "paid", paymentResult: paymentResult("paid") }, attempt?.id);
+        finishHandoff(id, attempt);
+        if (!stillHere()) return;
         const query = new URLSearchParams(location.search);
         if (this.checkoutPayment && this.view === "confirm") {
           this.modal = null;
@@ -1871,53 +1949,51 @@ registerController("printStudio", () => ({
           this.message = "付款成功。";
         }
       } else {
-        await this.store.commit((state) => {
-          const o = state.orders.find((o) => o.id === id);
-          o.status = "pending";
-          o.attempt = outcome;
-          o.paymentResult = paymentResult("pending", outcome);
-        });
-        this.message =
-          outcome === "cancel"
-            ? "已取消本次支付，订单保留为待支付。"
-            : "支付未完成，请重试。";
+        await updatePrintTransaction(id, order.owner, "verifying",
+          { status: "pending", attempt: outcome, paymentResult: paymentResult("pending", outcome) },
+          attempt?.id);
+        finishHandoff(id, attempt);
+        if (stillHere() && !attempt) this.message = outcome === "cancel"
+          ? "已取消本次支付，订单保留为待支付。" : "支付未完成，请重试。";
       }
     } catch (_) {
-      this.modal = null;
-      this.$store.printUi.opened = false;
-      this.error = "支付结果未能保存，请查询订单状态后再操作。";
+      if (stillHere()) {
+        this.modal = null;
+        this.$store.printUi.opened = false;
+        this.error = "支付结果未能保存，请查询订单状态后再操作。";
+      }
     } finally {
+      unlock?.();
       this.processing = false;
     }
   },
-  async completePayment(id) {
-    await this.store.commit((state) => {
-      const o = state.orders.find((o) => o.id === id);
-      if (!o || o.status !== "verifying") throw new Error("invalid payment");
-      const now = new Date().toISOString();
-      o.status = "producing";
-      o.attempt = "success";
-      o.paymentResult = paymentResult("paid", "success");
-      o.paidAt = now;
-      o.fulfillment = { status: "producing" };
-      o.events.push({
-        title: "支付成功，等待制作",
-        time: now,
-      });
-      if (state.draft.orderId === id) {
-        state.draft.completedOrderId = id;
-        state.draft.orderId = null;
-        state.draft.token = printId();
-      }
-    });
-  },
-  async resolvePayment() {
+  async resolvePayment({ automatic = false } = {}) {
     if (this.disabled || this.order?.status !== "verifying") return;
-    const id = this.order.id;
+    if (!this.online) {
+      if (!automatic) this.error = "网络不可用，请恢复连接后查询。";
+      return;
+    }
+    const { id, handoff, owner } = this.order;
+    const origin = location.pathname + location.search;
+    const sameOrder = () => this.order?.id === id && location.pathname + location.search === origin;
+    const resolved = handoff
+      ? handoffStatus(handoff, { query: true, resolution: automatic ? "unknown" : this.checkoutResolution })
+      : this.resolution;
     this.processing = true;
+    this.error = "";
+    let unlock;
     try {
-      if (this.resolution === "paid") {
-        await this.completePayment(id);
+      if (handoff) unlock = lockPayment("print:" + id);
+      if (resolved === "paid") {
+        await updatePrintTransaction(id, owner, "verifying",
+          { status: "paid", paymentResult: paymentResult("paid") }, handoff?.id);
+        finishHandoff(id, handoff);
+        if (!sameOrder()) return;
+        if (handoff && this.view === "confirm") {
+          this.flowCompleted = true;
+          this.closeModal();
+          return;
+        }
         this.route(
           "order",
           {
@@ -1926,20 +2002,23 @@ registerController("printStudio", () => ({
           true,
         );
         this.message = "付款已确认。";
-      } else if (this.resolution === "unpaid") {
-        await this.store.commit((state) => {
-          const o = state.orders.find((o) => o.id === id);
-          o.status = "pending";
-          o.attempt = "unpaid";
-          o.paymentResult = paymentResult("pending", "unpaid");
-        });
-        this.modal = null;
-        this.$store.printUi.opened = false;
-        this.message = "查询结果：未支付，可继续支付。";
-      } else this.message = "结果仍未确认，保留订单并稍后再查询。";
+      } else if (resolved === "unpaid" || resolved === "pending") {
+        await updatePrintTransaction(id, owner, "verifying", {
+          status: "pending",
+          attempt: "unpaid",
+          paymentResult: paymentResult("pending", handoff?.outcome || "unpaid"),
+        }, handoff?.id);
+        finishHandoff(id, handoff);
+        if (sameOrder()) {
+          this.modal = null;
+          this.$store.printUi.opened = false;
+          if (!handoff) this.message = "查询结果：未支付，可继续支付。";
+        }
+      } else if (!handoff) this.message = "结果仍未确认，保留订单并稍后再查询。";
     } catch (_) {
-      this.message = "结果保存失败，请稍后重试。";
+      if (sameOrder()) this.error = "结果保存失败，请稍后重试。";
     } finally {
+      unlock?.();
       this.processing = false;
     }
   },

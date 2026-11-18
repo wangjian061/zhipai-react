@@ -12,12 +12,16 @@ import PhotoSelectionActions from "../components/PhotoSelectionActions.jsx";
 import ToolPhotoSelection from "../components/ToolPhotoSelection.jsx";
 import PendingPhotoResults from "../components/PendingPhotoResults.jsx";
 import PhotoSelectionEmpty from "../components/PhotoSelectionEmpty.jsx";
-import ToolWorkspacePlaceholder from "../components/ToolWorkspacePlaceholder.jsx";
+import ToolComparisonSlider from "../components/ToolComparisonSlider.jsx";
+import ToolCapabilityPoster from "../components/ToolCapabilityPoster.jsx";
+import { PaymentChoices, PaymentRecovery } from "../components/PaymentHandoff.jsx";
+import { checkoutLabel } from "../domain/payment-handoff.js";
 import {
   PortraitCheckStatus,
   PortraitCheckPanel,
 } from "../components/PortraitPhotoCheck.jsx";
 import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
+
 export default function ToolsPage({ scope, args = [] }) {
   return (
     <Controller name="toolStudio" args={args}>
@@ -69,12 +73,16 @@ export default function ToolsPage({ scope, args = [] }) {
                   onResume={(order) => s.resumeOrder(order)}
                 />
               )}
-              {!s.photo && s.isInlineWorkspace && (
-                <ToolWorkspacePlaceholder
-                  disabled={s.busy}
-                  onSelect={() => s.pick()}
-                />
-              )}
+              {s.page === "tool" &&
+                s.view === "work" &&
+                !s.photo &&
+                s.isInlineWorkspace && (
+                  <ToolCapabilityPoster
+                    kind={s.action}
+                    disabled={s.busy}
+                    onSelect={() => s.pick()}
+                  />
+                )}
               {!s.photo && !s.isInlineWorkspace && (
                 <PhotoSelectionEmpty
                   mascot={s.mascot}
@@ -156,40 +164,9 @@ export default function ToolsPage({ scope, args = [] }) {
                     ></View>
                   </View>
 
-                  <View
-                    as="div"
-                    scope={s}
-                    className="tool-compare-handle"
-                    show={s.action === "repair" && s.serviceApplied}
-                    dynamicStyle={"left:" + s.comparison + "%"}
-                    aria-hidden="true"
-                  >
-                    <View as="span" scope={s}>
-                      <View as="svg" scope={s}>
-                        <View as="use" scope={s} href="#i-arrow"></View>
-                      </View>
-                    </View>
-                  </View>
-                  <View
-                    as="input"
-                    scope={s}
-                    className="tool-photo-range"
-                    show={s.action === "repair" && s.serviceApplied}
-                    type="range"
-                    min="0"
-                    max="100"
-                    aria-label="拖动滑杆查看精修前后"
-                    model={{
-                      read: function (scope, $event, $el) {
-                        return scope.comparison;
-                      },
-                      write: function (scope, $event, $el) {
-                        scope.comparison = $event;
-                      },
-                      number: true,
-                      lazy: false,
-                    }}
-                  ></View>
+                  {s.action === "repair" && s.serviceApplied && (
+                    <ToolComparisonSlider value={s.comparison} onChange={(value) => { s.comparison = value; }} />
+                  )}
                   <View
                     as="button"
                     scope={s}
@@ -561,7 +538,7 @@ export default function ToolsPage({ scope, args = [] }) {
                   ></View>
                   <View as="strong" scope={s} text={s.sizeUnit}></View>
                 </View>
-                <View as="div" scope={s} className="tool-size-comparison">
+                <View as="div" scope={s} className="tool-size-comparison" show={!!s.photo}>
                   <View as="span" scope={s}>
                     {"原文件"}
                     <View
@@ -604,7 +581,7 @@ export default function ToolsPage({ scope, args = [] }) {
                   <View as="h2" scope={s}>
                     {"选择服装"}
                   </View>
-                  <View as="span" scope={s} text={s.chosenOutfit?.name}></View>
+                  <View as="span" scope={s} text={s.photo || s.outfitExampleActive ? s.chosenOutfit?.name : ""}></View>
                 </View>
                 <View
                   as="div"
@@ -676,9 +653,9 @@ export default function ToolsPage({ scope, args = [] }) {
                             scope={s}
                             disabled={s.busy}
                             dynamicClass={{
-                              selected: s.outfit === s.item.id,
+                              selected: (s.photo || s.outfitExampleActive) && s.outfit === s.item.id,
                             }}
-                            aria-pressed={s.outfit === s.item.id}
+                            aria-pressed={!!(s.photo || s.outfitExampleActive) && s.outfit === s.item.id}
                             events={[
                               {
                                 type: "click",
@@ -721,6 +698,9 @@ export default function ToolsPage({ scope, args = [] }) {
                 }
                 text={s.outputInfo}
               ></View>
+              <PaymentRecovery order={s.currentOrder} busy={s.paying}
+                resolution={s.checkoutResolution} setResolution={(value) => { s.checkoutResolution = value; }}
+              />
               <View
                 as="p"
                 scope={s}
@@ -750,6 +730,7 @@ export default function ToolsPage({ scope, args = [] }) {
                 <PhotoSelectionActions
                   hasPhoto={!!s.photo?.blob}
                   disabled={s.busy}
+                  selectDisabled={s.currentOrder?.status === "verifying"}
                   nextEnabled={s.primaryEnabled}
                   nextLabel={s.primaryLabel}
                   onSelect={() => s.pick()}
@@ -1295,60 +1276,11 @@ export default function ToolsPage({ scope, args = [] }) {
                           {"¥2.00"}
                         </View>
                       </View>
-                      <View
-                        as="label"
-                        scope={s}
-                        className="tool-payment-method"
-                      >
-                        <View as="span" scope={s}>
-                          {"微信支付"}
-                        </View>
-                        <View
-                          as="input"
-                          scope={s}
-                          type="radio"
-                          name="tool-payment"
-                          value="wechat"
-                          disabled={s.paying}
-                          model={{
-                            read: function (scope, $event, $el) {
-                              return scope.paymentMethod;
-                            },
-                            write: function (scope, $event, $el) {
-                              scope.paymentMethod = $event;
-                            },
-                            number: false,
-                            lazy: false,
-                          }}
-                        ></View>
-                      </View>
-                      <View
-                        as="label"
-                        scope={s}
-                        className="tool-payment-method"
-                      >
-                        <View as="span" scope={s}>
-                          {"支付宝支付"}
-                        </View>
-                        <View
-                          as="input"
-                          scope={s}
-                          type="radio"
-                          name="tool-payment"
-                          value="alipay"
-                          disabled={s.paying}
-                          model={{
-                            read: function (scope, $event, $el) {
-                              return scope.paymentMethod;
-                            },
-                            write: function (scope, $event, $el) {
-                              scope.paymentMethod = $event;
-                            },
-                            number: false,
-                            lazy: false,
-                          }}
-                        ></View>
-                      </View>
+                      <PaymentChoices kind={s.action} method={s.paymentMethod}
+                        setMethod={(value) => { s.paymentMethod = value; }}
+                        outcome={s.paymentOutcome} setOutcome={(value) => { s.paymentOutcome = value; }}
+                        disabled={s.paying}
+                      />
                     </View>
                     <View as="footer" scope={s} className="ui-sheet-footer">
                       <View
@@ -1356,7 +1288,7 @@ export default function ToolsPage({ scope, args = [] }) {
                         scope={s}
                         className="tool-primary"
                         disabled={s.busy || s.ordersStore.busy}
-                        text={s.paying ? "正在确认…" : "确认付款"}
+                        text={s.paying ? "正在确认…" : checkoutLabel(s.action, s.paymentMethod, s.currentOrder)}
                         events={[
                           {
                             type: "click",
@@ -1365,7 +1297,7 @@ export default function ToolsPage({ scope, args = [] }) {
                             self: false,
                             passive: false,
                             run: function (scope, $event, $el) {
-                              scope.pay();
+                              scope.pay({ handoff: true });
                             },
                           },
                         ]}

@@ -6,6 +6,7 @@ import AlbumSpaces, {
 import { formatCaptureDate } from "../domain/photo-date.js";
 import PhotoActionSheet from "../components/PhotoActionSheet.jsx";
 import PhotoDeleteDialog from "../components/PhotoDeleteDialog.jsx";
+import { FeedbackToast } from "../components/Feedback.jsx";
 import React from "react";
 import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
 import PendingPhotoResults from "../components/PendingPhotoResults.jsx";
@@ -412,22 +413,7 @@ export default function AlbumPage({ scope, args = [] }) {
             </View>
 
           </View>
-          <View
-            as="div"
-            scope={s}
-            className="album-toast"
-            show={s.page === "album" && s.notice && !s.modal}
-            role="status"
-            transition={{
-              opacity: true,
-              duration: 150,
-            }}
-          >
-            <View as="svg" scope={s} aria-hidden="true">
-              <View as="use" scope={s} href="#i-check"></View>
-            </View>
-            <View as="span" scope={s} text={s.notice}></View>
-          </View>
+          <FeedbackToast message={s.page === "album" && s.view === "library" && !s.modal && s.notice} />
           {s.page==="album" && s.view==="detail" && <PhotoActionSheet scope={s} album={s}/>}
           {s.page === "album" && s.modal === "delete" && <PhotoDeleteDialog
             title={s.selected.length === 1 ? "删除这张照片？" : "删除 " + s.selected.length + " 张照片？"}

@@ -9,6 +9,7 @@ export default function PhotoActionSheet({ scope, album = null, archive = null, 
   const s = album || archive || scope.$store.photoActions,
     p = s.photo;
   const opened = album ? album.view === "detail" && !album.modal : s.opened;
+  const downloadFeedback = s.notice?.startsWith("已发起") ? s.notice : "";
   const zoom = useArchiveZoom(!album && opened ? "personal:" + p?.id : "");
   const url = p && (album ? album.store.url(p.id) : s.url(p));
   if (!album && opened && zoom.side && url)
@@ -28,6 +29,7 @@ export default function PhotoActionSheet({ scope, album = null, archive = null, 
       opened={opened}
       onClose={() => (album ? album.closeDetail() : s.close())}
       busy={s.downloading}
+      toast={downloadFeedback}
       returnFocusRef={returnFocusRef}
       footer={
         <button
@@ -111,8 +113,8 @@ export default function PhotoActionSheet({ scope, album = null, archive = null, 
         </p>
       )}
       {album?.message && <p role="alert">{album.message}</p>}
-      {s.notice && (
-        <p className="keepsake-note" role="status">
+      {s.notice && !downloadFeedback && (
+        <p className="keepsake-note" role="alert">
           {s.notice}
         </p>
       )}

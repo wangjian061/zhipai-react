@@ -100,8 +100,11 @@ const {SharedSheet,SheetFrame}=await compile("src/components/SharedSheet.jsx","(
 const {useArchiveZoom,ArchiveZoom}=await compile("src/components/ArchiveZoom.jsx","({useArchiveZoom,ArchiveZoom})",{
   useEffect:React.useEffect,useRef:React.useRef,useState:React.useState,Portal:renderPortal,
 });
+const ConfirmationDialog = await compile("src/components/ConfirmationDialog.jsx","ConfirmationDialog",{
+  useEffect:React.useEffect,useId:React.useId,useRef:React.useRef,Portal:renderPortal,
+});
 const PhotoDeleteDialog=await compile("src/components/PhotoDeleteDialog.jsx","PhotoDeleteDialog",{
-  useEffect:React.useEffect,useRef:React.useRef,Portal:renderPortal,
+  ConfirmationDialog,
 });
 const PhotoActionSheet=await compile("src/components/PhotoActionSheet.jsx","PhotoActionSheet",{
   useArchiveZoom,ArchiveZoom,photoFacts,SharedSheet,PhotoDeleteDialog,PhotoOperations:()=>null,
@@ -118,6 +121,7 @@ const AlbumPage = await compile("src/pages/AlbumPage.jsx", "AlbumPage", {
   Repeat,
   PhotoDeleteDialog, PhotoActionSheet, AlbumPhotoViewer, AlbumDate, AlbumTabs, AlbumLibraryCard, AlbumSpaces,
   formatCaptureDate,
+  FeedbackToast,
   PhotoOperations: () => null,
   // This fixture has no paid unfinished results; recovery has separate domain tests.
   PendingPhotoResults: () => null,

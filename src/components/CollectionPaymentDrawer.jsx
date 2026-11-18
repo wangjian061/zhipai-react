@@ -1,5 +1,7 @@
 import React, { useCallback, useLayoutEffect } from "react";
 import { CollectionIcon } from "./CollectionHome.jsx";
+import { PaymentChoices, PaymentRecovery } from "./PaymentHandoff.jsx";
+import { checkoutLabel } from "../domain/payment-handoff.js";
 
 export default function CollectionPaymentDrawer({ scope: s }) {
   const attach = useCallback(
@@ -47,29 +49,17 @@ export default function CollectionPaymentDrawer({ scope: s }) {
             <b>¥{s.collectionPrice}</b>
           </div>
         </section>
-        <fieldset
-          className="collection-payment-methods"
-          disabled={s.busy || verifying}
-        >
-          <legend>支付方式</legend>
-          {[
-            ["wechat", "微信支付"],
-            ["alipay", "支付宝"],
-          ].map(([value, label]) => (
-            <label key={value}>
-              <span>{label}</span>
-              <input
-                type="radio"
-                name="collection-payment-method"
-                value={value}
-                checked={s.paymentMethod === value}
-                onChange={() => {
-                  s.paymentMethod = value;
-                }}
-              />
-            </label>
-          ))}
-        </fieldset>
+        {verifying ? (
+          <PaymentRecovery order={s.current.payment} busy={s.busy}
+            resolution={s.checkoutResolution} setResolution={(value) => { s.checkoutResolution = value; }}
+          />
+        ) : (
+          <PaymentChoices kind="collection" method={s.paymentMethod}
+            setMethod={(value) => { s.paymentMethod = value; }}
+            outcome={s.paymentOutcome} setOutcome={(value) => { s.paymentOutcome = value; }}
+            disabled={s.busy}
+          />
+        )}
         {s.error && (
           <p className="collection-auth-error" role="alert">
             {s.error}
@@ -81,9 +71,9 @@ export default function CollectionPaymentDrawer({ scope: s }) {
           type="button"
           className="collection-primary"
           disabled={s.disabled}
-          onClick={() => s.payCollection()}
+          onClick={() => s.payCollection({ handoff: true })}
         >
-          {s.collectionPaymentLabel}
+          {s.busy ? "正在确认…" : checkoutLabel("collection", s.paymentMethod, s.current.payment)}
         </button>
       </footer>
     </section>

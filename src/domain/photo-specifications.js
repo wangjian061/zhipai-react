@@ -50,6 +50,7 @@ export const PHOTO_SPECIFICATIONS = [
   {
     id: "job",
     name: "求职招聘",
+    usage: "求职简历",
     mm: "35 × 49 mm",
     width: 413,
     height: 579,
@@ -59,6 +60,7 @@ export const PHOTO_SPECIFICATIONS = [
   {
     id: "cet",
     name: "四六级考试",
+    usage: "报名电子照",
     mm: "报名电子照",
     width: 144,
     height: 192,
@@ -68,6 +70,7 @@ export const PHOTO_SPECIFICATIONS = [
   {
     id: "driver",
     name: "驾驶证",
+    usage: "申领与换证",
     mm: "22 × 32 mm",
     width: 260,
     height: 378,
@@ -77,6 +80,7 @@ export const PHOTO_SPECIFICATIONS = [
   {
     id: "identity",
     name: "身份证",
+    usage: "居民身份登记",
     mm: "26 × 32 mm",
     width: 358,
     height: 441,
@@ -86,6 +90,7 @@ export const PHOTO_SPECIFICATIONS = [
   {
     id: "passport",
     name: "中国护照",
+    usage: "全程网办电子照",
     mm: "全程网办电子照",
     width: 600,
     height: 800,

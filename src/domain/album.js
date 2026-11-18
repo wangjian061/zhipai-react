@@ -678,7 +678,7 @@ registerController("albumCenter", () => ({
     this.notice = text;
     this.noticeTimer = setTimeout(() => {
       this.clearNotice();
-    }, 2000);
+    }, 3200);
   },
   showModal(name) {
     this.clearNotice();

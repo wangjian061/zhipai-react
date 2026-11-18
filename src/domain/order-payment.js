@@ -8,8 +8,8 @@ import { COLLECTION_PROJECTS, collectionProjectState } from "./collection.js";
 
 import { isCurrentPrintOrder, updatePrintTransaction } from "./print.js";
 import { paymentResult } from "./order-status.js";
+import { finishHandoff, handoffStatus, lockPayment } from "./payment-handoff.js";
 
-const activePayments = new Set();
 const account = () => getStore("account")?.session?.phone;
 
 // Transaction-only adapter. Production must replace the local payment response with
@@ -20,11 +20,9 @@ export async function transactOrder(
 ) {
   const owner = account();
   if (!owner || !order) throw Error("订单不可付款。");
-  if (activePayments.has(order.key))
-    throw Error("付款正在确认，请勿重复操作。");
   if (typeof navigator !== "undefined" && navigator.onLine === false)
     throw Error("网络不可用，请恢复连接后重试。");
-  activePayments.add(order.key);
+  const unlock = lockPayment(order.key);
   try {
     const expected = query ? "verifying" : "pending";
     const check = (r) => {
@@ -116,7 +114,9 @@ export async function transactOrder(
       let timer;
       try {
         status = await Promise.race([
-          cameraPaymentResult(current, outcome),
+          query && current.handoff
+            ? handoffStatus(current.handoff, { query: true })
+            : cameraPaymentResult(current, outcome),
           new Promise((resolve) => {
             timer = setTimeout(() => resolve("verifying"), 15000);
           }),
@@ -133,12 +133,13 @@ export async function transactOrder(
       status = "verifying";
     await update("verifying", {
       status,
-      paymentResult: paymentResult(status, outcome),
+      paymentResult: paymentResult(status, query ? current.handoff?.outcome || outcome : outcome),
       ...(status === "paid" ? { paidAt: Date.now() } : {}),
     });
+    if (query && status !== "verifying") finishHandoff(current.id, current.handoff);
     return status;
   } finally {
-    activePayments.delete(order.key);
+    unlock();
   }
 }
 
@@ -147,18 +148,17 @@ export async function cancelPrintOrder(order) {
   if (
     !owner ||
     order?.type !== "print" ||
-    order.state !== "pending" ||
-    activePayments.has(order.key)
+    order.state !== "pending"
   )
     throw Error("订单状态已变化，无法取消。");
   if (typeof navigator !== "undefined" && navigator.onLine === false)
     throw Error("网络不可用，请恢复连接后重试。");
-  activePayments.add(order.key);
+  const unlock = lockPayment(order.key);
   try {
     await updatePrintTransaction(order.sourceId, owner, "pending", {
       status: "cancelled",
     });
   } finally {
-    activePayments.delete(order.key);
+    unlock();
   }
 }

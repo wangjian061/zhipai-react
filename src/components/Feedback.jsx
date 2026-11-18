@@ -84,3 +84,12 @@ export function FeedbackToast({ message, sheet = false }) {
     </Portal>
   );
 }
+
+export function ModuleFeedback({ title, children, tone = "info" }) {
+  return (
+    <div className="feedback-module" data-tone={tone} role="status">
+      <strong>{title}</strong>
+      {children && <p>{children}</p>}
+    </div>
+  );
+}

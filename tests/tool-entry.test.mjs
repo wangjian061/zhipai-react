@@ -269,7 +269,7 @@ test("a verifying paid-tool purchase blocks a different candidate and restores i
     await f.open("repair");
     assert.equal(f.s.orderId, "original-order");
     assert.equal(f.s.photo.id, original.id);
-    assert.equal(f.s.primaryLabel, "查询付款结果");
+    assert.equal(f.s.primaryLabel, "查询支付结果");
     await f.s.accept({
       photo,
       kind: "finished",

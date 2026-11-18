@@ -1,4 +1,5 @@
 import React from "react";
+import { FeedbackToast } from "./Feedback.jsx";
 const Icon = ({ name }) => (
   <svg aria-hidden="true">
     <use href={`#i-${name}`} />
@@ -53,7 +54,7 @@ export default function MySupportSheet({ scope: s }) {
             </section>
           </>
         )}
-        {s.supportNotice && (
+        {s.supportNotice && s.supportNotice !== "客服邮箱已复制" && (
           <p className="my-support-notice" role="status">
             {s.supportNotice}
           </p>
@@ -78,6 +79,7 @@ export default function MySupportSheet({ scope: s }) {
       ) : (
         <div className="my-support-bottom" />
       )}
+      <FeedbackToast sheet message={s.supportNotice === "客服邮箱已复制" && s.supportNotice} />
     </div>
   );
 }

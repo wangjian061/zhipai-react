@@ -251,7 +251,7 @@ for (const kind of ["postcard", "stamp"]) {
     assert.match(text, /请选择收货地址/);
     if (kind === "stamp")
       assert.match(text, /商品金额¥59.00运费¥10.00数量1套应付金额¥69.00/);
-    assert.match(text, /上一步确认并支付/);
+    assert.match(text, /上一步去微信支付/);
     assert.notEqual(
       byClass(nodes, "photo-selection-next")[0].attribs.disabled,
       undefined,
@@ -292,7 +292,7 @@ test("personal photo sheet has one download footer and no duplicate print footer
   assert.doesNotMatch(footer, /冲印/);
 });
 
-test("print workspace separates choice from preview without nesting interactive controls", async () => {
+test("print workspace shows a fixed selection poster and keeps layout preview controls separate", async () => {
   const domain = await server.ssrLoadModule("/src/domain/print.js");
   runtime.registerStore("printLibrary", {
     ready: true,
@@ -307,10 +307,23 @@ test("print workspace separates choice from preview without nesting interactive 
   s.view = "layouts";
   s.layoutOptions = domain.PRINT_LAYOUTS;
   const { nodes, text } = render("PrintWorkspace", { studio: s });
-  assert.match(text, /请选择您的照片/);
+  const poster = byClass(nodes, "print-workspace-poster")[0];
+  const artwork = poster.children.find((child) => child.name === "img").attribs;
+  assert.equal(artwork.src, "./assets/tool-print-banner-20261117.jpg");
+  assert.match(poster.attribs["aria-label"], /选取照片/);
+  assert.doesNotMatch(text, /效果示例 · 未选照片/);
+  assert.doesNotMatch(text, /冲印 ¥19\.80|运费 ¥10\.00/);
   assert.doesNotMatch(text, /知拍相册 \/ 手机相册/);
   assert.equal(byClass(nodes, "print-workspace-select").length, 2);
   assert.equal(byClass(nodes, "print-workspace-preview").length, 2);
+  const [layoutCard] = byClass(nodes, "print-workspace-layouts");
+  const [product] = byClass(layoutCard.children, "print-workspace-product");
+  assert.deepEqual(
+    product.children
+      .filter((child) => child.name === "span")
+      .map((child) => child.children[0].data),
+    ["背胶模切", "每单 1 版，不支持加印"],
+  );
   for (const button of nodes.filter((n) => n.name === "button")) {
     let p = button.parent;
     while (p) {
@@ -318,6 +331,19 @@ test("print workspace separates choice from preview without nesting interactive 
       p = p.parent;
     }
   }
+  s.draft.layout = domain.PRINT_LAYOUTS[1].id;
+  const switched = render("PrintWorkspace", { studio: s });
+  assert.equal(
+    byClass(switched.nodes, "print-workspace-poster")[0].children.find((child) => child.name === "img").attribs.src,
+    artwork.src,
+  );
+  s.draft.photo = photo;
+  const withPhoto = render("PrintWorkspace", { studio: s });
+  assert.equal(byClass(withPhoto.nodes, "print-workspace-poster").length, 0);
+  assert.equal(byClass(withPhoto.nodes, "photo-selection-current").length, 1);
+  assert.match(withPhoto.text, /更换照片.*确认排版/);
+  assert.match(withPhoto.text, /背胶模切 每单 1 版，不支持加印/);
+  assert.doesNotMatch(withPhoto.text, /冲印 ¥19\.80|运费 ¥10\.00/);
 });
 
 test("full album detail mirrors nine featured services and the single download footer", () => {

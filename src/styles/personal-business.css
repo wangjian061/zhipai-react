@@ -773,16 +773,26 @@
 .phone[data-print-preview="true"] > .screen {
   --native-chrome-ink: #fff;
 }
-.print-workspace-product p {
+.print-workspace-product {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin-top: 12px;
+  color: var(--ui-body);
   font-size: 12px;
-  line-height: 20px;
-  color: var(--ui-muted);
-  margin: 8px 0;
+  line-height: 18px;
 }
-.print-workspace-product p:last-child {
-  font-size: 13px;
+.print-workspace-product-label {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--brand-canvas);
   color: var(--ui-heading);
   font-weight: 600;
+}
+.print-workspace-product-note {
+  margin-inline-start: auto;
+  text-align: end;
 }
 @media (prefers-reduced-motion: reduce) {
   .home-collection-category,

@@ -5,6 +5,7 @@ import "../styles/photo-selection.css";
 export default function PhotoSelectionActions({
   hasPhoto,
   disabled = false,
+  selectDisabled = false,
   nextEnabled = true,
   nextLabel = "下一步",
   replaceLabel = "更换照片",
@@ -24,7 +25,7 @@ export default function PhotoSelectionActions({
         <button
           type="button"
           className="photo-selection-replace"
-          disabled={disabled}
+          disabled={disabled || selectDisabled}
           onClick={onSelect}
         >
           {replaceLabel}
@@ -33,7 +34,7 @@ export default function PhotoSelectionActions({
       <button
         type="button"
         className="photo-selection-next"
-        disabled={disabled || (!!hasPhoto && !nextEnabled)}
+        disabled={disabled || (hasPhoto ? !nextEnabled : selectDisabled)}
         onClick={hasPhoto ? onNext : onSelect}
       >
         {hasPhoto ? nextLabel : selectLabel}

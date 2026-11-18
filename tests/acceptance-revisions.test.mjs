@@ -252,7 +252,7 @@ function print() {
     },
   };
 }
-test("silhouette sheet placeholders never become the input, and both layouts swap to the actual selected photo", () => {
+test("print examples never become the input, and both layouts swap to the actual selected photo", () => {
   const f = print(),
     s = f.s;
   try {

@@ -902,7 +902,7 @@ test("fresh tool entry retains an unresolved original payment and exposes query 
   await tool.start();
   assert.equal(tool.orderId, "uncertain-original");
   assert.equal(tool.step, 1);
-  assert.equal(tool.primaryLabel, "查询付款结果");
+  assert.equal(tool.primaryLabel, "查询支付结果");
   assert.equal(tool.primaryEnabled, true);
   assert.equal(tool.repairSettingsLocked, true);
   assert.equal(store.items.length, 1);

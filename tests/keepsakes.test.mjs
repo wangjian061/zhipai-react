@@ -478,6 +478,46 @@ test("unknown payment blocks new work, restores original address snapshot and re
   }
 });
 
+test("cashier failure and a confirmed unpaid query keep the same physical order when retrying", async () => {
+  const f = fixture();
+  const originalDocument = globalThis.document;
+  globalThis.document = new EventTarget();
+  try {
+    const { s, orders } = f;
+    s.demoOutcome = "unavailable";
+    await s.requestPayment({ handoff: true });
+    const orderId = s.order.id;
+    assert.equal(s.order.status, "pending");
+
+    s.demoOutcome = "unknown";
+    const inCashier = s.requestPayment({ handoff: true });
+    await new Promise((resolve) => setImmediate(resolve));
+    const handoff = getStore("paymentHandoff");
+    assert.equal(handoff.current.id, orderId);
+    handoff.current.returnToApp();
+    await inCashier;
+    assert.equal(s.order.status, "verifying");
+    await s.resolvePayment({ automatic: true });
+    assert.equal(s.order.status, "verifying");
+    s.checkoutResolution = "unpaid";
+    await s.resolvePayment();
+    assert.equal(s.order.status, "pending");
+
+    s.demoOutcome = "success";
+    const retry = s.requestPayment({ handoff: true });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(handoff.current.id, orderId);
+    handoff.current.returnToApp();
+    await retry;
+    assert.equal(s.order.status, "paid");
+    assert.equal(s.view, "result");
+    assert.equal(orders.items.length, 1);
+  } finally {
+    globalThis.document = originalDocument;
+    f.close();
+  }
+});
+
 test("order center hides pending/unknown, shows explicit failure and refund facts for both new kinds", () => {
   const orders = ["postcard", "stamp"]
     .flatMap((kind) => [

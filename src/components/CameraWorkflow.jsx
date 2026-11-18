@@ -1,4 +1,6 @@
 import React from "react";
+import ConfirmationDialog from "./ConfirmationDialog.jsx";
+import { PaymentRecovery } from "./PaymentHandoff.jsx";
 import { View } from "../runtime/components.jsx";
 import { FAMILY_PORTRAIT_DEMO_MESSAGE } from "../domain/album-portrait.js";
 import CameraConfirmationSettings from "./CameraConfirmationSettings.jsx";
@@ -145,6 +147,11 @@ export function CameraResultPage({ scope: s }) {
             )}
           </figure>
         )}
+        {!s.panel && (
+          <PaymentRecovery order={s.draft?.order} busy={s.paying}
+            resolution={s.checkoutResolution} setResolution={(value) => { s.checkoutResolution = value; }}
+          />
+        )}
         {s.error && !s.workflowModal && !s.taskSheet && (
           <p className="camera-error" role="alert">
             {s.error}
@@ -188,6 +195,16 @@ export function CameraResultPage({ scope: s }) {
 
 export function CameraWorkflowModal({ scope: s }) {
   if (s.page !== "camera" || !s.workflowModal) return null;
+  if (s.panel === "discardResult") {
+    return <ConfirmationDialog
+      target="#camera-modal-layer"
+      title="返回并重新制作？"
+      description="返回后将丢弃本次制作结果，原照片和设置会保留。"
+      dismissLabel="继续查看" confirmLabel="丢弃并返回" busyLabel="正在返回…"
+      busy={s.saving} error={s.error} danger hideClose
+      onClose={() => s.closePanel()} onConfirm={() => s.discardResult()}
+    />;
+  }
   const making = s.panel === "making",
     choosing = s.panel === "makingResult",
     selecting = s.panel === "detectionScenario";
@@ -204,7 +221,7 @@ export function CameraWorkflowModal({ scope: s }) {
         scope={s}
         refName="cameraWorkflowDialog"
         className={"camera-workflow-dialog" + (making ? " is-making" : "")}
-        role={making || choosing || selecting ? "dialog" : "alertdialog"}
+        role="dialog"
         aria-modal="true"
         aria-labelledby="camera-workflow-title"
         aria-describedby="camera-workflow-description"
@@ -219,9 +236,7 @@ export function CameraWorkflowModal({ scope: s }) {
               ? "选择演示场景"
               : making
                 ? "正在制作"
-                : choosing
-                  ? "选择制作结果"
-                  : "返回并重新制作？"}
+                : "选择制作结果"}
           </h2>
           <div
             id="camera-workflow-description"
@@ -231,17 +246,8 @@ export function CameraWorkflowModal({ scope: s }) {
               <p>原型演示，请选择本次照片检测情况。</p>
             ) : making ? (
               <p role="status">请稍候，正在制作证件照</p>
-            ) : choosing ? (
-              <p>原型演示，请选择本次制作结果。</p>
             ) : (
-              <>
-                <p>返回后将丢弃本次制作结果，原照片和设置会保留。</p>
-                {s.error && (
-                  <p className="camera-error" role="alert">
-                    {s.error}
-                  </p>
-                )}
-              </>
+              <p>原型演示，请选择本次制作结果。</p>
             )}
           </div>
           {selecting && (
@@ -276,7 +282,7 @@ export function CameraWorkflowModal({ scope: s }) {
               >
                 取消
               </button>
-            ) : choosing ? (
+            ) : (
               <>
                 <button
                   type="button"
@@ -317,24 +323,6 @@ export function CameraWorkflowModal({ scope: s }) {
                   onClick={() => s.chooseMakingResult("service_unavailable")}
                 >
                   服务不可用
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  disabled={s.saving}
-                  onClick={() => s.closePanel()}
-                >
-                  继续查看
-                </button>
-                <button
-                  type="button"
-                  className="camera-destructive-action"
-                  disabled={s.saving}
-                  onClick={() => s.discardResult()}
-                >
-                  {s.saving ? "正在返回…" : "丢弃并返回"}
                 </button>
               </>
             )}

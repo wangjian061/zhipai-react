@@ -83,7 +83,8 @@
 .utility-grid > .utility-grid-item > span:not(.utility-item-icon) {
   width: 100%;
 }
-.utility-grid-detail {
+.utility-grid-detail,
+.utility-grid-usage {
   display: block;
   flex: none;
   min-height: 18px;

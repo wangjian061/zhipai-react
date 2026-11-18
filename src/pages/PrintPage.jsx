@@ -8,6 +8,8 @@ import PhotoSelectionEmpty from "../components/PhotoSelectionEmpty.jsx";
 import PhotoSelectionPreview from "../components/PhotoSelectionPreview.jsx";
 import PhotoSelectionActions from "../components/PhotoSelectionActions.jsx";
 import FixedPhotoCrop from "../components/FixedPhotoCrop.jsx";
+import { PaymentChoices, PaymentRecovery } from "../components/PaymentHandoff.jsx";
+import { checkoutLabel } from "../domain/payment-handoff.js";
 import { View, Repeat, Portal } from "../runtime/components.jsx";
 export default function PrintPage({ scope: s }) {
   return (
@@ -124,7 +126,7 @@ export default function PrintPage({ scope: s }) {
             as="button"
             scope={s}
             className="print-address-entry"
-            disabled={s.disabled}
+            disabled={s.disabled || !!s.checkoutOrder}
             events={[
               {
                 type: "click",
@@ -144,24 +146,24 @@ export default function PrintPage({ scope: s }) {
               </View>
             </View>
             <View as="div" scope={s}>
-              {s.address ? (
+              {s.checkoutAddress ? (
                 <>
                   <>
                     <View as="div" scope={s}>
                       <View as="strong" scope={s}>
-                        <View as="span" scope={s} text={s.address.name}></View>
-                        <View as="span" scope={s} text={s.address.phone}></View>
+                        <View as="span" scope={s} text={s.checkoutAddress.name}></View>
+                        <View as="span" scope={s} text={s.checkoutAddress.phone}></View>
                       </View>
                       <View
                         as="p"
                         scope={s}
-                        text={s.addressText(s.address)}
+                        text={s.addressText(s.checkoutAddress)}
                       ></View>
                     </View>
                   </>
                 </>
               ) : null}
-              <View as="div" scope={s} show={!s.address}>
+              <View as="div" scope={s} show={!s.checkoutAddress}>
                 <View as="strong" scope={s}>
                   {"添加收货地址"}
                 </View>
@@ -187,7 +189,7 @@ export default function PrintPage({ scope: s }) {
               <View
                 as="button"
                 scope={s}
-                disabled={s.disabled}
+                disabled={s.disabled || !!s.checkoutOrder}
                 events={[
                   {
                     type: "click",
@@ -209,22 +211,22 @@ export default function PrintPage({ scope: s }) {
                 as="div"
                 scope={s}
                 className="print-product-sheet"
-                html={s.sheet(s.draft.layout)}
+                html={s.checkoutSheet}
               ></View>
               <View as="div" scope={s}>
-                <View as="strong" scope={s} text={s.layout.name}></View>
+                <View as="strong" scope={s} text={s.checkoutLayout.name}></View>
                 <View
                   as="p"
                   scope={s}
-                  text={s.layout.paperLabel || "背胶模切排版照"}
+                  text={s.checkoutLayout.paperLabel || "背胶模切排版照"}
                 ></View>
                 <View
                   as="span"
                   scope={s}
                   text={
-                    s.draft.quantity +
+                    s.checkoutQuantity +
                     " 版 · 共 " +
-                    (s.layout.count || 0) * s.draft.quantity +
+                    (s.checkoutLayout.count || 0) * s.checkoutQuantity +
                     " 张照片"
                   }
                 ></View>
@@ -241,18 +243,18 @@ export default function PrintPage({ scope: s }) {
                 <View
                   as="small"
                   scope={s}
-                  show={s.quote}
-                  text={s.quote ? s.money(s.quote.unitPrice) + " / 版" : ""}
+                  show={s.checkoutQuote}
+                  text={s.checkoutQuote ? s.money(s.checkoutQuote.unitPrice) + " / 版" : ""}
                 ></View>
               </View>
               <View
                 as="strong"
                 scope={s}
                 text={
-                  s.quoteLoading
+                  s.quoteLoading && !s.checkoutOrder
                     ? "正在获取…"
-                    : s.quote
-                      ? s.money(s.quote.subtotal)
+                    : s.checkoutQuote
+                      ? s.money(s.checkoutQuote.subtotal)
                       : "—"
                 }
               ></View>
@@ -265,10 +267,10 @@ export default function PrintPage({ scope: s }) {
                 as="strong"
                 scope={s}
                 text={
-                  s.quoteLoading
+                  s.quoteLoading && !s.checkoutOrder
                     ? "正在获取…"
-                    : s.quote?.shipping != null
-                      ? s.money(s.quote.shipping)
+                    : s.checkoutQuote?.shipping != null
+                      ? s.money(s.checkoutQuote.shipping)
                       : "¥10.00"
                 }
               ></View>
@@ -281,8 +283,8 @@ export default function PrintPage({ scope: s }) {
                 as="strong"
                 scope={s}
                 text={
-                  s.quote?.total != null && !s.quoteLoading
-                    ? s.money(s.quote.total)
+                  s.checkoutQuote?.total != null && (!s.quoteLoading || s.checkoutOrder)
+                    ? s.money(s.checkoutQuote.total)
                     : "—"
                 }
               ></View>
@@ -291,7 +293,7 @@ export default function PrintPage({ scope: s }) {
               as="div"
               scope={s}
               className="print-quote-error"
-              show={s.quoteError}
+              show={s.quoteError && !s.checkoutOrder}
             >
               <View as="p" scope={s} text={s.quoteError} role="alert"></View>
               <View
@@ -318,6 +320,20 @@ export default function PrintPage({ scope: s }) {
           <View as="p" scope={s} className="print-checkout-caption">
             {"配送范围与时效以正式订单信息为准"}
           </View>
+          {s.page === "print" && s.view === "confirm" && !s.flowCompleted && (
+            <section className="tool-settings">
+              <PaymentRecovery order={s.order} busy={s.processing}
+                resolution={s.checkoutResolution} setResolution={(value) => { s.checkoutResolution = value; }}
+              />
+              {s.order?.status !== "verifying" && (
+                <PaymentChoices kind="print" method={s.paymentMethod}
+                  setMethod={(value) => { s.paymentMethod = value; }}
+                  outcome={s.demoOutcome} setOutcome={(value) => { s.demoOutcome = value; }}
+                  disabled={s.disabled}
+                />
+              )}
+            </section>
+          )}
         </View>
         <View
           as="div"
@@ -373,7 +389,7 @@ export default function PrintPage({ scope: s }) {
             <button
               type="button"
               className="print-previous"
-              disabled={s.disabled}
+              disabled={s.disabled || s.order?.status === "verifying"}
               onClick={() => s.previousStep()}
             >
               <svg aria-hidden="true">
@@ -385,8 +401,8 @@ export default function PrintPage({ scope: s }) {
               as="button"
               scope={s}
               className="print-primary"
-              disabled={!s.canSubmit || !s.online}
-              text={s.store.busy ? "正在提交…" : "确认并支付"}
+              disabled={s.disabled || (s.order?.status !== "verifying" && (!s.online || (!s.checkoutOrder && !s.canSubmit)))}
+              text={s.processing ? "正在确认…" : s.store.busy ? "正在提交…" : checkoutLabel("print", s.paymentMethod, s.order)}
               events={[
                 {
                   type: "click",
@@ -395,7 +411,8 @@ export default function PrintPage({ scope: s }) {
                   self: false,
                   passive: false,
                   run: function (scope, $event, $el) {
-                    scope.submitOrder();
+                    if (scope.order?.status === "verifying") scope.resolvePayment();
+                    else scope.submitOrder({ handoff: true });
                   },
                 },
               ]}
@@ -771,7 +788,7 @@ export default function PrintPage({ scope: s }) {
                         self: false,
                         passive: false,
                         run: function (scope, $event, $el) {
-                          scope.pay();
+                          scope.pay({ handoff: true });
                         },
                       },
                     ]}

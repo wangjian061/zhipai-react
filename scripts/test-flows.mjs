@@ -197,6 +197,23 @@ const adaptedFs = {
           body +
           ";return {paymentResult, transactionState, printFulfillment};})();var paymentResult=orderStatusContract.paymentResult,transactionState=orderStatusContract.transactionState,printFulfillment=orderStatusContract.printFulfillment;\n" +
           code;
+        const handoff = parse(
+          fs.readFileSync(path.join(root, "src/domain/payment-handoff.js"), "utf8"),
+          { sourceType: "module" },
+        );
+        handoff.program.body = handoff.program.body.flatMap((node) =>
+          node.type === "ImportDeclaration" ? [] :
+          node.type === "ExportNamedDeclaration" ? [node.declaration] : [node],
+        );
+        const names = [
+          "checkoutLabel", "createHandoff", "finishHandoff", "handoffStatus", "lockPayment",
+          "paymentReturnBlocked", "presentHandoff",
+        ];
+        code =
+          "var paymentHandoffContract=globalThis.__paymentHandoffContract ||= (function(){" +
+          generate(handoff).code + ";return {" + names.join(",") + "};})();" +
+          names.map((name) => "var " + name + "=paymentHandoffContract." + name + ";").join("") +
+          "\n" + code;
       }
       const shim =
         "var registerController=(...args)=>Alpine.data(...args),registerStore=(...args)=>Alpine.store(...args),getStore=(...args)=>Alpine.store(...args),storageValue=value=>value;\n";

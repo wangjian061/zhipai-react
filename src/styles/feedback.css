@@ -34,3 +34,104 @@
 .feedback-toast[hidden] {
   display: none;
 }
+.feedback-module {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--ui-toast-radius);
+  background: var(--ui-canvas);
+  color: var(--ui-heading);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.feedback-module[data-tone="warning"] {
+  background: #fff4e5;
+  color: #754510;
+}
+.feedback-module p {
+  margin: 4px 0 0;
+}
+.confirmation-dialog {
+  max-width: 300px;
+  color: var(--ui-heading);
+}
+.confirmation-dialog .dialog-description {
+  font-size: var(--ui-button-font);
+  color: var(--ui-body);
+}
+.confirmation-dialog .delete-confirm-actions button.is-primary {
+  background: var(--brand-blue);
+  color: white;
+}
+#payment-handoff-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 84;
+  pointer-events: none;
+}
+.checkout-methods {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  column-gap: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--ui-heading);
+  font-size: 13px;
+}
+.checkout-methods legend {
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.checkout-methods label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--ui-touch-min);
+}
+.checkout-methods input {
+  accent-color: var(--brand-blue);
+}
+.checkout-destination,
+.checkout-hint,
+.checkout-cashier-status {
+  margin: 0;
+  color: var(--ui-body);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.checkout-destination {
+  margin-bottom: 4px;
+  color: var(--ui-heading);
+  font-weight: 600;
+}
+.checkout-demo-field {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 8px;
+  color: var(--ui-body);
+  font-size: 12px;
+}
+.checkout-demo-field select {
+  min-height: var(--ui-touch-min);
+  max-width: 100%;
+  border: 1px solid var(--line, #e2e8f1);
+  border-radius: 8px;
+  padding-inline: 8px;
+  background: white;
+  color: var(--ui-heading);
+  font: inherit;
+}
+.checkout-cashier-amount {
+  margin: 12px 0 6px;
+  color: var(--ui-heading);
+  font-size: 24px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.checkout-recovery {
+  margin-block: 8px;
+}

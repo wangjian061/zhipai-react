@@ -77,8 +77,8 @@ test("checking disables both actions; failed checking still allows replacement",
   assert.equal(buttons[1].props.disabled, true);
 });
 
-test("print and six tools reuse the same first-step controls and spacing rules", () => {
-  for (const file of ["src/pages/ToolsPage.jsx", "src/pages/PrintPage.jsx"]) {
+test("print and six tools reuse the workspace controls and spacing rules", () => {
+  for (const file of ["src/pages/ToolsPage.jsx", "src/components/PrintWorkspace.jsx"]) {
     const source = fs.readFileSync(file, "utf8");
     assert.ok(source.includes("<PhotoSelectionActions"));
     assert.ok(source.includes("photo-selection-footer"));

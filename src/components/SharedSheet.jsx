@@ -11,6 +11,7 @@ export function SheetFrame({
   children,
   className = "",
   returnFocusRef,
+  target = "#shared-modal-layer",
 }) {
   const dialog = useRef(null);
   useEffect(() => {
@@ -67,7 +68,7 @@ export function SheetFrame({
     }
   };
   return (
-    <Portal target="#shared-modal-layer">
+    <Portal target={target}>
       <div
         className="shared-sheet-overlay"
         onClick={(event) => {

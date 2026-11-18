@@ -1,5 +1,6 @@
 import SupportSearch from "../components/SupportSearch.jsx";
 import React from "react";
+import { FeedbackToast } from "../components/Feedback.jsx";
 import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
 export default function SupportPage({ scope, args = [] }) {
   return (
@@ -235,9 +236,6 @@ export default function SupportPage({ scope, args = [] }) {
                 scope={s}
                 type="button"
                 className="copy-email"
-                dynamicClass={{
-                  copied: s.copyState === "copied",
-                }}
                 events={[
                   {
                     type: "click",
@@ -254,7 +252,7 @@ export default function SupportPage({ scope, args = [] }) {
                 <View
                   as="span"
                   scope={s}
-                  text={s.copyState === "copied" ? "已复制" : "复制"}
+                  text="复制"
                 ></View>
               </View>
             </View>
@@ -267,13 +265,7 @@ export default function SupportPage({ scope, args = [] }) {
             >
               {"未能复制，请长按邮箱地址复制。"}
             </View>
-            <View
-              as="span"
-              scope={s}
-              className="sr-only"
-              aria-live="polite"
-              text={s.copyState === "copied" ? "邮箱已复制" : ""}
-            ></View>
+            <FeedbackToast message={s.page === "support" && s.copyState === "copied" && "邮箱已复制"} />
           </View></>}
         </View>
       )}

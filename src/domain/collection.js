@@ -10,6 +10,10 @@ import {
 import { returnToOrderCenter } from "./order-routing.js";
 import { paymentResult } from "./order-status.js";
 import {
+  createHandoff, finishHandoff, handoffStatus, lockPayment,
+  paymentReturnBlocked, presentHandoff,
+} from "./payment-handoff.js";
+import {
   registerController,
   registerStore,
   getStore,
@@ -494,6 +498,7 @@ registerController("collectionFlow", () => ({
   previousFocus: null,
   maskIdentity: true,
   paymentMethod: "wechat",
+  checkoutResolution: "unknown",
   paymentOutcome: "success",
   get recordsStore() {
     return this.$store.collectionRecords;
@@ -777,9 +782,15 @@ registerController("collectionFlow", () => ({
     );
   },
   get primaryLabel() {
+    if (this.current?.payment?.status === "verifying" && this.current.payment.handoff)
+      return this.busy ? "正在查询…" : "查询支付结果";
     if (canEditCollectionPhoto(this.current?.status) && !this.canCollect)
       return this.projectState.label;
-    if (this.needsPayment) return "支付并开始采集";
+    if (this.needsPayment) {
+      if (this.current?.payment?.handoff)
+        return this.current.payment.handoff.outcome === "unavailable" ? "重试支付" : "继续支付";
+      return "支付并开始采集";
+    }
     if(!this.busy && this.statusKey==="pending" && this.current?.payment?.status==="paid") return "开始采集";
     if (this.busy) return "正在处理…";
     if (this.status.action === "records") return this.taskReturnLabel;
@@ -823,19 +834,28 @@ registerController("collectionFlow", () => ({
     this.paymentMethod = this.current.payment?.method || "wechat";
     this.openPanel("payment");
   },
-  async payCollection() {
+  async payCollection({ handoff = false, automatic = false } = {}) {
+    const original = this.current?.payment;
+    const query = original?.status === "verifying";
     if (
       this.disabled ||
-      this.panel !== "payment" ||
+      (this.panel !== "payment" && !(query && original.handoff)) ||
       !this.needsPayment ||
-      !this.guardCollect()
+      (!query && !this.guardCollect())
     )
       return;
     const record = this.current,
       owner = this.account.session?.phone;
     if (!owner || record.owner !== owner) return;
     const token = this.task;
-    const query = record.payment?.status === "verifying";
+    if ((handoff || original?.handoff) && navigator.onLine === false) {
+      if (!automatic) this.error = "网络不可用，请恢复连接后查询或重试。";
+      return;
+    }
+    const chosen = this.paymentOutcome;
+    const attempt = query ? original.handoff :
+      handoff ? createHandoff("collection", this.paymentMethod, chosen) : null;
+    if (!query) this.checkoutResolution = "unknown";
     let payment = {
       id: "collection-" + record.id,
       amount: this.project.price,
@@ -860,36 +880,40 @@ registerController("collectionFlow", () => ({
         ),
       );
     };
+    let unlock;
     try {
+      if (attempt) unlock = lockPayment("collection:" + payment.id);
       // Save an unresolved order before payment. A retry queries this same order.
       payment = {
         ...payment,
         status: "verifying",
         paymentResult: paymentResult("verifying"),
-        method: query ? payment.method : this.paymentMethod,
+        method: query ? payment.method : attempt?.method || this.paymentMethod,
+        ...(attempt && { handoff: attempt }),
       };
       await persist();
       if (!valid()) return;
-      const status = await collectionAdapter.payment(
-        payment,
-        this.paymentOutcome,
-        query,
-      );
+      const status = attempt
+        ? query
+          ? handoffStatus(attempt, { query: true, resolution: automatic ? "unknown" : this.checkoutResolution })
+          : await presentHandoff(attempt, { ...payment, owner })
+        : await collectionAdapter.payment(payment, chosen, query);
       if (!valid()) return;
       payment = {
         ...payment,
         status,
-        paymentResult: paymentResult(status, this.paymentOutcome),
+        paymentResult: paymentResult(status, attempt?.outcome || chosen),
         ...(status === "paid" ? { paidAt: Date.now() } : {}),
       };
       await persist();
+      if (status !== "verifying") finishHandoff(payment.id, attempt);
       if (!valid()) return;
-      if (status === "paid") this.panel = null;
+      if (status === "paid" || attempt) this.panel = null;
       else
         this.error =
           status === "verifying"
             ? "付款结果待确认，请查询付款结果。"
-            : this.paymentOutcome === "cancel"
+            : chosen === "cancel"
               ? "已取消付款，采集任务已保留。"
               : "付款未完成，请重试。";
     } catch (_) {
@@ -899,6 +923,7 @@ registerController("collectionFlow", () => ({
             ? "付款结果未能确认，请查询后继续。"
             : "付款未能发起，请重试。";
     } finally {
+      unlock?.();
       if (valid()) this.busy = false;
     }
     if (valid() && this.current?.payment?.status === "paid") {
@@ -1090,6 +1115,7 @@ registerController("collectionFlow", () => ({
     if (this.photoURL) URL.revokeObjectURL(this.photoURL);
   },
   sync() {
+    if (paymentReturnBlocked()) return;
     const q = new URLSearchParams(location.search);
     if (q.get("page") !== "collection") {
       const pending = collectionScanService.pending;
@@ -2194,6 +2220,8 @@ registerController("collectionFlow", () => ({
   },
   primary() {
     if (!this.current || this.disabled) return;
+    if (this.current.payment?.status === "verifying" && this.current.payment.handoff)
+      return this.payCollection();
     if (canEditCollectionPhoto(this.current.status) && !this.guardCollect())
       return;
     if (this.needsPayment) {

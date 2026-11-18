@@ -10,6 +10,10 @@ import {
 } from "../runtime/state.js";
 import { photoCropBounds } from "./album.js";
 import {
+  createHandoff, finishHandoff, handoffStatus, lockPayment,
+  paymentReturnBlocked, presentHandoff,
+} from "./payment-handoff.js";
+import {
   requireOrderAccount,
   orderNavigate,
   openOrderCenter,
@@ -247,6 +251,7 @@ registerController("keepsakeStudio", () => ({
   paymentMethod: "wechat",
   demoOutcome: "success",
   resolution: "paid",
+  checkoutResolution: "unknown",
   get orders() {
     return this.$store.keepsakeOrders;
   },
@@ -382,6 +387,7 @@ registerController("keepsakeStudio", () => ({
     orderNavigate("/?" + q, replace);
   },
   sync(event) {
+    if (paymentReturnBlocked()) return;
     if (event?.type === "popstate" && this.detachedCropPath) {
       if (location.pathname + location.search === this.detachedCropPath) {
         const url = new URL(location.href);
@@ -993,7 +999,7 @@ registerController("keepsakeStudio", () => ({
       this.busy = false;
     }
   },
-  requestPayment() {
+  requestPayment({ handoff = false } = {}) {
     if (!this.canPay) return;
     const owner = requireOrderAccount();
     if (!owner) return;
@@ -1001,20 +1007,31 @@ registerController("keepsakeStudio", () => ({
       this.route("result");
       return;
     }
+    if (handoff) {
+      if (this.order?.status === "verifying")
+        return this.order.handoff ? this.resolvePayment() : this.open("resolution");
+      return this.pay(this.demoOutcome, { handoff: true });
+    }
     this.open(this.order?.status === "verifying" ? "resolution" : "payment");
   },
-  async pay(outcome = this.demoOutcome) {
+  async pay(outcome = this.demoOutcome, { handoff = false } = {}) {
     if (
       !this.canPay ||
       this.paying ||
-      this.panel !== "payment" ||
-      !["success", "failure", "cancel", "unknown"].includes(outcome)
+      (!handoff && this.panel !== "payment") ||
+      (!handoff && !["success", "failure", "cancel", "unknown"].includes(outcome))
     )
       return;
     const owner = requireOrderAccount();
     if (!owner) return;
+    const attempt = handoff ? createHandoff(this.kind, this.paymentMethod, outcome) : null;
+    let path = location.pathname + location.search;
+    const isHere = () => path === location.pathname + location.search &&
+      getStore("account")?.session?.phone === owner;
     this.paying = true;
     this.error = "";
+    this.checkoutResolution = "unknown";
+    let unlock;
     try {
       let current = this.order;
       if (current?.status === "paid") {
@@ -1024,6 +1041,7 @@ registerController("keepsakeStudio", () => ({
         return;
       }
       const orderId = this.orderId || id();
+      if (attempt) unlock = lockPayment(this.kind + ":" + orderId);
       if (!current) {
         const t = this.template,
           product = this.product;
@@ -1059,74 +1077,115 @@ registerController("keepsakeStudio", () => ({
           demo: true,
         };
         await this.orders.commit((items) => items.unshift(snapshot));
+        if (!isHere()) return;
         this.orderId = orderId;
+      }
+      let status = outcome === "success" ? "paid" : outcome === "unknown" ? "verifying" : "pending";
+      if (attempt) {
+        const query = new URLSearchParams(location.search);
+        query.set("order", orderId);
+        path = location.pathname + "?" + query;
+        history.replaceState(history.state, "", path);
+        const amount = this.order.total;
+        await this.orders.commit((items) => {
+          const order = items.find((x) => x.id === orderId && x.owner === owner);
+          if (order?.status !== "pending") throw Error("订单状态已变化。");
+          order.status = "verifying";
+          order.handoff = attempt;
+          order.method = attempt.method;
+          order.paymentResult = paymentResult("verifying");
+        });
+        status = isHere() ? await presentHandoff(attempt, { id: orderId, owner, amount }) : "verifying";
+        if (status === "verifying") {
+          this.paying = false;
+          if (isHere()) this.close();
+          return;
+        }
       }
       await this.orders.commit((items) => {
         const o = items.find((x) => x.id === orderId && x.owner === owner);
-        if (!o || o.status === "paid" || o.status === "verifying") return;
+        if (o?.status !== (attempt ? "verifying" : "pending") || (attempt && o.handoff?.id !== attempt.id))
+          throw Error("订单状态已变化。");
         if (getStore("account")?.session?.phone !== owner)
           throw Error("账号已变化，请重新登录确认。");
-        o.method = this.paymentMethod;
-        o.status =
-          outcome === "success"
-            ? "paid"
-            : outcome === "unknown"
-              ? "verifying"
-              : "pending";
+        o.method = attempt?.method || this.paymentMethod;
+        o.status = status;
         o.paymentResult = paymentResult(o.status, outcome);
         if (o.status === "paid") {
           markPaid(o);
         }
       });
+      if (status !== "verifying") finishHandoff(orderId, attempt);
       this.paying = false;
+      if (!isHere()) return;
       this.close();
       if (this.order?.status === "paid") this.route("result");
       else {
         this.route("confirm", true);
-        if (outcome === "unknown") this.open("resolution");
-        else
+        if (!attempt && outcome === "unknown") this.open("resolution");
+        else if (!attempt)
           this.error =
             outcome === "cancel"
               ? "已取消付款，照片、模板与地址已保留。"
               : "付款未完成，可使用本单重试。";
       }
     } catch (e) {
-      this.error = e.message || "付款结果记录失败，请查询原单后再重试。";
+      if (isHere()) this.error = e.message || "付款结果记录失败，请查询原单后再重试。";
     } finally {
+      unlock?.();
       this.paying = false;
     }
   },
-  async resolvePayment() {
+  async resolvePayment({ automatic = false } = {}) {
     if (this.order?.status !== "verifying" || this.locked) return;
+    if (navigator.onLine === false) {
+      if (!automatic) this.error = "网络不可用，请恢复连接后查询。";
+      return;
+    }
+    const { id, handoff } = this.order;
+    const path = location.pathname + location.search;
+    const owner = this.$store.account.session?.phone;
+    const isHere = () => this.order?.id === id && path === location.pathname + location.search;
+    const status = handoff
+      ? handoffStatus(handoff, { query: true, resolution: automatic ? "unknown" : this.checkoutResolution })
+      : this.resolution === "unknown" ? "verifying" : this.resolution === "paid" ? "paid" : "pending";
+    if (status === "verifying") {
+      if (!handoff) this.error = "付款结果仍未确认，请稍后继续查询本单。";
+      return;
+    }
     this.paying = true;
+    this.error = "";
+    let unlock;
     try {
-      const owner = this.$store.account.session?.phone;
+      if (handoff) unlock = lockPayment(this.kind + ":" + id);
       await this.orders.commit((items) => {
-        const o = items.find((x) => x.id === this.orderId && x.owner === owner);
+        const o = items.find((x) => x.id === id && x.owner === owner);
         if (
           getStore("account")?.session?.phone !== owner ||
           !o ||
-          o.status !== "verifying"
+          o.status !== "verifying" ||
+          (handoff && o.handoff?.id !== handoff.id)
         )
           throw Error("订单状态已变化。");
-        if (this.resolution === "unknown") return;
-        o.status = this.resolution === "paid" ? "paid" : "pending";
+        o.status = status;
         o.paymentResult = paymentResult(
           o.status,
-          this.resolution === "paid" ? "success" : "failure",
+          handoff?.outcome || (status === "paid" ? "success" : "failure"),
         );
         if (o.status === "paid") {
           markPaid(o);
         }
       });
+      finishHandoff(id, handoff);
       this.paying = false;
-      if (this.resolution !== "unknown") {
+      if (isHere()) {
         this.close();
         this.route(this.order?.status === "paid" ? "result" : "confirm", true);
-      } else this.error = "付款结果仍未确认，请稍后继续查询本单。";
+      }
     } catch (e) {
-      this.error = e.message || "查询失败，请重试。";
+      if (isHere()) this.error = e.message || "查询失败，请重试。";
     } finally {
+      unlock?.();
       this.paying = false;
     }
   },

@@ -1,5 +1,6 @@
 import { collectionCodeHelp as guideContent } from "../domain/collection-code-help.js";
 import React from "react";
+import { FeedbackToast } from "../components/Feedback.jsx";
 import { Controller, View, Portal } from "../runtime/components.jsx";
 import "../styles/scan.css";
 
@@ -306,11 +307,7 @@ export default function ScanPage({ args = [] }) {
               </div>
             )}
           </Portal>
-          {s.notice && (
-            <div className="camera-toast" role="status">
-              {s.notice}
-            </div>
-          )}
+          <FeedbackToast message={s.page === "scan" && !s.guideOpen && !s.failure && s.notice} />
         </View>
       )}
     </Controller>

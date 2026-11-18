@@ -7,6 +7,8 @@ import KeepsakeCropControls from "../components/KeepsakeCropControls.jsx";
 import KeepsakeWorkspace from "../components/KeepsakeWorkspace.jsx";
 import SharedSheet, { SheetFrame } from "../components/SharedSheet.jsx";
 import ToolPhotoSelection from "../components/ToolPhotoSelection.jsx";
+import { PaymentChoices, PaymentRecovery } from "../components/PaymentHandoff.jsx";
+import { checkoutLabel } from "../domain/payment-handoff.js";
 const money = (v) => "¥" + (v / 100).toFixed(2);
 function Screen({ s }) {
   const phoneInput = useRef(null);
@@ -28,9 +30,9 @@ function Screen({ s }) {
       <button
         className="tool-primary"
         disabled={!s.canPay || s.paying}
-        onClick={() => s.pay()}
+        onClick={() => s.pay(s.demoOutcome, { handoff: true })}
       >
-        {s.paying ? "正在确认…" : "确认演示付款 " + money(s.total)}
+        {s.paying ? "正在确认…" : checkoutLabel(s.kind, s.paymentMethod, s.order)}
       </button>
     ) : s.panel === "resolution" ? (
       <button
@@ -146,6 +148,17 @@ function Screen({ s }) {
                     <dd>{money(s.total)}</dd>
                   </div>
                 </dl>
+                <section className="tool-settings">
+                  <PaymentRecovery order={s.order} busy={s.paying}
+                    resolution={s.checkoutResolution} setResolution={(value) => { s.checkoutResolution = value; }}
+                  />
+                  {s.order?.status !== "verifying" && (
+            <PaymentChoices kind={s.kind} method={s.paymentMethod}
+              setMethod={(value) => { s.paymentMethod = value; }}
+              outcome={s.demoOutcome} setOutcome={(value) => { s.demoOutcome = value; }} disabled={s.locked}
+            />
+                  )}
+                </section>
                 <p className="keepsake-note">
                   {s.kind === "stamp"
                     ? "运费为原型演示值，付款流程仅作演示。"
@@ -242,14 +255,11 @@ function Screen({ s }) {
                 hasPhoto
                 disabled={s.locked}
                 replaceLabel="上一步"
-                nextLabel={
-                  s.order?.status === "verifying"
-                    ? "查询原单付款结果"
-                    : "确认并支付 " + money(s.total)
-                }
+                selectDisabled={s.order?.status === "verifying"}
+                nextLabel={s.paying ? "正在确认…" : checkoutLabel(s.kind, s.paymentMethod, s.order)}
                 nextEnabled={s.canPay}
                 onSelect={() => s.back()}
-                onNext={() => s.requestPayment()}
+                onNext={() => s.requestPayment({ handoff: true })}
               />
             </footer>
           )}
@@ -385,38 +395,10 @@ function Screen({ s }) {
           <>
             <p>{s.order?.templateName || s.template.name} · 1套</p>
             <p>应付 {money(s.total)} · 原型演示</p>
-            {[
-              ["wechat", "微信支付"],
-              ["alipay", "支付宝支付"],
-            ].map(([id, label]) => (
-              <label className="tool-payment-method" key={id}>
-                <span>{label}</span>
-                <input
-                  type="radio"
-                  name="keepsake-method"
-                  checked={s.paymentMethod === id}
-                  disabled={s.locked}
-                  onChange={() => {
-                    s.paymentMethod = id;
-                  }}
-                />
-              </label>
-            ))}
-            <label className="keepsake-demo-outcome">
-              原型演示结果
-              <select
-                value={s.demoOutcome}
-                disabled={s.locked}
-                onChange={(e) => {
-                  s.demoOutcome = e.target.value;
-                }}
-              >
-                <option value="success">付款成功</option>
-                <option value="failure">付款失败</option>
-                <option value="cancel">取消付款</option>
-                <option value="unknown">结果未确认</option>
-              </select>
-            </label>
+            <PaymentChoices kind={s.kind} method={s.paymentMethod}
+              setMethod={(value) => { s.paymentMethod = value; }}
+              outcome={s.demoOutcome} setOutcome={(value) => { s.demoOutcome = value; }} disabled={s.locked}
+            />
           </>
         )}
         {s.panel === "resolution" && (

@@ -43,6 +43,10 @@ import {
 } from "./photo-making.js";
 // Personal photo production owns its stream and durable unlock session.
 import { paymentResult } from "./order-status.js";
+import {
+  checkoutLabel, createHandoff, finishHandoff, handoffStatus, lockPayment,
+  paymentReturnBlocked, presentHandoff,
+} from "./payment-handoff.js";
 // These pages share the file picker but own their own selected photo and navigation.
 const externalPhotoIntents = new Set(["print", "toolStudio", "keepsake"]);
 // Capture a still at the sensor's native ratio. The caller decides where it is saved.
@@ -283,6 +287,7 @@ registerController("cameraStudio", () => ({
   previousFocus: null,
   paymentMethod: "wechat",
   paymentOutcome: "success",
+  checkoutResolution: "unknown",
   paying: false,
   saving: false,
   error: "",
@@ -724,30 +729,22 @@ registerController("cameraStudio", () => ({
     return this.paying
       ? "正在确认…"
       : this.draft?.order?.status === "verifying"
-        ? "查询付款结果"
+        ? "查询支付结果"
         : "确认付款 ¥" + this.electronicPrice;
   },
   get primaryLabel() {
-    return this.processing
-      ? "正在制作…"
-      : this.saving
-        ? "保存中…"
-        : this.selectionSaving
-          ? "正在选择…"
-          : this.draft?.savedId
-            ? "查看照片"
-            : this.unlocked
-              ? "保存到知拍相册"
-              : this.draft?.order?.status === "verifying"
-                ? "查询解锁状态"
-                : this.dualResults
-                  ? this.selectedVersion
-                    ? "解锁" +
-                      this.selectedVersion.shortName +
-                      " ¥" +
-                      this.electronicPrice
-                    : "请选择一个照片版本"
-                  : "解锁并保存";
+    if (this.processing) return "正在制作…";
+    if (this.saving) return "保存中…";
+    if (this.selectionSaving) return "正在选择…";
+    if (this.draft?.savedId) return "查看照片";
+    if (this.unlocked) return this.error ? "重试保存" : "保存到知拍相册";
+    const order = this.draft?.order;
+    if (order?.handoff || order?.status === "verifying")
+      return checkoutLabel("electronic", this.paymentMethod, order);
+    if (!this.dualResults) return "解锁并保存";
+    return this.selectedVersion
+      ? "解锁" + this.selectedVersion.shortName + " ¥" + this.electronicPrice
+      : "请选择一个照片版本";
   },
   reset() {
     this.task++;
@@ -817,6 +814,7 @@ registerController("cameraStudio", () => ({
     };
   },
   async syncLocation() {
+    if (paymentReturnBlocked()) return;
     const q = new URLSearchParams(location.search);
     const familyReturn = q.get("page") === "camera" && history.state?.familyCameraReturn;
     if (this.familyCamera) {
@@ -2510,7 +2508,7 @@ registerController("cameraStudio", () => ({
     clearTimeout(this.noticeTimer);
     this.noticeTimer = setTimeout(() => {
       this.notice = "";
-    }, 2800);
+    }, 3200);
   },
   openPayment() {
     if (!requireOrderAccount()) return;
@@ -2558,7 +2556,7 @@ registerController("cameraStudio", () => ({
       first.focus();
     }
   },
-  async pay() {
+  async pay({ handoff = false } = {}) {
     const owner = requireOrderAccount();
     if (!owner || (this.draft?.order && this.draft.order.owner !== owner))
       return;
@@ -2574,10 +2572,15 @@ registerController("cameraStudio", () => ({
       this.draft?.status !== "ready"
     )
       return;
+    if (handoff && navigator.onLine === false) {
+      this.error = "网络不可用，请恢复连接后重试。";
+      return;
+    }
     this.paying = true;
     this.error = "";
     const token = this.task,
       session = this.snapshot();
+    let unlock;
     try {
       if (!session.draft.order)
         session.draft.order = {
@@ -2613,20 +2616,33 @@ registerController("cameraStudio", () => ({
       )
         throw Error("version mismatch");
       const order = session.draft.order;
+      const outcome = this.paymentOutcome;
+      const attempt = handoff ? createHandoff("electronic", this.paymentMethod, outcome) : null;
+      if (attempt) unlock = lockPayment("electronic:" + order.id);
+      this.checkoutResolution = "unknown";
       order.status = "verifying";
       order.paymentResult = paymentResult("verifying");
+      order.method = attempt?.method || this.paymentMethod;
+      if (attempt) order.handoff = attempt;
       // Persist the same order before contacting payment; retries never create a second order.
       await writeCameraSession(session);
       if (token === this.task)
         this.draft.order = {
           ...order,
         };
-      const status = await cameraPaymentResult(order, this.paymentOutcome);
+      const status = attempt
+        ? token === this.task && this.active ? await presentHandoff(attempt, order) : "verifying"
+        : await cameraPaymentResult(order, outcome);
+      if (attempt && status === "verifying") {
+        if (token === this.task) this.panel = null;
+        return;
+      }
+      if (attempt && owner !== getStore("account")?.session?.phone) return;
       order.status = status;
-      order.paymentResult = paymentResult(status, this.paymentOutcome);
-      order.method = this.paymentMethod;
+      order.paymentResult = paymentResult(status, outcome);
       if (status === "paid") order.paidAt = Date.now();
       await writeCameraSession(session);
+      if (status !== "verifying") finishHandoff(order.id, attempt);
       if (
         token !== this.task ||
         !this.active ||
@@ -2636,44 +2652,61 @@ registerController("cameraStudio", () => ({
       this.draft.order = {
         ...order,
       };
-      if (status === "paid") {
+      if (status === "paid" || attempt) {
         this.panel = null;
-        this.toast("电子照片已解锁");
-      } else
+      } else {
         this.error =
           status === "verifying"
             ? "付款结果待确认，请查询解锁状态。"
-            : this.paymentOutcome === "cancel"
+            : outcome === "cancel"
               ? "已取消付款，照片已保留。"
               : "付款未完成，请重试。";
+      }
     } catch (_) {
       if (token === this.task) {
         if (this.draft.order) this.draft.order.status = "verifying";
         this.error = "付款状态未能确认，请查询解锁状态。";
       }
     } finally {
+      unlock?.();
       this.paying = false;
     }
     if (token === this.task && this.active && this.unlocked)
       await this.saveFinished();
   },
-  async queryPayment() {
+  async queryPayment({ automatic = false } = {}) {
     if (
       !this.draft?.order?.owner ||
       this.draft.order.owner !== getStore("account")?.session?.phone
     )
       return;
     if (this.busy || this.draft?.order?.status !== "verifying") return;
+    if (this.draft.order.handoff && navigator.onLine === false) {
+      if (!automatic) this.error = "网络不可用，请恢复连接后查询。";
+      return;
+    }
     this.paying = true;
     this.error = "";
     const token = this.task,
       session = this.snapshot();
+    let unlock;
     try {
-      const status = await cameraPaymentResult(session.draft.order, "success");
-      session.draft.order.status = status;
-      session.draft.order.paymentResult = paymentResult(status, "success");
-      session.draft.order.paidAt = Date.now();
-      await writeCameraSession(session);
+      const order = session.draft.order;
+      if (order.handoff) unlock = lockPayment("electronic:" + order.id);
+      const status = order.handoff
+        ? handoffStatus(order.handoff, { query: true, resolution: automatic ? "unknown" : this.checkoutResolution })
+        : await cameraPaymentResult(order, "success");
+      if (status === "verifying") return;
+      if (order.owner !== getStore("account")?.session?.phone) return;
+      order.status = status;
+      order.paymentResult = paymentResult(status, order.handoff?.outcome || "success");
+      if (status === "paid") order.paidAt = Date.now();
+      if (order.handoff) {
+        await updateElectronicReceipt(order.id, order.owner, "verifying", {
+          status, paymentResult: order.paymentResult, paidAt: order.paidAt,
+        });
+        finishHandoff(order.id, order.handoff);
+      } else await writeCameraSession(session);
       if (
         token === this.task &&
         this.active &&
@@ -2683,11 +2716,11 @@ registerController("cameraStudio", () => ({
           ...session.draft.order,
         };
         this.panel = null;
-        this.toast("电子照片已解锁");
       }
     } catch (_) {
       if (token === this.task) this.error = "暂时无法查询付款结果，请重试。";
     } finally {
+      unlock?.();
       this.paying = false;
     }
     if (token === this.task && this.active && this.unlocked)
@@ -2700,6 +2733,10 @@ registerController("cameraStudio", () => ({
     }
     if (this.canSave) {
       this.saveFinished();
+      return;
+    }
+    if (this.draft?.order?.status === "verifying" && this.draft.order.handoff) {
+      this.queryPayment();
       return;
     }
     this.openPayment();

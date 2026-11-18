@@ -20,10 +20,22 @@ import LiquidTabs from "../components/LiquidTabs.jsx";
 import PhotoPicker from "../components/PhotoPicker.jsx";
 import NativePhoneChrome from "./NativePhoneChrome.jsx";
 import ScenarioHost from "../workbench/ScenarioHost.jsx";
+import { FeedbackToast } from "./Feedback.jsx";
+import { PaymentAccountPrompt, PaymentHandoffScreen, PaymentReturnWatcher } from "./PaymentHandoff.jsx";
+import { paymentReturnAccess } from "../domain/payment-handoff.js";
 export default function AppShell({ scope, args = [] }) {
   return (
     <Controller name="phoneDemo" args={args}>
-      {(s) => (
+      {(s) => {
+        const owner = s.$store.account.session?.phone;
+        const checkout = s.$store.paymentHandoff?.current;
+        const externalPreview = checkout?.owner === owner ? checkout : null;
+        const pending = s.$store.paymentHandoff?.pending;
+        const path = typeof location === "undefined" ? "" : location.pathname + location.search;
+        const paymentAccess = paymentReturnAccess(pending, path, owner);
+        const paymentAccountBlocked = !!paymentAccess && paymentAccess !== "restore";
+        const paymentOverlay = !!externalPreview || paymentAccountBlocked;
+        return (
         <View
           as="div"
           scope={s}
@@ -52,7 +64,10 @@ export default function AppShell({ scope, args = [] }) {
                 as="div"
                 scope={s}
                 className="pages"
+                hidden={paymentAccountBlocked}
+                show={!paymentAccountBlocked}
                 inert={
+                  paymentOverlay ||
                   s.$store.photoChoice.opened ||
                   s.$store.myUi.opened ||
                   s.$store.printUi.opened ||
@@ -92,6 +107,7 @@ export default function AppShell({ scope, args = [] }) {
                   "--home-nav-scrim": s.page === "home" ? s.homeNavScrim : 0,
                 }}
                 inert={
+                  paymentOverlay ||
                   s.$store.photoChoice.opened ||
                   s.$store.myUi.opened ||
                   s.$store.printUi.opened ||
@@ -171,33 +187,32 @@ export default function AppShell({ scope, args = [] }) {
                   </View>
                 </View>
               </View>
-              <View
-                as="div"
-                scope={s}
-                className="home-toast"
-                show={s.homeNotice && s.page === "home"}
-                role="status"
-                aria-live="polite"
-                aria-atomic="true"
-                text={s.homeNotice}
-              ></View>
-              <View as="div" scope={s} id="album-modal-layer"></View>
-              <View as="div" scope={s} id="camera-modal-layer"></View>
-              <View as="div" scope={s} id="scan-modal-layer"></View>
-              <View as="div" scope={s} id="my-modal-layer"></View>
-              <View as="div" scope={s} id="print-modal-layer"></View>
-              <View as="div" scope={s} id="orders-modal-layer"></View>
-              <View as="div" scope={s} id="tool-modal-layer"></View>
-              <View as="div" scope={s} id="account-modal-layer"></View>
-              <View as="div" scope={s} id="collection-modal-layer"></View>
-              <View as="div" scope={s} id="shared-modal-layer"></View>
+              <div id="toast-layer" hidden={paymentAccountBlocked} inert={paymentOverlay} />
+              <FeedbackToast message={s.page === "home" && !s.$store.photoChoice.opened && s.homeNotice} />
+              <div hidden={paymentAccountBlocked} inert={paymentOverlay}>
+                <div id="album-modal-layer" />
+                <div id="camera-modal-layer" />
+                <div id="scan-modal-layer" />
+                <div id="my-modal-layer" />
+                <div id="print-modal-layer" />
+                <div id="orders-modal-layer" />
+                <div id="tool-modal-layer" />
+                <div id="account-modal-layer" />
+                <div id="collection-modal-layer" />
+                <div id="shared-modal-layer" />
+              </div>
+              <div id="payment-handoff-layer" />
+              <PaymentReturnWatcher page={s.page} owner={owner} checkout={checkout}
+                pending={pending} access={paymentAccess} />
+              <PaymentHandoffScreen checkout={externalPreview} />
+              <PaymentAccountPrompt access={paymentAccess} path={path} />
               <PhotoActionSheet scope={s} />
               <PhotoPicker scope={s} args={[]} />
             </View>
             <ScenarioHost />
           </View>
         </View>
-      )}
+      );}}
     </Controller>
   );
 }

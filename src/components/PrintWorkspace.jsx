@@ -1,7 +1,7 @@
 import React from "react";
-import ToolWorkspacePlaceholder from "./ToolWorkspacePlaceholder.jsx";
 import PhotoSelectionPreview from "./PhotoSelectionPreview.jsx";
 import PhotoSelectionActions from "./PhotoSelectionActions.jsx";
+import ToolCapabilityPoster from "./ToolCapabilityPoster.jsx";
 
 export default function PrintWorkspace({ studio: s }) {
   const photo = s.draft.photo;
@@ -11,7 +11,8 @@ export default function PrintWorkspace({ studio: s }) {
         {photo ? (
           <PhotoSelectionPreview photo={photo} src={s.photoURL} />
         ) : (
-          <ToolWorkspacePlaceholder
+          <ToolCapabilityPoster
+            kind="print"
             disabled={s.disabled}
             onSelect={() => s.openAlbum()}
           />
@@ -74,11 +75,11 @@ export default function PrintWorkspace({ studio: s }) {
               </button>
             </div>
           )}
+          <p className="print-workspace-product">
+            <span className="print-workspace-product-label">背胶模切</span>{" "}
+            <span className="print-workspace-product-note">每单 1 版，不支持加印</span>
+          </p>
         </section>
-        <div className="print-workspace-product">
-          <p>背胶模切 · 固定1版 · 不支持加印</p>
-          <p>冲印 ¥19.80 ＋ 运费 ¥10.00</p>
-        </div>
       </div>
       <footer className="print-footer photo-selection-footer">
         <PhotoSelectionActions

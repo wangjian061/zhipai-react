@@ -207,11 +207,12 @@ test("grid exposes readable size or use-case scope, with complete pixels deferre
     specifications: PHOTO_SPECIFICATIONS,
   });
   const page = renderToStaticMarkup(view);
-  assert.ok(page.includes("specifications-hero-light-20261020.jpg"));
+  assert.ok(page.includes("specifications-hero-series-20261117.webp"));
+  assert.equal((page.match(/aria-haspopup="dialog"/g) || []).length, 9);
   assert.ok(page.includes("#i-chevron-left"));
   assert.ok(!page.includes("选择规格后设置底色"));
   assert.ok(
-    fs.statSync("public/assets/specifications-hero-light-20261020.jpg").size <
+    fs.statSync("public/assets/specifications-hero-series-20261117.webp").size <
       250000,
   );
 });

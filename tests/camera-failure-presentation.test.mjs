@@ -47,10 +47,15 @@ const { CameraResultVersions } = await compile(
   "src/components/CameraResultVersions.jsx",
   ["CameraResultVersions"],
 );
+const { ConfirmationDialog } = await compile("src/components/ConfirmationDialog.jsx", ["ConfirmationDialog"], {
+  useRef: React.useRef, useId: React.useId, useEffect: React.useEffect,
+  Portal: ({ children }) => children,
+});
 const components = await compile(
   "src/components/CameraWorkflow.jsx",
   ["CameraConfirmationPage", "CameraResultPage", "CameraWorkflowModal"],
-  { View, CameraConfirmationSettings, CameraResultVersions, FAMILY_PORTRAIT_DEMO_MESSAGE },
+  { View, CameraConfirmationSettings, CameraResultVersions, ConfirmationDialog, FAMILY_PORTRAIT_DEMO_MESSAGE,
+    PaymentRecovery: () => null },
 );
 const sheetComponents = await compile(
   "src/components/CameraTaskSheet.jsx",
@@ -562,15 +567,9 @@ test("discard confirmation describes its scope and invokes result discard rather
   assert.ok(html.includes("原照片和设置会保留"));
   assert.ok(html.includes("继续查看"));
   assert.ok(html.includes("丢弃并返回"));
-  const tree = components.CameraWorkflowModal({ scope: s }),
-    section = React.Children.only(tree.props.children),
-    footer = React.Children.toArray(section.props.children).find(
-      (n) => n.type === "footer",
-    );
-  const fragment = React.Children.only(footer.props.children);
-  const buttons = React.Children.toArray(fragment.props.children);
-  buttons[0].props.onClick();
-  buttons[1].props.onClick();
+  const dialog = components.CameraWorkflowModal({ scope: s });
+  dialog.props.onClose();
+  dialog.props.onConfirm();
   assert.equal(cancelled, 1);
   assert.equal(discarded, 1);
 });

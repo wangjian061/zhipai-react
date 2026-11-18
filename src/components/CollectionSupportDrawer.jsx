@@ -1,4 +1,5 @@
 import React, { useLayoutEffect, useRef } from "react";
+import { FeedbackToast } from "./Feedback.jsx";
 import { CollectionIcon } from "./CollectionHome.jsx";
 export default function CollectionSupportDrawer({
   scope: s,
@@ -95,7 +96,7 @@ export default function CollectionSupportDrawer({
               )}
             </div>
             <p>点击「打开邮箱」将离开知拍。请在邮箱应用中编辑并发送邮件。</p>
-            {s.contactNotice && (
+            {s.contactNotice && s.contactNotice !== "邮箱已复制" && (
               <p className="collection-support-feedback" role="status">
                 {s.contactNotice}
               </p>
@@ -135,6 +136,7 @@ export default function CollectionSupportDrawer({
           </button>
         )}
       </footer>
+      <FeedbackToast sheet message={s.contactNotice === "邮箱已复制" && s.contactNotice} />
     </section>
   );
 }

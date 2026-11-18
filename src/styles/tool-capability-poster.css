@@ -1,0 +1,35 @@
+/* Use the same content width for tool posters. */
+.print-direct-workspace,
+.tool-page[data-tool] .tool-work-scroll:has(> .tool-capability-poster) {
+  padding-inline: 16px;
+}
+@media (max-width: 360px) {
+  .print-direct-workspace,
+  .tool-page[data-tool] .tool-work-scroll:has(> .tool-capability-poster) {
+    padding-inline: 14px;
+  }
+}
+
+.tool-capability-poster {
+  display: block;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--ui-card-radius);
+  background: var(--brand-canvas);
+}
+.tool-capability-poster > img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.tool-work-scroll > .tool-capability-poster {
+  margin-block-end: 16px;
+}
+.tool-capability-poster:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 3px;
+}
+.tool-capability-poster:disabled {
+  cursor: default;
+}

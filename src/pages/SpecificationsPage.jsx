@@ -1,6 +1,7 @@
 import React from "react";
 import { Controller, View } from "../runtime/components.jsx";
 import SpecificationIcon from "../components/SpecificationIcon.jsx";
+import { toolPosterArtwork } from "../components/ToolCapabilityPoster.jsx";
 import { specificationDimensions } from "../domain/photo-specifications.js";
 
 const icon = (name) => (
@@ -19,12 +20,13 @@ export function SpecificationGrid({ specifications, onChoose }) {
           key={spec.id}
           onClick={() => onChoose(spec.id)}
           aria-haspopup="dialog"
-          aria-label={`${spec.name}，${spec.mm}，${spec.width} × ${spec.height} px`}
+          aria-label={`${spec.name}，${spec.usage || "通用证件照"}，${specificationDimensions(spec)}`}
         >
           <span className="utility-item-icon">
             <SpecificationIcon kind={spec.icon} />
           </span>
           <span className="utility-grid-item-label">{spec.name}</span>
+          <small className="utility-grid-usage">{spec.usage || "通用证件照"}</small>
           <small className="utility-grid-detail">
             {specificationDimensions(spec)}
           </small>
@@ -63,11 +65,9 @@ export default function SpecificationsPage({ args = [] }) {
               <div className="specifications-hero">
                 {s.page === "specifications" && (
                   <img
-                    key="specifications-light-hero"
-                    src="./assets/specifications-hero-light-20261020.jpg"
+                    key={toolPosterArtwork.specifications.src}
+                    {...toolPosterArtwork.specifications}
                     alt=""
-                    width="1000"
-                    height="582"
                     decoding="async"
                     onError={(event) => {
                       event.currentTarget.style.visibility = "hidden";
