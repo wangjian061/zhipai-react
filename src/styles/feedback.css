@@ -51,6 +51,9 @@
 .feedback-module p {
   margin: 4px 0 0;
 }
+.confirmation-over-sheet {
+  z-index: 81;
+}
 .confirmation-dialog {
   max-width: 300px;
   color: var(--ui-heading);

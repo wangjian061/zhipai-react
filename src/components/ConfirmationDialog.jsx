@@ -25,6 +25,7 @@ function ConfirmationContent({
   error,
   danger = false,
   hideClose = false,
+  overSheet = false,
   returnFocusRef,
   returnFocusSelector,
 }) {
@@ -76,7 +77,9 @@ function ConfirmationContent({
   }
   return (
     <div
-      className="album-overlay"
+      className={
+        overSheet ? "album-overlay confirmation-over-sheet" : "album-overlay"
+      }
       onClick={(event) => {
         if (!busy && event.target === event.currentTarget) onClose();
       }}

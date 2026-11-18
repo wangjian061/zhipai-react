@@ -8,6 +8,7 @@ export function SheetFrame({
   opened,
   onClose,
   busy = false,
+  suspended = false,
   children,
   className = "",
   returnFocusRef,
@@ -71,6 +72,7 @@ export function SheetFrame({
     <Portal target={target}>
       <div
         className="shared-sheet-overlay"
+        inert={suspended}
         onClick={(event) => {
           if (event.target === event.currentTarget && !busy) onClose();
         }}

@@ -18,7 +18,7 @@ import {
   renameFamilyMember,
   deleteFamilyMember,
   archivePath,
-  importArchiveImage,
+  importPhoneAlbumImage,
   copyFinishedForMember,
 } from "../src/domain/album-spaces.js";
 
@@ -96,7 +96,7 @@ test("invalid family images and empty names are rejected before saving", async (
   assert.throws(() => newMember("雨".repeat(31)), /30/);
   assert.equal(newMember(" 妈妈 ").name,"妈妈");
   await assert.rejects(
-    importArchiveImage(new File(["no"], "x.txt", { type: "text/plain" })),
+    importPhoneAlbumImage(new File(["no"], "x.txt", { type: "text/plain" })),
     /JPG/,
   );
 });

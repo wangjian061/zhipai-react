@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   DOCUMENT_PHOTO_MAX_BYTES,
+  PHONE_ALBUM_PHOTO_MAX_BYTES,
   compressDocumentPhoto,
   remainingDocumentPhotoSlots,
 } from "../src/domain/document-photos.js";
 import {
   addDocumentGroup,
+  importPhoneAlbumImage,
   appendDocumentGroupPhotos,
   replaceDocumentPhoto,
 } from "../src/domain/album-spaces.js";
@@ -114,4 +116,14 @@ test("the storage guard enforces the cumulative limit and preserves old files on
   assert.equal(first.photos[0].blob.size, 26);
   assert.equal(first.photos.length, 5);
   assert.equal(addDocumentGroup(state, "", "护照", [small]).photos.length, 1);
+});
+
+
+test("the import boundary rejects an oversized file without recorded consent", async () => {
+  const file = new File(
+    [new Uint8Array(PHONE_ALBUM_PHOTO_MAX_BYTES + 1)],
+    "large.jpg",
+    { type: "image/jpeg" },
+  );
+  await assert.rejects(importPhoneAlbumImage(file), /先同意压缩/);
 });

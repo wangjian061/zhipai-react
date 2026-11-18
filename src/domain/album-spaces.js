@@ -5,7 +5,8 @@ import { getStore, registerStore } from "../runtime/state.js";
 import {
   DOCUMENT_PHOTO_MAX_BYTES,
   assertDocumentPhotoCount,
-  compressDocumentPhoto,
+  compressAlbumPhoto,
+  PHONE_ALBUM_PHOTO_MAX_BYTES,
   remainingDocumentPhotoSlots,
 } from "./document-photos.js";
 
@@ -289,27 +290,19 @@ export function deleteDocumentPhotos(state, snapshot, photoId) {
     state.documents = state.documents.filter((item) => item.id !== group.id);
 }
 
-export async function importArchiveImage(file) {
-  if (
-    !file?.size ||
-    file.size > 30 * 1024 * 1024 ||
-    !["image/jpeg", "image/png", "image/webp"].includes(file.type)
-  )
-    throw new Error("请选择 30 MB 以内的 JPG、PNG 或 WebP 图片。");
-  const photo = await uploadedPhoto(file);
-  return { ...photo, addedAt: photo.createdAt };
-}
-
-export async function importDocumentImage(file) {
+export async function importPhoneAlbumImage(file, consent = false) {
   if (!file?.size || !["image/jpeg", "image/png", "image/webp"].includes(file.type))
     throw new Error("请选择 JPG、PNG 或 WebP 图片。");
+  if (file.size > PHONE_ALBUM_PHOTO_MAX_BYTES && !consent)
+    throw new Error("请先同意压缩后再上传。");
+
   let photo;
   try {
     photo = await uploadedPhoto(file);
   } catch {
-    throw new Error("这张照片无法读取，请重新选择。");
+    throw new Error("图片未能读取，请重新选择。");
   }
-  return compressDocumentPhoto({ ...photo, addedAt: photo.createdAt });
+  return compressAlbumPhoto({ ...photo, addedAt: photo.createdAt }, PHONE_ALBUM_PHOTO_MAX_BYTES);
 }
 
 export async function copyFinishedForMember(photo) {

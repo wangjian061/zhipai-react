@@ -9,6 +9,7 @@ import { parse } from "@babel/parser";
 import generateModule from "@babel/generator";
 import { transformWithOxc } from "vite";
 import * as domain from "../src/domain/album-spaces.js";
+import { albumPhotoId } from "../src/domain/album.js";
 import * as documentPhotos from "../src/domain/document-photos.js";
 import { getStore, registerStore } from "../src/runtime/state.js";
 import { database } from "./helpers/memory-indexeddb.mjs";
@@ -371,8 +372,8 @@ test("visible download starts a single original immediately and selects individu
 function phoneSelection(picker, files) {
   const deps = {
     ...domain, ...documentPhotos,
-    useRef: React.useRef, useState: React.useState,
-    SheetFrame: () => null, ToolPhotoSelection: () => null,
+    useRef: React.useRef, useState: React.useState, useEffect: React.useEffect, albumPhotoId,
+    SheetFrame: () => null, ToolPhotoSelection: () => null, ConfirmationDialog: () => null,
   };
   const Component = new Function(
     "React", ...Object.keys(deps),
@@ -420,4 +421,155 @@ test("an unreadable family phone photo stays in the picker without adding a phot
   assert.equal((await domain.readArchive(owner)).members[0].photos.length, 1);
   assert.equal(location.pathname + location.search, path);
   assert.equal(updates[1], "图片未能读取，请重新选择。");
+});
+
+
+function consentPicker(t, props) {
+  let stateIndex, refIndex, input, dialog, effect, cleanup, submitted;
+  const refs = [], state = [];
+  const deps = {
+    ...domain, ...documentPhotos, albumPhotoId,
+    useRef(initial) {
+      const index = refIndex++;
+      return (refs[index] ??= { current: initial });
+    },
+    useState(initial) {
+      const index = stateIndex++;
+      if (!(index in state)) state[index] = initial;
+      return [state[index], (value) => { state[index] = value; }];
+    },
+    useEffect(fn) { effect = fn; },
+    SheetFrame: () => null,
+    ToolPhotoSelection: () => null,
+    ConfirmationDialog(next) { dialog = next; return null; },
+  };
+  const ReactHost = {
+    ...React,
+    createElement(type, options, ...children) {
+      if (type === "input" && options.type === "file") input = options.onChange;
+      return React.createElement(type, options, ...children);
+    },
+  };
+  const Component = new Function(
+    "React", ...Object.keys(deps),
+    phonePicker.code + ";return FamilyPhotoPicker;",
+  )(ReactHost, ...Object.values(deps));
+
+  const render = () => {
+    refIndex = stateIndex = 0;
+    dialog = null;
+    renderToStaticMarkup(React.createElement(Component, {
+      ...props,
+      onAdd(...args) { return (submitted = props.onAdd(...args)); },
+    }));
+    return dialog;
+  };
+  render();
+  cleanup = effect();
+  t.after(cleanup);
+  return {
+    pick(files) {
+      input({ currentTarget: { files, value: "选中的文件" } });
+      return render();
+    },
+    render,
+    submitted: () => submitted,
+  };
+}
+
+function addConsentHistory() {
+  let original;
+  history.pushState = function (next) {
+    original = this.state;
+    this.state = next;
+  };
+  history.back = function () {
+    this.state = original;
+    window.dispatchEvent(new Event("popstate"));
+  };
+}
+
+function mockCompression(t, outputs) {
+  let reads = 0, encoded = 0;
+  const previous = globalThis.document;
+  globalThis.Image = class {
+    naturalWidth = 1400;
+    naturalHeight = 1600;
+    async decode() { reads++; }
+  };
+  globalThis.document = {
+    createElement(tag) {
+      assert.equal(tag, "canvas");
+      const output = outputs[encoded++];
+      return {
+        getContext: () => output ? { drawImage() {} } : null,
+        toBlob(callback) { callback(output); },
+      };
+    },
+  };
+  t.after(() => { globalThis.document = previous; });
+  return { reads: () => reads, encoded: () => encoded };
+}
+
+const phoneLimit = documentPhotos.PHONE_ALBUM_PHOTO_MAX_BYTES;
+const testPhoto = (size, filename = "照片.jpg") =>
+  new File([new Uint8Array(size)], filename, { type: "image/jpeg" });
+
+test("an oversized family phone photo is untouched until consent and then saves within 1 MB", async (t) => {
+  const { owner, row, picker } = await fixture("family-size-consent", "member-import");
+  addConsentHistory();
+  const compress = mockCompression(t, [testPhoto(phoneLimit)]);
+  const ui = consentPicker(t, picker);
+  const original = testPhoto(phoneLimit + 1);
+  let prompt = ui.pick([original]);
+  assert.equal(prompt.title, "照片需要压缩");
+  assert.match(prompt.description, /有 1 张照片超过 1 MB/);
+  assert.equal(compress.reads(), 0);
+  assert.equal((await domain.readArchive(owner)).members[0].photos.length, 1);
+
+  prompt.onClose();
+  assert.equal(ui.render(), null);
+  assert.equal(ui.submitted(), undefined);
+  assert.equal(compress.encoded(), 0);
+  assert.equal((await domain.readArchive(owner)).members[0].photos.length, 1);
+
+  prompt = ui.pick([original]);
+  prompt.onConfirm();
+  await ui.submitted();
+  const [photo] = (await domain.readArchive(owner)).members[0].photos;
+  assert.equal(photo.blob.size, phoneLimit);
+  assert.equal(original.size, phoneLimit + 1);
+  assert.equal(compress.encoded(), 1);
+  assert.equal(location.pathname + location.search, domain.archivePath("family", { member: row.id }));
+});
+
+test("document batches ask once, leave 1 MB files untouched, and reject a failed batch atomically", async (t) => {
+  await fixture("document-size-consent", "replace");
+  addConsentHistory();
+  const compress = mockCompression(t, [testPhoto(400000), testPhoto(600000), null]);
+  let staged = [];
+  const ui = consentPicker(t, {
+    documentSlots: 3,
+    library: { finished: [] },
+    async onAdd(prepare) { staged = [...staged, ...(await prepare())]; },
+  });
+  const atLimit = testPhoto(phoneLimit, "原图.jpg");
+  const over = testPhoto(phoneLimit + 1);
+  let prompt = ui.pick([atLimit, over, over]);
+  assert.match(prompt.description, /有 2 张照片超过 1 MB/);
+  assert.equal(compress.reads(), 0);
+  history.back();
+  assert.equal(ui.render(), null);
+  assert.equal(ui.submitted(), undefined);
+  prompt = ui.pick([atLimit, over, over]);
+  prompt.onConfirm();
+  await ui.submitted();
+  assert.equal(staged[0].blob, atLimit);
+  assert.deepEqual(staged.map(({ blob }) => blob.size), [phoneLimit, 400000, 600000]);
+  assert.equal(compress.encoded(), 2);
+
+  const old = staged;
+  ui.pick([atLimit, over]).onConfirm();
+  await assert.rejects(ui.submitted(), /压缩失败/);
+  assert.equal(staged, old);
 });

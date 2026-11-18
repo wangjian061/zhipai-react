@@ -2,6 +2,7 @@ import { decodePhotoBlob } from "./photo-readability.js";
 
 export const DOCUMENT_PHOTO_MAX_COUNT = 5;
 export const DOCUMENT_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+export const PHONE_ALBUM_PHOTO_MAX_BYTES = 1024 * 1024;
 
 export function remainingDocumentPhotoSlots(saved = 0, staged = 0) {
   return Math.max(0, DOCUMENT_PHOTO_MAX_COUNT - saved - staged);
@@ -18,14 +19,19 @@ export function assertDocumentPhotoCount(count, remaining) {
 const encode = (canvas, type, quality) =>
   new Promise((resolve) => canvas.toBlob(resolve, type, quality));
 
-export async function compressDocumentPhoto(
+export function compressDocumentPhoto(photo, options) {
+  return compressAlbumPhoto(photo, DOCUMENT_PHOTO_MAX_BYTES, options);
+}
+
+export async function compressAlbumPhoto(
   photo,
+  maxBytes,
   {
     decode = decodePhotoBlob,
     makeCanvas = () => document.createElement("canvas"),
   } = {},
 ) {
-  if (photo.blob.size <= DOCUMENT_PHOTO_MAX_BYTES) return photo;
+  if (photo.blob.size <= maxBytes) return photo;
 
   let canvas;
   let encoded = false;
@@ -47,7 +53,7 @@ export async function compressDocumentPhoto(
       for (const quality of [0.94, 0.87, 0.8]) {
         const blob = await encode(canvas, type, quality);
         if (blob?.size > 0) encoded = true;
-        if (blob?.size > 0 && blob.size <= DOCUMENT_PHOTO_MAX_BYTES) {
+        if (blob?.size > 0 && blob.size <= maxBytes) {
           const extension = {
             "image/webp": "webp",
             "image/jpeg": "jpg",
@@ -76,7 +82,7 @@ export async function compressDocumentPhoto(
   }
   throw new Error(
     encoded
-      ? "照片压缩后仍超过 5 MB，请换一张照片。"
+      ? `照片压缩后仍超过 ${maxBytes / (1024 * 1024)} MB，请重新选择。`
       : "照片压缩失败，请换一张照片。",
   );
 }

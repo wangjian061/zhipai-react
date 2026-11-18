@@ -14,6 +14,7 @@ export default function ToolPhotoSelection({
   titleId,
   onClose,
   onPhone,
+  phoneTriggerRef,
   onCreate,
   onSelect,
   onConfirm,
@@ -45,7 +46,7 @@ export default function ToolPhotoSelection({
           </p>
         )}
         <div className="photo-selection-sources">
-          <button type="button" disabled={busy} onClick={onPhone}>
+          <button type="button" ref={phoneTriggerRef} disabled={busy} onClick={onPhone}>
             <svg aria-hidden="true">
               <use href="#i-album" />
             </svg>
