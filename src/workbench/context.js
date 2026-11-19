@@ -238,7 +238,7 @@ export function resolveWorkbenchContext(
         capture: "拍摄或选择照片",
         confirm: "证件照制作",
         processing: "证件照制作",
-        editor: "选择照片版本",
+        editor: scope?.unlocked ? "证件照制作" : "解锁照片",
         saved: "制作完成",
       }[step] || "证件照制作";
     panel = scope?.panel || "";

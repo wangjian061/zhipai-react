@@ -14,7 +14,7 @@
 
 2026-10-20规格入口的「本地修改」与站点版本23为历史状态，不代表最新 Git 基线。自2026-10-26起，原型正式推送执行[独立日期版本规则](docs/release-versioning.md)，共同基线登记在[原型交付台账](docs/releases/prototype-deliveries.md)；Git 推送、站点部署和三端验收分别记录，不能互相代替。
 
-当前原型 **11.18-3** 从 11.18-2（`a48ce44`）接续，交付提交由 `prototype/2026/11.18-3` 解析。此次更新的超限确认、压缩与失败规则见[手机相册上传契约](docs/product/pages/album.library.md#手机相册上传)；验证及待验收事项见[原型交付台账](docs/releases/prototype-deliveries.md)。
+当前原型 **11.19-1** 从 11.18-3（`475c29e`）接续，交付提交由 `prototype/2026/11.19-1` 解析。此次更新个人证件照解锁、成片对比及全局金额样式。界面与验收范围见[解锁照片契约](docs/product/pages/camera.editor.md)及[原型交付台账](docs/releases/prototype-deliveries.md)。
 
 ## 一、先读什么
 
@@ -56,7 +56,7 @@ App更新策略已确认：每次本平台、本渠道可获取的新正式版�
 | 桌面原型文档工作区 | 桌面本地预览各页；[工作区契约](docs/product/prototype-workbench.md)、[逐页索引](docs/product/prototype-page-guide.md) | [外层工作区](src/components/PrototypeWorkbench.jsx)、[上下文和演示](src/workbench/)、[局部样式](src/styles/prototype-workbench.css) | 当前62份正文，6工具选图合入工作页、冲印选图合入排版页、新增纪念品8页；11.3-1的62页／22项为历史证据，实际画面与原生端待验收 |
 | 首页 | `/?page=home`；[首页契约](docs/product/home-1.4.6.md)、[产品上下文](PRODUCT.md) | [品牌头部](src/components/HomeBrandHeader.jsx)、[采集白卡](src/components/HomeCollectionCard.jsx)、[首页](src/pages/HomePage.jsx) | 三端共同还原品牌、通知来源与未读状态；小白熊使用已有透明素材，实际设备待验收 |
 | 照片规格 | 首页照片规格入口；`/?page=specifications`；[规格契约](docs/product/photo-specifications-1.4.6.md)、[交互线框](docs/product/photo-specifications-1.4.6.html) | [SpecificationsPage](src/pages/SpecificationsPage.jsx)、[图形](src/components/SpecificationIcon.jsx)、[九项目录](src/domain/photo-specifications.js)、[选色与返回](src/domain/specifications.js)、[共享宫格](src/styles/utility-grid.css)、[制作交接](src/domain/camera.js) | 九项、选色抽屉、现有拍摄／选图及制作接续已本地实现；源码与资产评审可交付，实际页面、权限、读屏与三端生命周期待验收 |
-| 个人证件照制作 | 首页相机／选图；[制作文档](docs/product/camera-confirmation-1.4.6.md)、[交互线框](docs/product/camera-confirmation-1.4.6.html) | [CameraPage](src/pages/CameraPage.jsx)、[camera](src/domain/camera.js)、[检测适配](src/domain/camera-detection.js)、[制作适配](src/domain/photo-making.js)、[版本契约](src/domain/photo-versions.js)、[双版本结果](src/components/CameraResultVersions.jsx)、[放大对比](src/components/CameraVersionComparison.jsx) | 双版本比较、部分成功、单版交易与保存链路已本地实现；源码／状态范围可交付，实际视觉、真实检测／精修／支付与原生适配待验收或接入 |
+| 个人证件照制作 | 首页相机／选图；[制作文档](docs/product/camera-confirmation-1.4.6.md)、[交互线框](docs/product/camera-confirmation-1.4.6.html) | [CameraPage](src/pages/CameraPage.jsx)、[camera](src/domain/camera.js)、[检测适配](src/domain/camera-detection.js)、[制作适配](src/domain/photo-making.js)、[版本契约](src/domain/photo-versions.js)、[双版本结果](src/components/CameraResultVersions.jsx)、[放大对比](src/components/CameraVersionComparison.jsx) | 并排预览、精修在上的纵向整卡选版、新结果首选可用精修、底部价格联动、照片内拖动比较、双指缩放及关闭对比后回结果页选版；已有订单锁定，保存及单版交易规则不变。详见[结果页规则](docs/product/pages/camera.editor.md)；实际设备、真实检测／精修／支付与原生适配待验收 |
 | 六项常用工具 | 6项均为直接工作页，页内选图及设置；首页／照片入口；[工具文档](docs/product/common-tools-1.4.6.md) | [ToolsPage](src/pages/ToolsPage.jsx)、[tools](src/domain/tools.js)、[选图](src/domain/photo-choice.js) | 逐页说明较完整；模型服务与平台保存能力待替换 |
 | 冲印 | `/?page=print&print=select`；同上工具文档 | [PrintPage](src/pages/PrintPage.jsx)、[print](src/domain/print.js)、[固定裁剪](src/components/FixedPhotoCrop.jsx) | 排版、裁剪、订单流程有说明；正式生产与配送待接入 |
 | 专项采集 | `/?page=collection`；[专项说明](docs/collection-zone.md)、[采集人物详情契约](docs/product/collection-task-detail-1.4.6.md)、[第二阶段需求](docs/product/collection-stage2-1.4.6.md) | [CollectionPage](src/pages/CollectionPage.jsx)、[collection](src/domain/collection.js)、[详情资料映射](src/domain/collection-task-information.js)、[项目配置](src/domain/collection-config.js)、[状态映射](src/domain/collection-status.js) | 详情按确认样图采用240px等比照片、连续资料列表并移除补充功能；通知历史／已读／公告和九项帮助／共享联系已本地补齐待验收，真实后台与原生能力待接入；历史专项文档不覆盖最新契约 |

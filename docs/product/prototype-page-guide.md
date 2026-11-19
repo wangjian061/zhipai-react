@@ -18,7 +18,7 @@
 | --- | --- |
 | `camera.capture` | [拍摄或选择照片](pages/camera.capture.md) |
 | `camera.confirm` | [证件照制作](pages/camera.confirm.md) |
-| `camera.editor` | [选择照片版本](pages/camera.editor.md) |
+| `camera.editor` | [解锁照片](pages/camera.editor.md) |
 | `camera.saved` | [制作完成](pages/camera.saved.md) |
 
 ## 六项常用工具

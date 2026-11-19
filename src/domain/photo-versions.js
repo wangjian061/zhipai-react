@@ -1,4 +1,4 @@
-// Personal production variants. Amounts are integer fen; neither is preselected.
+// Personal production variants in preview order. Amounts are integer fen.
 export const PHOTO_VERSIONS = Object.freeze([
   Object.freeze({
     id: "ordinary",
@@ -16,6 +16,12 @@ export const PHOTO_VERSIONS = Object.freeze([
 
 export function photoVersion(id) {
   return PHOTO_VERSIONS.find((version) => version.id === id) || null;
+}
+
+export function defaultPhotoVersion(results, previewErrors = {}) {
+  return [photoVersion("retouched"), photoVersion("ordinary")].find(({ id }) =>
+    results[id]?.status === "ready" && results[id].blob?.size && !previewErrors[id],
+  ) || null;
 }
 
 export function versionPrice(id) {

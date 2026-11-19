@@ -579,8 +579,8 @@ test("refund detail displays only recorded facts, distinguishes refund amount fr
   let html = render(s);
   assert.match(html, /实付金额/);
   assert.match(html, /已退金额/);
-  assert.match(html, /¥1.00/);
-  assert.match(html, /¥2.00/);
+  assert.match(html, /class="ui-price">¥1\.00<\/span>/);
+  assert.match(html, /class="ui-price">¥2\.00<\/span>/);
   assert.match(html, /原路退回/);
   assert.doesNotMatch(html, /申请退款|确认收货|orders-footer/);
   r.refund = { status: "refunding" };

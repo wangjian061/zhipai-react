@@ -145,34 +145,51 @@
       .wf-result-heading { margin: 0 0 20px; text-align: left; }
       .wf-result-heading h3 { font-size: 18px; }
       .wf-result-heading p { font-size: 13px; }
-      .wf-result-heading .wf-result-instruction { margin-top: 8px; font-size: 13px; }
-      .wf-versions { padding: 16px 14px 6px; border-radius: 20px; background: #fff; }
+      .wf-result-specs { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 12px; }
+      .wf-result-specs span { padding:3px 8px; border:1px solid #d9e0e8; border-radius:6px; background:#fff; font-size:12px; }
+      .wf-versions { padding: 12px; border-radius: 16px; background: #fff; }
       .wf-version-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
-      .wf-version h4 { margin: 0 0 12px; font-size: 14px; }
-      .wf-version-photo { position: relative; display: grid; place-items: center; margin: 0; overflow: hidden; background: #e9edf3; }
+      .wf-version-preview { margin:0; text-align:center; font-size:13px; }
+      .wf-version-preview figcaption { margin-top:8px; }
+      .wf-version-preview[data-version="retouched"][data-ready="true"] .wf-version-photo { outline:2px solid #edf2ff; outline-offset:-2px; }
+      .wf-version-options { display:grid; gap:10px; margin-top:12px; }
+      .wf-version { position:relative; display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:2px solid transparent; border-radius:16px; background:#fff; }
+      .wf-version:has(:checked) { background:linear-gradient(#f3f7ff,#fff); border-color:#0032ff; }
+      .wf-version-hit { position:absolute; inset:0; z-index:1; cursor:pointer; }
+      .wf-version-content { flex:1; min-width:0; }
+      .wf-version-desc { margin:4px 0 0; color:#53637b; font-size:12px; }
+      .wf-version-option-head { display:flex; gap:8px; align-items:center; }
+      .wf-version > input { flex:none; width:17px; height:17px; margin:2px 0 0; accent-color:#0032ff; }
+      .wf-version h4 { flex:1; margin:0; font-size:15px; }
+      .wf-version-features { display:grid; grid-template-columns:1fr 1fr; gap:4px 8px; margin:8px 0 0; padding:8px 0 0; border-top:1px solid #e8edf4; list-style:none; font-size:12px; }
+      .wf-version-photo { position:relative; display:grid; place-items:center; margin:0; overflow:hidden; border-radius:12px; background:#e9edf3; }
       .wf-version-photo svg { display: block; width: 100%; height: 100%; }
-      .wf-version .wf-watermark { top: auto; bottom: 8%; color: white; font-size: 12px; transform: none; opacity: .72; }
-      .wf-version-price { margin: 12px 0 2px; font-size: 18px; font-weight: 650; font-variant-numeric: tabular-nums; }
-      .wf-version-select { display: flex; align-items: center; gap: 8px; min-height: 44px; border-bottom: 1px solid #edf0f5; color: #53637b; font-size: 13px; }
-      .wf-version-select:has(:checked) { border-color: #0032ff; color: #0032ff; }
-      .wf-version-select input { width: 17px; height: 17px; margin: 0; accent-color: #0032ff; }
+      .wf-version-photo .wf-watermark { top:auto; bottom:26%; color:#fff; font-size:14px; font-weight:600; letter-spacing:.08em; text-shadow:0 1px 2px #14213b80; transform:rotate(-22deg); opacity:.64; }
+      .wf-version-price { margin:0; color:#b42332; font-size:18px; font-weight:650; font-variant-numeric:tabular-nums; }
+      .wf-version-features b { display:inline-grid; place-items:center; width:14px; height:14px; border-radius:50%; background:#d5ecdf; color:#216449; }
+      .wf-version:has(.wf-version-ribbon) li:nth-child(even) { padding-inline-end:56px; }
+      .wf-version-ribbon { position:absolute; inset:auto 0 0 auto; width:72px; height:72px; overflow:hidden; border-end-end-radius:14px; pointer-events:none; }
+      .wf-version-ribbon span { position:absolute; right:-24px; bottom:18px; width:110px; transform:rotate(-45deg); background:linear-gradient(90deg,#f49311,#f87e13); color:#fff; text-align:center; font-size:9px; line-height:16px; white-space:nowrap; }
       .wf-version-reason { margin: 8px 0 0; font-size: 12px; color: #b42332; overflow-wrap: anywhere; }
       .wf-version-retry, .wf-compare-entry { min-height: 44px; color: #0032ff; font-size: 13px; }
       .wf-version-placeholder { padding: 12px 6px; font-size: 12px; color: #59677a; text-align: center; }
-      .wf-compare-entry { width: 100%; min-height: 48px; margin-top: 12px; color: #53637b; }
+      .wf-compare-entry { display:block; margin:6px auto 0; padding:0 14px; border-radius:14px; background:#f5f7fb; color:#53637b; }
+      .wf-result-price-summary { align-self:center; color:#b42332; font-size:24px; font-weight:750; line-height:1.2; white-space:nowrap; }
+      .wf-result-price-summary .wf-price-currency { font-size:14px; }
+      .wf-price-currency { margin-inline-end:2px; font-size:12px; }
+      .wf-result-price-summary:not([hidden]) + .wf-primary { flex:0 1 60%; margin-inline-start:auto; }
       .wf-compare-layer { position: absolute; z-index: 4; inset: 0; display: flex; flex-direction: column; gap: 12px; padding: 20px 16px 28px; overflow: hidden; background: #17191d; color: #fff; }
       .wf-compare-header { display: flex; align-items: center; justify-content: space-between; flex: none; }
       .wf-compare-header h3 { margin: 0; font-size: 17px; }
       .wf-compare-header button { width: 44px; height: 44px; border-radius: 50%; background: #ffffff14; color: #fff; font-size: 24px; }
       .wf-compare-labels { display: flex; justify-content: space-between; font-size: 13px; color: #e0e5ed; }
-      .wf-compare-stage { display: grid; flex: 1; min-height: 0; place-items: center; overflow: hidden; }
-      .wf-compare-frame { position: relative; width: min(100%,220px); overflow: hidden; touch-action: none; }
+      .wf-compare-stage { display: grid; flex: 1; min-height: 0; place-items: center; overflow: hidden; container-type: size; }
+      .wf-compare-frame { position: relative; width: min(100%,220px); width:min(100cqw,calc(100cqh * var(--wf-compare-ratio))); overflow: hidden; touch-action: none; }
       .wf-compare-photo { position: absolute; inset: 0; overflow: hidden; }
       .wf-compare-photo svg { width: 100%; height: 100%; transform-origin: center; }
       .wf-compare-divider { position: absolute; top: 0; bottom: 0; width: 1px; background: #fff; pointer-events: none; }
-      .wf-compare-controls label { display: grid; grid-template-columns: 84px minmax(0,1fr); gap: 12px; align-items: center; min-height: 44px; font-size: 13px; }
-      .wf-compare-controls input { min-width: 0; width: 100%; height: 44px; accent-color: #91b2ff; }
-      .wf-compare-controls p { margin: 4px 0 0; color: #cbd5e1; font-size: 12px; }
+      .wf-compare-handle { position:absolute; top:50%; width:44px; height:44px; transform:translate(-50%,-50%); display:grid; place-items:center; cursor:ew-resize; color:#192d4c; }
+      .wf-compare-handle span { width:32px; height:32px; display:grid; place-items:center; border-radius:50%; background:#fff; }
       .wf-compare-layer :focus-visible { outline: 2px solid white; outline-offset: 3px; }
       .wf-saved-photo { width: 170px; margin: 20px auto; }
       .wf-saved-photo svg { display: block; width: 100%; }
@@ -227,8 +244,9 @@
                   </div>
                 </section>
                 <section id="result-view" hidden>
-                  <div class="wf-result-heading"><h3 id="result-heading">选择照片版本</h3><p id="result-spec"></p><p class="wf-result-instruction" id="result-instruction">选择一张解锁，付款后保存到知拍相册。</p></div>
-                  <div class="wf-versions"><div class="wf-version-grid" id="version-grid" role="group" aria-label="选择一张要解锁的照片"></div><button type="button" class="wf-compare-entry" id="compare-open">放大对比</button></div>
+                  <div class="wf-result-heading" id="result-heading" hidden><h3>照片已解锁</h3></div>
+                  <div class="wf-versions"><div class="wf-result-specs"><span id="result-spec"></span><span id="result-background"></span><span id="result-pixels"></span></div><div class="wf-version-grid" id="version-preview" role="group" aria-label="成片预览"></div><button type="button" class="wf-compare-entry" id="compare-open">放大对比细节</button></div>
+                  <div class="wf-version-options" id="version-options" role="group" aria-label="选择一张要解锁的照片"></div>
                   <p class="wf-inline-error" id="save-error" role="alert" hidden>保存未完成，已解锁的照片已保留，请重试。</p>
                   <p class="wf-sample-caption">同源同设置的结构示意 · 不代表实际精修质量</p>
                 </section>
@@ -243,12 +261,12 @@
                   <h3>已回到调用页面</h3><p>此处仅示意退出制作后的返回位置。</p>
                 </section>
               </div>
-              <footer class="wf-footer"><button type="button" class="wf-outline" id="replace">重新拍摄</button><button type="button" class="wf-primary" id="primary">开始制作</button></footer>
+              <footer class="wf-footer"><button type="button" class="wf-outline" id="replace">重新拍摄</button><strong class="wf-result-price-summary" id="result-price-summary" hidden><span class="wf-price-currency">¥</span><span id="result-price"></span></strong><button type="button" class="wf-primary" id="primary">开始制作</button></footer>
             </div>
             <section class="wf-compare-layer" id="compare-layer" role="dialog" aria-modal="true" aria-labelledby="compare-title" tabindex="-1" hidden>
               <header class="wf-compare-header"><h3 id="compare-title">成片对比</h3><button type="button" id="compare-close" aria-label="关闭成片对比">×</button></header>
               <div class="wf-compare-labels" id="compare-labels"></div><div class="wf-compare-stage"><div class="wf-compare-frame" id="compare-frame"></div></div>
-              <div class="wf-compare-controls"><label id="split-label">对比位置<input type="range" id="split" min="0" max="100" value="50" aria-label="普通版与精修版分割位置"></label><label><span id="zoom-label">缩放 1.0倍</span><input type="range" id="zoom" min="1" max="3" step="0.1" value="1" aria-label="两张照片同步缩放"></label><p id="compare-description"></p></div>
+              <input type="hidden" id="split" value="50"><input type="hidden" id="zoom" value="1">
             </section>
             <div class="wf-layer" id="modal-layer" hidden>
               <section class="wf-modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description" tabindex="-1">
@@ -304,10 +322,10 @@
           <h3>3. 同页制作与结果选择</h3>
           <p>检测通过后只显示一个居中Loading，约5秒后切换「选择制作结果」，个人首次制作纵向依次显示「两版均成功／仅普通版成功／仅精修版成功／照片制作失败／服务不可用」，失败版重试则为「重试成功／重试失败／服务不可用」，每项至少50px高，使用知拍蓝、深红与辅助灰文字。等待及选择均无关闭、取消或返回入口，背景不可操作。照片制作失败显示「制作失败」「本次未能完成证件照制作。」和实际原因，点击「返回调整」恢复确认；服务不可用显示「暂时无法制作」「请稍后重新开始，无需更换照片。」和服务原因，点击「返回」恢复确认。两类失败都保留原图及参数，再次开始重新检测；两版或一版成功进入双版本结果。专项保持原有三项成功／照片失败／服务异常及固定输出，不进入个人双版本解锁。没有独立制作／失败页、二次原因入口或制作扫描叠层。</p>
           <h3>4. 双版本结果页（从上到下）</h3>
-          <p>顶部「证件照制作」与返回；正文「选择照片版本」、当前规格与底色、说明「选择一张解锁，付款后保存到知拍相册。」。一个白色20px圆角比较区放普通证件照与精修证件照，两列等宽、间距12px、照片完整等比显示；14px名称在照片上方，18px价格¥1.98／¥9.80在下方，未付款水印为「知拍证件照」。不预选，不加推荐标签。选择行至少44px高，选中显示「已选择」与蓝色细线，不改变照片大小。结果不编辑尺寸、底色、裁剪或构图。</p>
-          <p>部分成功时，失败列显示「本版本未完成」、实际原因及「重试普通版／重试精修版」；成功版可直接购买。重试保留成功照片、选择与原待付款身份，只处理失败版，并在提交中锁定购买。读取失败独立显示「照片暂未显示」「重新加载」。比较区下为「放大对比」；底栏只有一个48px主按钮，无选择为禁用「请选择一个照片版本」，选择后为「解锁普通版 ¥1.98」或「解锁精修版 ¥9.80」。</p>
+          <p>顶部居中显示「解锁照片」。规格、底色和像素在预览卡内左对齐。卡内左普通、右精修，未付款成片保留水印，下方是「放大对比细节」。选版卡精修¥9.80在上，普通¥1.98在下。初次选可用精修，只有普通可用时选普通，已有选择或订单保留。</p>
+          <p>一版失败时预览显示占位，对应选版卡给出原因和重试。底栏左侧显示24px红色金额，右侧按钮显示所选解锁版本。没有可用成片时禁用解锁。</p>
           <h3>5. 深色放大对比层</h3>
-          <p>顶部「成片对比」、关闭与照片外版本名称。一个共享比例框用「对比位置」滑杆揭示相同坐标；「缩放 1.0倍」允许1～3倍同步缩放，改变缩放归中，放大后拖动两张照片同步移动。提示「拖动对比位置查看差异，放大后可拖动照片。」；仅一版可用时没有分割滑杆，并提示「当前仅有一个版本可查看。」。关闭、Escape与业务中的返回先关闭查看层，恢复入口焦点与底页位置。实际触摸与读屏待验收。</p>
+          <p>顶部显示「成片对比」及关闭按钮。1倍可拖动照片或手柄，放大后拖图平移、拖手柄对比。业务原型支持双指捏合与双击，说明页用拖动和双击演示。关闭回入口并保留原选择，在结果页选版和解锁。</p>
           <h3>6. 付款、保存与完成页</h3>
           <p>版本ID、名称、金额（198分／980分）和文件随选择共同保存；待付款取消后改选先原子归档旧收据，写入失败保持原选择。待查款／已付款／已保存冻结版本、文件和金额，查询同一订单，不再购买另一版。付款或查询成功自动保存所购一版；失败显示「保存未完成，已解锁的照片已保留，请重试。」，按钮「保存到知拍相册」只重试保存。成功才进入「保存照片」页，按顺序展示「保存成功」「照片已保存到知拍相册」、所购照片、版本与规格、「保存到设备」，底部「查看照片」与「返回相册」；工具／冲印来源后者为「继续使用」。本线框按钮只切换文档状态，不执行交易、相册写入或下载。独立精修¥2订单保持分开。</p>
           <h3>返回与保护规则</h3>
@@ -343,18 +361,39 @@
       const taskModes = ["checking", "checkFailed", "checkError", "makingFailure"];
       let selected = sizes[1], pending = null, background = colors[0][1];
       let stage = "confirm", mode = null, timer = null, taskToken = 0, previousFocus = null, retaking = false;
-      const versions = [{ id: "ordinary", name: "普通证件照", short: "普通版", price: "1.98" }, { id: "retouched", name: "精修证件照", short: "精修版", price: "9.80" }];
+      const versions = [
+        { id: "ordinary", name: "普通证件照", short: "普通版", preview: "普通出片", price: "1.98", desc: "按所选规格裁切，保留原片质感。", features: ["标准尺寸裁切", "按所选底色出片"] },
+        { id: "retouched", name: "精修证件照", short: "精修版", preview: "质感精修", price: "9.80", desc: "在标准出片基础上，微调亮度、对比度和色彩。", features: ["标准尺寸裁切", "自然提亮", "对比度微调", "色彩微调"] },
+      ];
+      const options = [...versions].reverse();
       let selectedVersion = null, resultStates = { ordinary: "ready", retouched: "ready" }, retryId = null, saveError = false, pan = { x: 0, y: 0 }, drag = null;
       const versionInfo = () => versions.find((v) => v.id === selectedVersion);
       const protectedVersion = () => $("protection").value !== "unpaid";
       function portrait() { return '<svg viewBox="0 0 150 185" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><circle cx="75" cy="55" r="29" fill="#d5d9e0"/><path d="M19 185v-40c0-34 25-55 56-55s56 21 56 55v40" fill="#d5d9e0"/></svg>'; }
       function renderVersions() {
-        const visible = $("protection").value === "paid" ? versions.filter((v) => v.id === selectedVersion) : versions;
-        $("version-grid").style.gridTemplateColumns = visible.length === 1 ? "minmax(0,1fr)" : "repeat(2,minmax(0,1fr))";
-        $("version-grid").style.maxWidth = visible.length === 1 ? "190px" : ""; $("version-grid").style.margin = "auto";
-        $("version-grid").innerHTML = visible.map((v) => `<article class="wf-version"><h4>${v.name}</h4><figure class="wf-version-photo" style="aspect-ratio:${selected.w}/${selected.h};background-color:${background}">${resultStates[v.id] === "ready" ? portrait() + ($("protection").value !== "paid" ? '<span class="wf-watermark">知拍证件照</span>' : '') : '<span class="wf-version-placeholder">本版本未完成</span>'}</figure><p class="wf-version-price">¥${v.price}</p>${resultStates[v.id] === "ready" ? `<label class="wf-version-select"><input type="radio" name="version" data-version="${v.id}" ${selectedVersion === v.id ? "checked" : ""} ${protectedVersion() ? "disabled" : ""}><span>${$("protection").value === "paid" ? "已解锁" : selectedVersion === v.id ? "已选择" : "选择" + v.short}</span></label>` : `<p class="wf-version-reason">本版本未能完成制作，可重试或选择已完成的版本。</p><button type="button" class="wf-version-retry" data-retry="${v.id}" ${protectedVersion() ? "disabled" : ""}>重试${v.short}</button>`}</article>`).join("");
-        $("result-heading").textContent = $("protection").value === "paid" ? "照片已解锁" : "选择照片版本";
-        $("result-instruction").hidden = $("protection").value === "paid";
+        const paid = $("protection").value === "paid";
+        const visible = paid ? versions.filter((v) => v.id === selectedVersion) : versions;
+        const preview = $("version-preview");
+        preview.style.gridTemplateColumns = visible.length === 1 ? "minmax(0,1fr)" : "";
+        preview.style.maxWidth = visible.length === 1 ? "190px" : "";
+        preview.style.margin = "auto";
+        preview.innerHTML = visible.map((v) => {
+          const ready = resultStates[v.id] === "ready";
+          return `<figure class="wf-version-preview" data-version="${v.id}" data-ready="${ready}"><div class="wf-version-photo" style="aspect-ratio:${selected.w}/${selected.h};background-color:${background}">${ready ? portrait() + (paid ? "" : '<span class="wf-watermark">知拍证件照</span>') : '<span class="wf-version-placeholder">本版本未完成</span>'}</div>${paid ? "<figcaption>" + v.name + " · 已解锁</figcaption>" : ""}</figure>`;
+        }).join("");
+        $("compare-open").disabled = !visible.some((v) => resultStates[v.id] === "ready");
+        $("version-options").hidden = paid;
+        $("version-options").innerHTML = paid ? "" : options.map((v) => {
+          const ready = resultStates[v.id] === "ready";
+          const radio = ready ? `<input id="wf-version-${v.id}" type="radio" name="version" data-version="${v.id}" aria-label="选择${v.short}" ${selectedVersion === v.id ? "checked" : ""} ${protectedVersion() ? "disabled" : ""}>` : "";
+          const detail = ready
+            ? `<ul class="wf-version-features">${v.features.map((item) => `<li><b>✓</b> ${item}</li>`).join("")}</ul>`
+            : `<p class="wf-version-reason">本版本未能完成制作，可重试或选择已完成的版本。</p><button type="button" class="wf-version-retry" data-retry="${v.id}" ${protectedVersion() ? "disabled" : ""}>重试${v.short}</button>`;
+          const hit = ready && !protectedVersion() ? `<label class="wf-version-hit" for="wf-version-${v.id}" aria-label="选择${v.name}"></label>` : "";
+          const ribbon = ready && v.id === "retouched" ? '<span class="wf-version-ribbon"><span>98%人选择</span></span>' : "";
+          return `<article class="wf-version">${radio}<div class="wf-version-content"><div class="wf-version-option-head"><h4>${v.name}</h4><p class="wf-version-price"><span class="wf-price-currency">¥</span>${v.price}</p></div><p class="wf-version-desc">${v.desc}</p>${detail}</div>${ribbon}${hit}</article>`;
+        }).join("");
+        $("result-heading").hidden = !paid;
         $("save-error").hidden = !saveError;
       }
       function feedback(text) { $("feedback").textContent = text; }
@@ -366,17 +405,21 @@
         $("saved-view").hidden = !saved;
         $("capture-view").hidden = !capture;
         $("entry-view").hidden = !entry;
-        $("stage-title").textContent = capture ? "拍摄证件照（示意）" : entry ? "调用页面（示意）" : saved ? "保存照片" : "证件照制作";
+        $("stage-title").textContent = capture ? "拍摄证件照（示意）" : entry ? "调用页面（示意）" : saved ? "保存照片" : result && $("protection").value !== "paid" ? "解锁照片" : "证件照制作";
         $("back").hidden = entry;
         $("replace").hidden = result || capture || entry;
         $("replace").textContent = saved ? "查看照片" : $("source").value === "camera" ? "重新拍摄" : "重新选择";
         $("capture-description").textContent = retaking ? "临时重拍：顶部返回取消重拍，恢复原确认页。" : "初始拍摄：顶部返回退出到调用页面。";
-        $("primary").textContent = entry ? "重新进入制作示意" : capture ? "拍摄并确认（示意）" : result ? $("protection").value === "paid" ? "保存到知拍相册" : $("protection").value === "verifying" ? "查询解锁状态" : selectedVersion ? "解锁" + versionInfo().short + " ¥" + versionInfo().price : "请选择一个照片版本" : saved ? "返回相册" : "开始制作";
+        $("primary").textContent = entry ? "重新进入制作示意" : capture ? "拍摄并确认（示意）" : result ? $("protection").value === "paid" ? "保存到知拍相册" : $("protection").value === "verifying" ? "查询解锁状态" : selectedVersion ? "解锁" + versionInfo().short : "暂无可解锁版本" : saved ? "返回相册" : "开始制作";
         $("primary").disabled = (result && !selectedVersion) || (stage === "confirm" && !specificationBackgroundState(selected.id, background).background);
         $("size-label").textContent = selected.name + " · " + selected.mm;
         $("tags").innerHTML = sizes.slice(0, 3).map((s) => `<button type="button" data-spec="${s.id}" aria-pressed="${selected.id === s.id}">${s.name}</button>`).join("") + `<button type="button" id="more-size" aria-haspopup="dialog" aria-pressed="${!sizes.slice(0, 3).some((s) => s.id === selected.id)}">更多规格</button>`;
         $("colors").innerHTML = specificationBackgroundState(selected.id, background).colors.map(c=>[c.name,c.value]).map(([name, color]) => `<button type="button" data-color="${color}" aria-pressed="${background === color}"><span class="wf-swatch ${color === "transparent" ? "wf-transparent" : ""}" style="background-color:${color};color:${["#ffffff", "#d5d9e0", "transparent"].includes(color) ? "#0032ff" : "#fff"}">${background === color ? "✓" : ""}</span>${name}</button>`).join("");
-        $("result-spec").textContent = selected.name + " · " + selected.mm + " · " + (colors.find((c) => c[1] === background)?.[0] || "未选择底色");
+        $("result-spec").textContent = selected.name + " · " + selected.mm;
+        $("result-background").textContent = colors.find((c) => c[1] === background)?.[0] || "未选择底色";
+        $("result-pixels").textContent = selected.w + " × " + selected.h + " px";
+        $("result-price-summary").hidden = !result || !selectedVersion || $("protection").value === "paid";
+        $("result-price").textContent = selectedVersion ? versionInfo().price : "";
         $("color-policy-note").textContent = specificationBackgroundState(selected.id, background).message;
         renderVersions();
         if (saved) { $("saved-photo").innerHTML = portrait(); $("saved-photo").style.backgroundColor = background; $("saved-version").textContent = versionInfo().name + " · " + selected.name; }
@@ -584,9 +627,9 @@
             showTask("makingFailure", [], "制作服务暂时不可用，请稍后再试。", "service");
             feedback("服务不可用在同一抽屉说明稍后再试，无需更换照片；返回后保留原图和参数，重新开始会重新检测。");
           } else {
-            resultStates = { ordinary: action === "retouched_only" ? "failed" : "ready", retouched: action === "ordinary_only" ? "failed" : "ready" }; selectedVersion = null; saveError = false; $("protection").value = "unpaid";
+            resultStates = { ordinary: action === "retouched_only" ? "failed" : "ready", retouched: action === "ordinary_only" ? "failed" : "ready" }; selectedVersion = options.find(v => resultStates[v.id] === "ready")?.id || null; saveError = false; $("protection").value = "unpaid";
             closeLayer(); stage = "result"; render(); $("stage-title").focus();
-            feedback("进入无预选的双版本结果示意；可选择成功版或仅重试失败版，未执行照片制作或保存。");
+            feedback("进入预选可用版本的结果示意；可换版或仅重试失败版，未执行照片制作或保存。");
           }
         } else if (action === "discard") {
           closeLayer(); stage = "confirm"; selectedVersion = null; render(); $("stage-title").focus();
@@ -600,12 +643,13 @@
       $("modal-layer").onclick = (event) => { if (mode === "scenario" && event.target === event.currentTarget) cancelScenario(); };
       $("source").onchange = render;
       $("protection").onchange = () => {
-        if (protectedVersion() && !selectedVersion) { selectedVersion = versions.find((v) => resultStates[v.id] === "ready").id; feedback("原型控制载入受保护订单示例：固定当前成功版本；正式结果初始仍无预选。"); }
+        if (protectedVersion() && !selectedVersion) { selectedVersion = options.find((v) => resultStates[v.id] === "ready").id; feedback("原型控制载入受保护订单示例：固定当前成功版本。"); }
         if (stage === "saved") stage = "result"; render();
       };
-      $("version-grid").onchange = (event) => { if (!protectedVersion() && event.target.dataset.version) { selectedVersion = event.target.dataset.version; saveError = false; render(); feedback("版本、价格与文件一并选择；业务中改选将原子归档取消的旧待付款收据，失败保留原选择。"); } };
-      $("version-grid").onclick = (event) => {
-        const id = event.target.closest("button")?.dataset.retry;
+      $("version-options").onchange = (event) => { if (!protectedVersion() && event.target.dataset.version) { selectedVersion = event.target.dataset.version; saveError = false; render(); feedback("版本、价格与文件一并选择；业务中改选将原子归档取消的旧待付款收据，失败保留原选择。"); } };
+      $("version-options").onclick = (event) => {
+        const button = event.target.closest("button");
+        const id = button?.dataset.retry;
         if (!id || protectedVersion()) return;
         retryId = id; showModal("making"); timer = setTimeout(() => { timer = null; showModal("choosing"); }, 5000);
         feedback("只重试失败版，成功版和选择保留；等待及结果选择不可取消，期间不能购买。");
@@ -614,24 +658,54 @@
         const ready = versions.filter((v) => resultStates[v.id] === "ready" && ($("protection").value !== "paid" || v.id === selectedVersion));
         $("compare-labels").innerHTML = ready.map((v) => `<span>${v.name}</span>`).join("");
         $("compare-frame").style.aspectRatio = selected.w + "/" + selected.h;
-        $("compare-frame").innerHTML = ready.map((v, i) => `<div class="wf-compare-photo" ${i ? 'id="compare-reveal"' : ''} style="background-color:${background}">${portrait()}</div>`).join("") + (ready.length > 1 ? '<span class="wf-compare-divider" id="compare-divider"></span>' : '');
-        $("split-label").hidden = ready.length < 2;
-        $("compare-description").textContent = ready.length > 1 ? "拖动对比位置查看差异，放大后可拖动照片。" : "当前仅有一个版本可查看。";
+        $("compare-frame").style.setProperty("--wf-compare-ratio", selected.w / selected.h);
+        $("compare-frame").innerHTML = ready.map((v, i) => `<div class="wf-compare-photo" ${i ? 'id="compare-reveal"' : ''} style="background-color:${background}">${portrait()}</div>`).join("") + (ready.length > 1 ? '<span class="wf-compare-divider" id="compare-divider"></span><div class="wf-compare-handle" id="compare-handle" role="slider" tabindex="0" aria-label="普通版与精修版分割位置" aria-valuemin="0" aria-valuemax="100"><span>‹ ›</span></div>' : '');
         updateComparison();
       }
+      const limit = (value, min, max) => Math.max(min, Math.min(max, value));
       function updateComparison() {
-        if ($("compare-reveal")) $("compare-reveal").style.clipPath = `inset(0 0 0 ${$("split").value}%)`;
-        if ($("compare-divider")) $("compare-divider").style.left = $("split").value + "%";
-        $("zoom-label").textContent = "缩放 " + Number($("zoom").value).toFixed(1) + "倍";
-        $("compare-frame").querySelectorAll("svg").forEach((svg) => svg.style.transform = `translate(${pan.x}px,${pan.y}px) scale(${$("zoom").value})`);
+        const split = Number($("split").value), zoom = Number($("zoom").value);
+        if ($("compare-reveal")) $("compare-reveal").style.clipPath = `inset(0 0 0 ${split}%)`;
+        if ($("compare-divider")) $("compare-divider").style.left = split + "%";
+        if ($("compare-handle")) {
+          $("compare-handle").style.left = `clamp(22px, ${split}%, calc(100% - 22px))`;
+          $("compare-handle").setAttribute("aria-valuenow", Math.round(split));
+        }
+        $("compare-frame").querySelectorAll("svg").forEach(svg => svg.style.transform = `translate(${pan.x}px,${pan.y}px) scale(${zoom})`);
       }
-      $("compare-open").onclick = () => { activateLayer("compare", "compare-layer"); $("split").value = 50; $("zoom").value = 1; pan = { x: 0, y: 0 }; renderComparison(); $("compare-close").focus(); };
+      function clampPan(x, y) {
+        const frame = $("compare-frame"), factor = (Number($("zoom").value) - 1) / 2;
+        return { x: limit(x, -frame.clientWidth * factor, frame.clientWidth * factor), y: limit(y, -frame.clientHeight * factor, frame.clientHeight * factor) };
+      }
+      function openComparison() { activateLayer("compare", "compare-layer"); $("split").value = 50; $("zoom").value = 1; pan = { x: 0, y: 0 }; renderComparison(); $("compare-close").focus(); }
+      $("compare-open").onclick = openComparison;
       $("compare-close").onclick = closeLayer;
-      $("split").oninput = updateComparison;
-      $("zoom").oninput = () => { pan = { x: 0, y: 0 }; updateComparison(); };
-      $("compare-frame").onpointerdown = (event) => { if (Number($("zoom").value) <= 1) return; event.currentTarget.setPointerCapture(event.pointerId); drag = { x: event.clientX, y: event.clientY, pan: { ...pan } }; };
-      $("compare-frame").onpointermove = (event) => { if (!drag) return; const frame = $("compare-frame"), factor = (Number($("zoom").value) - 1) / 2; pan = { x: Math.max(-frame.clientWidth * factor, Math.min(frame.clientWidth * factor, drag.pan.x + event.clientX - drag.x)), y: Math.max(-frame.clientHeight * factor, Math.min(frame.clientHeight * factor, drag.pan.y + event.clientY - drag.y)) }; updateComparison(); };
-      $("compare-frame").onpointerup = $("compare-frame").onpointercancel = () => { drag = null; };
+      $("compare-frame").ondblclick = () => {
+        $("zoom").value = Number($("zoom").value) === 1 ? 2 : 1;
+        pan = { x: 0, y: 0 };
+        updateComparison();
+      };
+      $("compare-frame").onpointerdown = (event) => {
+        if (drag) return;
+        const split = $("compare-handle") && (Number($("zoom").value) <= 1 || event.target.closest("#compare-handle"));
+        if (!split && Number($("zoom").value) <= 1) return;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        drag = { id: event.pointerId, split, value: Number($("split").value), x: event.clientX, y: event.clientY, pan: { ...pan } };
+      };
+      $("compare-frame").onpointermove = (event) => {
+        if (drag?.id !== event.pointerId) return;
+        const dx = event.clientX - drag.x;
+        if (drag.split) $("split").value = limit(drag.value + dx / event.currentTarget.clientWidth * 100, 0, 100);
+        else pan = clampPan(drag.pan.x + dx, drag.pan.y + event.clientY - drag.y);
+        updateComparison();
+      };
+      $("compare-frame").onpointerup = $("compare-frame").onpointercancel = (event) => { if (drag?.id === event.pointerId) drag = null; };
+      $("compare-frame").onkeydown = (event) => {
+        if (event.target.id !== "compare-handle" || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+        event.preventDefault();
+        $("split").value = event.key === "Home" ? 0 : event.key === "End" ? 100 : limit(Number($("split").value) + (event.key === "ArrowLeft" ? -5 : 5), 0, 100);
+        updateComparison();
+      };
       $("download").onclick = () => feedback("保存到设备的按钮位置示意；没有发起下载，也不宣称已进入系统相册。");
       $("initial-camera").onclick = () => {
         $("source").value = "camera"; stage = "capture"; retaking = false; render(); $("stage-title").focus();
@@ -654,7 +728,7 @@
         }
         if (event.key !== "Tab") return;
         const dialog = mode === "size" ? $("size-sheet") : taskModes.includes(mode) ? $("task-sheet") : mode === "compare" ? $("compare-layer") : $("modal");
-        const buttons = [...dialog.querySelectorAll("button,input")].filter((b) => !b.disabled && b.getClientRects().length);
+        const buttons = [...dialog.querySelectorAll("button,input,[role=slider]")].filter((b) => !b.disabled && b.getClientRects().length);
         if (!buttons.length) { event.preventDefault(); return; }
         const first = buttons[0], last = buttons.at(-1);
         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }

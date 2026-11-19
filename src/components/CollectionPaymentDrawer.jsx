@@ -46,7 +46,7 @@ export default function CollectionPaymentDrawer({ scope: s }) {
           <strong>{s.project.name}</strong>
           <div>
             <span>应付金额</span>
-            <b>¥{s.collectionPrice}</b>
+            <b><span className="ui-price">¥{s.collectionPrice}</span></b>
           </div>
         </section>
         {verifying ? (

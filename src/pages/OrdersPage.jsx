@@ -3,6 +3,7 @@ import { Controller, View } from "../runtime/components.jsx";
 import ToolNavigation from "../components/ToolNavigation.jsx";
 import OrderReceiptDialog from "../components/OrderReceiptDialog.jsx";
 import OrderThumbnail from "../components/OrderThumbnail.jsx";
+import PriceText from "../components/PriceText.jsx";
 import {
   clampOrderTabScroll,
   orderTabScrollTarget,
@@ -272,7 +273,7 @@ function Fields({ rows }) {
         .map(([label, value]) => (
           <div key={label}>
             <dt>{label}</dt>
-            <dd>{value}</dd>
+            <dd><PriceText value={value} /></dd>
           </div>
         ))}
     </dl>
@@ -296,7 +297,7 @@ function Detail({ s, order: o }) {
             </div>
             <div className="order-transaction-amount">
               <span>{o.state === "failed" ? "订单金额" : "实付金额"}</span>
-              <strong>{s.money(o.amount)}</strong>
+              <strong><PriceText value={s.money(o.amount)} /></strong>
             </div>
             {o.failureReason && <p>{o.failureReason}</p>}
           </section>
@@ -523,7 +524,7 @@ function OrderListCard({ s, order: o, onOpen }) {
         <strong
           className={`order-card-amount${Number.isFinite(o.amount) ? "" : " is-unconfirmed"}`}
         >
-          {s.money(o.amount)}
+          <PriceText value={s.money(o.amount)} />
         </strong>
         {secondary && (
           <span className="order-card-dimensions">{secondary}</span>

@@ -915,8 +915,9 @@ export default function ToolsPage({ scope, args = [] }) {
                         <View
                           as="b"
                           scope={s}
-                          text={s.money(s.order.amount)}
-                        ></View>
+                        >
+                          <span className="ui-price">{s.money(s.order.amount)}</span>
+                        </View>
                       </View>
                     </>
                   </>
@@ -1273,7 +1274,7 @@ export default function ToolsPage({ scope, args = [] }) {
                           )}
                         </View>
                         <View as="b" scope={s}>
-                          {"¥2.00"}
+                          <span className="ui-price">¥2.00</span>
                         </View>
                       </View>
                       <PaymentChoices kind={s.action} method={s.paymentMethod}

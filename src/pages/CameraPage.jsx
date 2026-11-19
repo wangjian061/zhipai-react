@@ -568,7 +568,7 @@ export default function CameraPage({ scope, args = [] }) {
                         ></View>
                       </View>
                       <View as="b" scope={s}>
-                        {"¥" + s.electronicPrice}
+                        <span className="ui-price">¥{s.electronicPrice}</span>
                       </View>
                     </View>
                     {s.draft?.order?.status === "verifying" ? (

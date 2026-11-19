@@ -8,6 +8,7 @@ import PhotoSelectionEmpty from "../components/PhotoSelectionEmpty.jsx";
 import PhotoSelectionPreview from "../components/PhotoSelectionPreview.jsx";
 import PhotoSelectionActions from "../components/PhotoSelectionActions.jsx";
 import FixedPhotoCrop from "../components/FixedPhotoCrop.jsx";
+import PriceText from "../components/PriceText.jsx";
 import { PaymentChoices, PaymentRecovery } from "../components/PaymentHandoff.jsx";
 import { checkoutLabel } from "../domain/payment-handoff.js";
 import { View, Repeat, Portal } from "../runtime/components.jsx";
@@ -240,54 +241,45 @@ export default function PrintPage({ scope: s }) {
             <View as="div" scope={s}>
               <View as="span" scope={s}>
                 {"冲印费 "}
-                <View
-                  as="small"
-                  scope={s}
-                  show={s.checkoutQuote}
-                  text={s.checkoutQuote ? s.money(s.checkoutQuote.unitPrice) + " / 版" : ""}
-                ></View>
+                {s.checkoutQuote && (
+                  <small><PriceText value={s.money(s.checkoutQuote.unitPrice)} /> / 版</small>
+                )}
               </View>
-              <View
-                as="strong"
-                scope={s}
-                text={
+              <strong>
+                <PriceText value={
                   s.quoteLoading && !s.checkoutOrder
                     ? "正在获取…"
                     : s.checkoutQuote
                       ? s.money(s.checkoutQuote.subtotal)
                       : "—"
-                }
-              ></View>
+                } />
+              </strong>
             </View>
             <View as="div" scope={s}>
               <View as="span" scope={s}>
                 {"运费"}
               </View>
-              <View
-                as="strong"
-                scope={s}
-                text={
+              <strong>
+                <PriceText value={
                   s.quoteLoading && !s.checkoutOrder
                     ? "正在获取…"
                     : s.checkoutQuote?.shipping != null
                       ? s.money(s.checkoutQuote.shipping)
                       : "¥10.00"
-                }
-              ></View>
+                } />
+              </strong>
             </View>
             <View as="div" scope={s} className="print-cost-total">
               <View as="span" scope={s}>
                 {"合计"}
               </View>
-              <View
-                as="strong"
-                scope={s}
-                text={
+              <strong>
+                <PriceText value={
                   s.checkoutQuote?.total != null && (!s.quoteLoading || s.checkoutOrder)
                     ? s.money(s.checkoutQuote.total)
                     : "—"
-                }
-              ></View>
+                } />
+              </strong>
             </View>
             <View
               as="div"
@@ -720,12 +712,9 @@ export default function PrintPage({ scope: s }) {
                 className="ui-sheet-panel"
               >
                 <View as="div" scope={s} className="ui-sheet-body">
-                  <View
-                    as="p"
-                    scope={s}
-                    className="print-payment-amount"
-                    text={s.order ? s.money(s.order.total) : ""}
-                  ></View>
+                  <p className="print-payment-amount">
+                    <PriceText value={s.order ? s.money(s.order.total) : ""} />
+                  </p>
                   <View as="label" scope={s} className="print-payment-option">
                     <View as="span" scope={s}>
                       {"微信支付"}

@@ -133,11 +133,11 @@ function Screen({ s }) {
                 <dl className="tool-settings keepsake-fees">
                   <div>
                     <dt>商品金额</dt>
-                    <dd>{money(s.order?.price ?? s.product.price)}</dd>
+                    <dd><span className="ui-price">{money(s.order?.price ?? s.product.price)}</span></dd>
                   </div>
                   <div>
                     <dt>运费</dt>
-                    <dd>{money(s.order?.shipping ?? s.product.shipping)}</dd>
+                    <dd><span className="ui-price">{money(s.order?.shipping ?? s.product.shipping)}</span></dd>
                   </div>
                   <div>
                     <dt>数量</dt>
@@ -145,7 +145,7 @@ function Screen({ s }) {
                   </div>
                   <div>
                     <dt>应付金额</dt>
-                    <dd>{money(s.total)}</dd>
+                    <dd><span className="ui-price">{money(s.total)}</span></dd>
                   </div>
                 </dl>
                 <section className="tool-settings">
@@ -394,7 +394,7 @@ function Screen({ s }) {
         {s.panel === "payment" && (
           <>
             <p>{s.order?.templateName || s.template.name} · 1套</p>
-            <p>应付 {money(s.total)} · 原型演示</p>
+            <p>应付 <span className="ui-price">{money(s.total)}</span> · 原型演示</p>
             <PaymentChoices kind={s.kind} method={s.paymentMethod}
               setMethod={(value) => { s.paymentMethod = value; }}
               outcome={s.demoOutcome} setOutcome={(value) => { s.demoOutcome = value; }} disabled={s.locked}

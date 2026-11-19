@@ -37,7 +37,9 @@ function PostcardProduct({ s }) {
         <header>
           <h2>定制明信片</h2>
           <strong>
-            ¥{((s.order?.price ?? s.product.price) / 100).toFixed(2)}
+            <span className="ui-price">
+              ¥{((s.order?.price ?? s.product.price) / 100).toFixed(2)}
+            </span>
             <small> / 张</small>
           </strong>
         </header>

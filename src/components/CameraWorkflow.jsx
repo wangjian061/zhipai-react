@@ -9,11 +9,14 @@ import "../styles/camera-dual-results.css";
 import "../styles/camera-workflow.css";
 
 function Header({ scope: s }) {
+  const isResult = s.step === "editor";
+  const resultHeading = isResult && s.dualResults && !s.unlocked;
+  const focusRef = resultHeading ? "cameraResultTitle" : isResult ? undefined : "cameraConfirmTitle";
   return (
     <header className="camera-stage-header">
       <button
         type="button"
-        aria-label={s.familyCamera || s.step === "editor" ? "返回" : s.confirmationBackLabel}
+        aria-label={s.familyCamera || isResult ? "返回" : s.confirmationBackLabel}
         disabled={s.busy}
         onClick={() => s.back()}
       >
@@ -24,12 +27,15 @@ function Header({ scope: s }) {
       <View
         as="h1"
         scope={s}
-        refName={
-          s.step === "editor" ? "cameraResultTitle" : "cameraConfirmTitle"
-        }
-        tabIndex={-1}
+        refName={focusRef}
+        className={resultHeading ? "camera-result-focus" : undefined}
+        tabIndex={focusRef ? -1 : undefined}
       >
-        {s.familyCamera ? "确认照片" : "证件照制作"}
+        {s.familyCamera
+          ? "确认照片"
+          : isResult && !s.unlocked
+            ? "解锁照片"
+            : "证件照制作"}
       </View>
       <span />
     </header>
@@ -99,6 +105,13 @@ export function CameraConfirmationPage({ scope: s }) {
 
 export function CameraResultPage({ scope: s }) {
   if (s.step !== "editor") return null;
+  const showSelectedPrice =
+    s.dualResults &&
+    !s.unlocked &&
+    s.canPurchaseVersion &&
+    s.outputBlob &&
+    s.draft?.status === "ready";
+  const showUnlockArrow = showSelectedPrice && !s.busy && !s.versionLocked;
   return (
     <div
       className={
@@ -108,24 +121,14 @@ export function CameraResultPage({ scope: s }) {
     >
       <Header scope={s} />
       <div className="camera-stage-scroll">
-        <div className="camera-result-heading">
-          <h2>
-            {s.dualResults
-              ? s.unlocked
-                ? "照片已解锁"
-                : "选择照片版本"
-              : "制作成功"}
-          </h2>
-          <p>
-            {s.spec.name} · {s.spec.mm}
-            {s.dualResults && " · " + s.backgroundLabel}
-          </p>
-          {s.dualResults && !s.unlocked && (
-            <p className="camera-result-instruction">
-              选择一张解锁，付款后保存到知拍相册。
-            </p>
-          )}
-        </div>
+        {(!s.dualResults || s.unlocked) && (
+          <div className="camera-result-heading">
+            <View as="h2" scope={s} refName="cameraResultTitle" className="camera-result-focus" tabIndex={-1}>
+              {s.dualResults ? "照片已解锁" : "制作成功"}
+            </View>
+            {!s.dualResults && <p>{s.spec.name} · {s.spec.mm}</p>}
+          </div>
+        )}
         {s.dualResults ? (
           <CameraResultVersions scope={s} />
         ) : (
@@ -174,6 +177,13 @@ export function CameraResultPage({ scope: s }) {
         )}
       </div>
       <footer className="camera-stage-actions camera-result-actions">
+        {showSelectedPrice && (
+          <strong className="camera-result-price-summary">
+            <span className="sr-only">已选金额</span>
+            <span className="camera-price-currency">¥</span>
+            {s.electronicPrice}
+          </strong>
+        )}
         <button
           type="button"
           className="primary-button"
@@ -187,6 +197,11 @@ export function CameraResultPage({ scope: s }) {
           onClick={() => s.primary()}
         >
           {s.primaryLabel}
+          {showUnlockArrow && (
+            <svg className="camera-result-unlock-arrow" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12h15m-6-6 6 6-6 6" />
+            </svg>
+          )}
         </button>
       </footer>
     </div>

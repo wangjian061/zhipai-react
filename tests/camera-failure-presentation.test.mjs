@@ -71,7 +71,7 @@ Object.assign(
   components,
   await compile(
     "src/components/CameraVersionComparison.jsx",
-    ["CameraVersionComparison", "comparisonPan"],
+    ["CameraVersionComparison", "comparisonPan", "comparisonZoom"],
     {
       useEffect: React.useEffect,
       useRef: React.useRef,
@@ -587,14 +587,16 @@ test("workflow components only render on their assigned stages", () => {
   );
 });
 
-function dualState(extra = {}) {
+function dualState({ selectedVersionId = "retouched", ...extra } = {}) {
+  const ordinary = selectedVersionId === "ordinary";
   return state({
     step: "editor",
     dualResults: true,
     unlocked: false,
     backgroundLabel: "蓝色",
-    primaryLabel: "请选择一个照片版本",
-    canPurchaseVersion: false,
+    primaryLabel: ordinary ? "解锁普通版" : "解锁精修版",
+    electronicPrice: ordinary ? "1.98" : "9.80",
+    canPurchaseVersion: true,
     draft: { status: "ready", outputWidth: 295, outputHeight: 413 },
     resultVersions: [
       {
@@ -604,7 +606,7 @@ function dualState(extra = {}) {
         price: "1.98",
         status: "ready",
         url: "/ordinary.jpg",
-        selected: false,
+        selected: ordinary,
       },
       {
         id: "retouched",
@@ -613,24 +615,61 @@ function dualState(extra = {}) {
         price: "9.80",
         status: "ready",
         url: "/retouched.jpg",
-        selected: false,
+        selected: !ordinary,
       },
     ],
     ...extra,
   });
 }
-test("dual result shows both prices, no preselection and one disabled purchase action until a choice", () => {
+test("the ready default is visible in the option cards and footer below the shared preview", () => {
   const html = render("CameraResultPage", dualState());
-  assert.ok(html.includes("普通证件照") && html.includes("精修证件照"));
-  assert.ok(html.includes("¥1.98") && html.includes("¥9.80"));
-  assert.equal((html.match(/type="radio"/g) || []).length, 2);
-  assert.ok(!html.includes('checked=""'));
-  assert.ok(html.includes("放大对比"));
-  assert.equal((html.match(/class="primary-button"/g) || []).length, 1);
-  assert.match(html, /disabled=""[^>]*>请选择一个照片版本/);
+  const [, preview, options] = html.split(/<section class="camera-version-previews"|<fieldset class="camera-version-options"/);
+  assert.match(html, /<h1[^>]*>解锁照片<\/h1>/);
+  assert.doesNotMatch(html, /选择照片版本/);
+  assert.match(preview, /class="camera-result-specs">.*二寸 · 35 × 49 mm<\/span><span>蓝色<\/span><span>295 × 413 px/);
+  assert.ok(preview.indexOf("camera-result-specs") < preview.indexOf("camera-version-preview-grid"));
+  assert.match(preview, /<img[^>]*ordinary\.jpg.*<img[^>]*retouched\.jpg/);
+  assert.equal((preview.match(/class="camera-version-watermark"/g) || []).length, 2);
+  assert.doesNotMatch(preview, /camera-version-preview-finish/);
+  assert.doesNotMatch(preview, /type="radio"|¥/);
+  assert.doesNotMatch(preview, /<figcaption/);
+  assert.doesNotMatch(html, /选一版解锁，付款后无水印保存到知拍相册/);
+  assert.equal((html.match(/class="camera-compare-entry"/g) || []).length, 1);
+  assert.match(preview, /放大对比细节/);
+  assert.match(options, /精修证件照.*普通证件照/);
+  assert.ok(options.includes("标准尺寸裁切") && options.includes("对比度微调"));
+  assert.equal((options.match(/class="camera-version-ribbon"/g) || []).length, 1);
+  assert.match(options, /camera-version-ribbon[^>]*><span>98%人选择<\/span><\/span>.*value="retouched"/);
+  assert.equal((options.match(/type="radio"/g) || []).length, 2);
+  assert.equal((options.match(/class="camera-version-hit"/g) || []).length, 2);
+  assert.match(options, /checked=""[^>]*value="retouched"/);
+  assert.doesNotMatch(options, /已选方案/);
+  assert.match(options, /class="camera-result-price-summary".*?<span class="camera-price-currency">¥<\/span>9\.80<\/strong>/);
+  assert.match(html, /class="primary-button">解锁精修版<svg/);
+});
+test("the result footer uses the selected or protected order amount and leaves protected cards read-only", () => {
+  const s = dualState({ selectedVersionId: "ordinary" });
+  const selected = render("CameraResultPage", s);
+  assert.match(selected, /checked=""[^>]*value="ordinary"/);
+  assert.match(selected, /<span class="camera-price-currency">¥<\/span>1\.98<\/strong><button[^>]*>解锁普通版<svg/);
+
+  const verifying = render("CameraResultPage", {
+    ...dualState(), versionLocked: true, electronicPrice: "8.80", primaryLabel: "查询解锁状态",
+  });
+  assert.match(verifying, /精修证件照<\/h3>.*?<p class="camera-version-price"><span class="camera-price-currency">¥<\/span>8\.80/);
+  assert.match(verifying, /<span class="camera-price-currency">¥<\/span>8\.80<\/strong><button[^>]*>查询解锁状态/);
+  assert.doesNotMatch(verifying, /class="camera-version-hit"/);
+});
+test("an unavailable dual result never offers an enabled unlock or comparison", () => {
+  const s = dualState({ primaryLabel: "暂无可解锁版本", canPurchaseVersion: false, outputBlob: null });
+  s.resultVersions = s.resultVersions.map((v) => ({ ...v, selected: false, status: "failed", url: "" }));
+  const html = render("CameraResultPage", s);
+  assert.match(html, /class="primary-button" disabled="">暂无可解锁版本/);
+  assert.match(html, /class="camera-compare-entry" disabled=""/);
+  assert.doesNotMatch(html, /type="radio"|camera-result-price-summary/);
 });
 test("partial result keeps the good photo selectable and directly displays the failed version reason/retry", () => {
-  const s = dualState();
+  const s = dualState({ selectedVersionId: "ordinary" });
   s.resultVersions[1] = {
     ...s.resultVersions[1],
     status: "failed",
@@ -640,6 +679,7 @@ test("partial result keeps the good photo selectable and directly displays the f
   const html = render("CameraResultPage", s);
   assert.ok(html.includes("精修服务未能完成本版本。"));
   assert.ok(html.includes("重试精修版"));
+  assert.doesNotMatch(html, /camera-version-ribbon/);
   assert.equal((html.match(/type="radio"/g) || []).length, 1);
   assert.ok(html.includes("/ordinary.jpg"));
 });
@@ -651,26 +691,34 @@ test("paid save-retry state only exposes the purchased version rather than a sec
     primaryLabel: "保存到知拍相册",
     error: "保存未完成，请重试。",
   });
+  s.resultVersions[0].selected = false;
   s.resultVersions[1].selected = true;
   const html = render("CameraResultPage", s);
   assert.ok(!html.includes("普通证件照"));
   assert.ok(html.includes("精修证件照") && html.includes("已解锁"));
-  assert.ok(!html.includes("预览水印"));
+  assert.doesNotMatch(html, /预览水印|camera-version-preview-finish|camera-version-options|camera-result-price-summary/);
   assert.ok(html.includes("保存到知拍相册"));
 });
-test("enlarged comparison has two matched image layers and shared position/zoom controls", () => {
-  const html = render(
-    "CameraVersionComparison",
-    dualState({ panel: "compare" }),
-  );
+test("comparison uses an accessible divider and reserves selection for the result page", () => {
+  const html = render("CameraVersionComparison", dualState({ panel: "compare" }));
   assert.ok(html.includes('aria-modal="true"'));
   assert.ok(html.includes("关闭成片对比"));
   assert.ok(html.includes("/ordinary.jpg") && html.includes("/retouched.jpg"));
-  assert.ok(
-    html.includes("普通版与精修版分割位置") &&
-      html.includes("两张照片同步缩放"),
-  );
-  assert.ok(!html.includes("确认付款"));
+  assert.match(html, /role="slider"[^>]*aria-label="普通版与精修版分割位置"/);
+  assert.equal((html.match(/<button\b/g) || []).length, 1);
+  assert.doesNotMatch(html, /<footer|camera-compare-controls|左右拖动对比效果|点击还原|选择普通版|选择精修版|¥|确认付款/);
+});
+test("locked comparison is read-only; a single available version doesn't render a divider", () => {
+  const paid = render("CameraVersionComparison", dualState({
+    panel: "compare", versionLocked: true, unlocked: true, selectedVersionId: "ordinary",
+  }));
+  assert.match(paid, /普通证件照/);
+  assert.doesNotMatch(paid, /<footer|role="slider"|选择普通版|选择精修版|retouched\.jpg/);
+  const verifying = render("CameraVersionComparison", dualState({
+    panel: "compare", versionLocked: true,
+  }));
+  assert.match(verifying, /role="slider"/);
+  assert.doesNotMatch(verifying, /<footer|选择普通版|选择精修版/);
 });
 test("comparison dragging remains in logical photo pixels when the phone preview is scaled", () => {
   const pan = components.comparisonPan(
@@ -701,6 +749,22 @@ test("comparison dragging remains in logical photo pixels when the phone preview
   assert.deepEqual(edge, { x: 100, y: -140 });
 });
 
+
+test("pinch keeps the same image detail under its moving midpoint and clamps zoom and pan", () => {
+  const frame = { width: 200, height: 280 };
+  const initial = { zoom: 2, pan: { x: 25, y: -20 } };
+  const anchor = { x: 70, y: 35 }, midpoint = { x: 78, y: 28 };
+  const next = components.comparisonZoom(initial, 2.5, frame, anchor, midpoint);
+  assert.equal(next.zoom, 2.5);
+  assert.equal((midpoint.x - next.pan.x) / next.zoom, (anchor.x - initial.pan.x) / initial.zoom);
+  assert.equal((midpoint.y - next.pan.y) / next.zoom, (anchor.y - initial.pan.y) / initial.zoom);
+  assert.deepEqual(components.comparisonZoom(initial, 4, frame, { x: 0, y: 0 }), {
+    zoom: 3, pan: { x: 37.5, y: -30 },
+  });
+  assert.deepEqual(components.comparisonZoom(initial, 0.5, frame, anchor), {
+    zoom: 1, pan: { x: 0, y: 0 },
+  });
+});
 
 test("family camera confirmation labels the demo and offers album save rather than photo production", () => {
   const html = renderToStaticMarkup(React.createElement(components.CameraConfirmationPage, {

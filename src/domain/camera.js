@@ -20,6 +20,7 @@ import {
   PHOTO_VERSIONS,
   photoVersion,
   versionPrice,
+  defaultPhotoVersion,
   versionIsProtected,
   failedVersion,
   makePhotoVersions,
@@ -648,7 +649,16 @@ registerController("cameraStudio", () => ({
     );
   },
   setVersionPreviewError(id, failed) {
+    if (!!this.versionPreviewErrors[id] === failed) return;
     this.versionPreviewErrors = { ...this.versionPreviewErrors, [id]: failed };
+    if (
+      failed && this.draft?.versionSelection === "default" &&
+      this.draft.selectedVersionId === id && !this.draft.order && !this.busy
+    ) {
+      const available = defaultPhotoVersion(this.versions, this.versionPreviewErrors);
+      if (available)
+        this.selectVersion(available.id, { automatic: true });
+    }
   },
   reloadVersionPreview(id) {
     const result = this.versions[id];
@@ -660,12 +670,13 @@ registerController("cameraStudio", () => ({
     };
     this.setVersionPreviewError(id, false);
   },
-  openComparison() {
+  openComparison(trigger) {
     if (this.busy || this.panel || !this.hasResults) return;
-    this.previousFocus = document.activeElement;
+    this.error = "";
+    this.previousFocus = trigger || document.activeElement;
     this.panel = "compare";
   },
-  async selectVersion(id) {
+  async selectVersion(id, { automatic = false } = {}) {
     const version = photoVersion(id),
       result = this.versions[id];
     if (
@@ -674,22 +685,31 @@ registerController("cameraStudio", () => ({
       result?.status !== "ready" ||
       !result.blob ||
       this.busy ||
-      this.panel ||
+      (this.panel && !(automatic && this.panel === "compare")) ||
       this.versionLocked ||
-      this.versionPreviewErrors[id] ||
-      id === this.draft.selectedVersionId
+      (automatic && this.draft.order) ||
+      this.versionPreviewErrors[id]
     )
-      return;
+      return false;
     if (
       this.draft.order?.owner &&
       this.draft.order.owner !== getStore("account")?.session?.phone
     ) {
       this.error = "请使用原付款账号处理这次制作结果。";
-      return;
+      return false;
+    }
+    if (id === this.selectedVersion?.id) {
+      // An explicit confirmation of the default is still a user's choice.
+      if (automatic || this.draft.versionSelection !== "default") return true;
     }
     const token = this.task;
-    const draft = { ...this.draft, selectedVersionId: id, order: null };
-    const retired = this.draft.order?.owner
+    const keepOrder = id === this.draft.order?.versionId;
+    const draft = {
+      ...this.draft, selectedVersionId: id,
+      versionSelection: automatic ? "default" : "explicit",
+      order: keepOrder ? this.draft.order : null,
+    };
+    const retired = !keepOrder && this.draft.order?.owner
       ? {
           ...this.draft.order,
           sessionId: this.draft.id,
@@ -703,13 +723,15 @@ registerController("cameraStudio", () => ({
     this.error = "";
     try {
       await writeCameraSession(this.snapshot(draft, result.blob), retired);
-      if (token !== this.task || !this.active) return;
+      if (token !== this.task || !this.active) return false;
       this.draft = draft;
       this.outputBlob = result.blob;
       if (this.previewURL) URL.revokeObjectURL(this.previewURL);
       this.previewURL = URL.createObjectURL(result.blob);
+      return true;
     } catch (_) {
       if (token === this.task) this.error = "选择暂未保存，请重新选择。";
+      return false;
     } finally {
       this.selectionSaving = false;
     }
@@ -742,9 +764,11 @@ registerController("cameraStudio", () => ({
     if (order?.handoff || order?.status === "verifying")
       return checkoutLabel("electronic", this.paymentMethod, order);
     if (!this.dualResults) return "解锁并保存";
-    return this.selectedVersion
-      ? "解锁" + this.selectedVersion.shortName + " ¥" + this.electronicPrice
-      : "请选择一个照片版本";
+    return this.canPurchaseVersion && this.selectedVersion
+      ? "解锁" + this.selectedVersion.shortName
+      : this.resultVersions.some(v => v.status === "ready" && !v.previewError)
+        ? "请选择可查看的版本"
+        : "暂无可解锁版本";
   },
   reset() {
     this.task++;
@@ -985,6 +1009,7 @@ registerController("cameraStudio", () => ({
       };
       const protectedResult = versionIsProtected(this.draft);
       let settingsChanged = false;
+      let selectionDefaulted = false;
       let retiredOrder = null;
       if (
         !protectedResult &&
@@ -1058,6 +1083,14 @@ registerController("cameraStudio", () => ({
               "本版本重试已中断，已完成的照片仍然保留，请重试。",
             );
         this.draft.retryVersionId = null;
+        if (!this.draft.order && !this.draft.selectedVersionId && !protectedResult) {
+          const available = defaultPhotoVersion(this.versions);
+          if (available) {
+            this.draft.selectedVersionId = available.id;
+            this.draft.versionSelection = "default";
+            selectionDefaulted = true;
+          }
+        }
         const protectedId = this.draft.order?.versionId;
         const chosen =
           this.versions[protectedId || this.draft.selectedVersionId];
@@ -1074,7 +1107,7 @@ registerController("cameraStudio", () => ({
       this.detection = this.draft.detectionResult || null;
       this.editingFrom = record.editingFrom;
       this.creationContext = record.creationContext;
-      if (settingsChanged) {
+      if (settingsChanged || selectionDefaulted) {
         await this.persistConfirmationSettings(retiredOrder);
         if (token !== this.task || !this.active) return;
       }
@@ -1084,6 +1117,7 @@ registerController("cameraStudio", () => ({
         !this.dualResults &&
         this.outputBlob &&
         this.draft.status === "ready" &&
+        !this.draft.order &&
         !versionIsProtected(this.draft) &&
         !this.collectionCapture
       ) {
@@ -1102,25 +1136,15 @@ registerController("cameraStudio", () => ({
           width: this.draft.outputWidth,
           height: this.draft.outputHeight,
         };
-        const retired = this.draft.order?.owner
-          ? {
-              ...this.draft.order,
-              sessionId: this.draft.id,
-              status: "cancelled",
-              sessionAvailable: false,
-              photo: { blob: original },
-            }
-          : null;
         const pairedDraft = {
           ...this.draft,
           resultMode: "dual",
-          selectedVersionId: null,
-          order: null,
+          selectedVersionId: "ordinary",
+          versionSelection: "default",
         };
         try {
           await writeCameraSession(
             { ...this.snapshot(pairedDraft, original), versions: paired },
-            retired,
           );
           if (token !== this.task || !this.active) return;
           this.setVersionResults(paired);
@@ -2196,10 +2220,16 @@ registerController("cameraStudio", () => ({
           cameraAwait(renderCameraPhoto(blob, settings), 15000),
         outcome,
       );
-      const blob = versions.ordinary.blob || versions.retouched.blob;
+      const preferredId = draft.order?.versionId || draft.selectedVersionId;
+      const preferred = versions[preferredId];
+      const chosenId = preferred?.status === "ready" && preferred.blob?.size
+        ? preferredId : defaultPhotoVersion(versions)?.id;
+      const blob = versions[chosenId]?.blob;
       if (!blob) throw Error("no completed version");
       draft.resultMode = "dual";
-      draft.selectedVersionId = null;
+      draft.selectedVersionId = chosenId;
+      draft.versionSelection = chosenId === preferredId
+        ? draft.versionSelection || "explicit" : "default";
       draft.retryVersionId = null;
       if (
         token !== this.renderTask ||
@@ -2364,7 +2394,7 @@ registerController("cameraStudio", () => ({
       this.closeTaskSheet();
       return;
     }
-    if (this.processing || this.paying || this.saving) return;
+    if (this.processing || this.paying || this.saving || this.selectionSaving) return;
     const failed = this.panel === "makingFailure";
     if (this.panel === "spec" || failed) this.error = "";
     this.panel = null;

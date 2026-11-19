@@ -3,6 +3,7 @@
   --ui-heading:#203858;
   --ui-body:#53637b;
   --ui-muted:#73849a;
+  --ui-price-ink:#b42332;
   --ui-canvas:#f5f7fb;
   --brand-canvas:#f1f5fd;
   --ui-card-radius:16px;
@@ -20,6 +21,10 @@
   --ui-card-shadow:0 2px 8px #29496b06,0 6px 18px -10px #29496b0d;
   --ui-sheet-shadow:0 -10px 32px #20385812;
   --card-shadow:var(--ui-card-shadow);
+}
+
+.ui-price {
+  color: var(--ui-price-ink);
 }
 
 /* Order and sticky brand headers share the same glass and opaque fallback. */

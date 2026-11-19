@@ -119,7 +119,7 @@ export function PaymentHandoffScreen({ checkout }) {
     >
       <p className="checkout-hint">原型演示，本次不会实际扣款。</p>
       <p className="checkout-cashier-amount">
-        ¥{(checkout.amount / 100).toFixed(2)}
+        <span className="ui-price">¥{(checkout.amount / 100).toFixed(2)}</span>
       </p>
       <p className="checkout-cashier-status">
         {paymentScenarios.find(([value]) => value === attempt.outcome)?.[1]}
