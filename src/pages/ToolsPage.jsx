@@ -1,9 +1,11 @@
-import React from "react";
+import { SheetFrame, SheetHeader } from "../components/SharedSheet.jsx";
+import React, { useRef, useState } from "react";
 import PhotoProcessingEffect, {
   PhotoProcessingStatus,
 } from "../components/PhotoProcessingEffect.jsx";
 import { toolPhotoProcessingLabel } from "../components/photo-processing.js";
 import ToolNavigation from "../components/ToolNavigation.jsx";
+import SegmentedControl from "../components/SegmentedControl.jsx";
 import ToolResult from "../components/ToolResult.jsx";
 import RepairBackgroundOptions from "../components/RepairBackgroundOptions.jsx";
 import ToolStepper from "../components/ToolStepper.jsx";
@@ -14,13 +16,102 @@ import PendingPhotoResults from "../components/PendingPhotoResults.jsx";
 import PhotoSelectionEmpty from "../components/PhotoSelectionEmpty.jsx";
 import ToolComparisonSlider from "../components/ToolComparisonSlider.jsx";
 import ToolCapabilityPoster from "../components/ToolCapabilityPoster.jsx";
+import PriceText from "../components/PriceText.jsx";
+import { TOOL_SERVICE_PRICE } from "../domain/tools.js";
 import { PaymentChoices, PaymentRecovery } from "../components/PaymentHandoff.jsx";
 import { checkoutLabel } from "../domain/payment-handoff.js";
 import {
   PortraitCheckStatus,
   PortraitCheckPanel,
 } from "../components/PortraitPhotoCheck.jsx";
-import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
+import { Controller, View, Repeat } from "../runtime/components.jsx";
+
+const sizePresets = { KB: [50, 100, 200, 500], MB: [0.5, 1, 2, 5] };
+const sizeUnits = Object.keys(sizePresets).map((unit) => ({ value: unit, label: unit }));
+
+const repairBenefits = ["高清画质增强", "自然肤色匀净", "五官光影立体", "可选四色证件底"];
+
+function RepairServiceCard() {
+  return (
+    <section className="tool-settings keepsake-product-spec tool-repair-service">
+      <header>
+        <h2>人像质感精修</h2>
+      </header>
+      <p>支持单人正面日常照或自拍，智能优化清晰度与肤色质感</p>
+      <ul>
+        {repairBenefits.map((benefit) => (
+          <li key={benefit}>
+            <svg aria-hidden="true"><use href="#i-check" /></svg>
+            {benefit}
+          </li>
+        ))}
+      </ul>
+      <dl>
+        <div><dt>拍照建议</dt><dd>单人正面平视 · 光线充足</dd></div>
+        <div><dt>交付方式</dt><dd>自动存至知拍相册（保留原图）</dd></div>
+      </dl>
+    </section>
+  );
+}
+
+function ToolPaymentPanel({ s }) {
+  const [repairColorMissing, setRepairColorMissing] = useState(false);
+  const colorGroup = useRef(null);
+  const showRepairColors = s.action === "repair" && !s.legacyRepairOrder;
+  const needsRepairColor = showRepairColors && !s.repairSettingsLocked && !s.repairColor;
+
+  function pay() {
+    if (needsRepairColor) {
+      setRepairColorMissing(true);
+      colorGroup.current?.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    s.pay({ handoff: true });
+  }
+
+  return (
+    <div className="ui-sheet-panel">
+      <div className="ui-sheet-body">
+        <div className="tool-payment-order">
+          <img
+            src={(s.action === "repair" ? s.sourceURL : s.outputURL || s.sourceURL) || undefined}
+            alt="本次处理照片"
+          />
+          <div>
+            <strong>{s.config.title}</strong>
+            {showRepairColors && (
+              <small>{s.repairColor ? `${s.repairColor.name}背景` : "请选择背景颜色"}</small>
+            )}
+          </div>
+          <b><PriceText value={s.money(s.currentOrder?.amount ?? TOOL_SERVICE_PRICE)} /></b>
+        </div>
+        {showRepairColors && (
+          <RepairBackgroundOptions
+            ref={colorGroup}
+            colors={s.colors}
+            color={s.repairColor}
+            disabled={s.repairSettingsLocked}
+            invalid={repairColorMissing && needsRepairColor}
+            onChange={(id) => {
+              s.selectRepairBackground(id);
+              if (s.repairColor) setRepairColorMissing(false);
+            }}
+          />
+        )}
+        <PaymentChoices kind={s.action} method={s.paymentMethod}
+          setMethod={(value) => { s.paymentMethod = value; }}
+          outcome={s.paymentOutcome} setOutcome={(value) => { s.paymentOutcome = value; }}
+          disabled={s.paying}
+        />
+      </div>
+      <footer className="ui-sheet-footer">
+        <button type="button" className="tool-primary" disabled={s.busy || s.ordersStore.busy} onClick={pay}>
+          {s.paying ? "正在确认…" : checkoutLabel(s.action, s.paymentMethod, s.currentOrder)}
+        </button>
+      </footer>
+    </div>
+  );
+}
 
 export default function ToolsPage({ scope, args = [] }) {
   return (
@@ -30,7 +121,7 @@ export default function ToolsPage({ scope, args = [] }) {
           as="section"
           scope={s}
           scopeRoot
-          className="page tool-page"
+          className={["work", "saved", "orders"].includes(s.view) && s.action !== "spec" ? "page tool-page ui-task-page" : "page tool-page"}
           id="tool-page"
           data-view={s.view}
           show={s.page === "tool"}
@@ -77,11 +168,14 @@ export default function ToolsPage({ scope, args = [] }) {
                 s.view === "work" &&
                 !s.photo &&
                 s.isInlineWorkspace && (
-                  <ToolCapabilityPoster
-                    kind={s.action}
-                    disabled={s.busy}
-                    onSelect={() => s.pick()}
-                  />
+                  <>
+                    <ToolCapabilityPoster
+                      kind={s.action}
+                      disabled={s.busy}
+                      onSelect={() => s.pick()}
+                    />
+                    {s.action === "repair" && <RepairServiceCard />}
+                  </>
                 )}
               {!s.photo && !s.isInlineWorkspace && (
                 <PhotoSelectionEmpty
@@ -108,7 +202,7 @@ export default function ToolsPage({ scope, args = [] }) {
                   as="header"
                   scope={s}
                   className="tool-photo-heading"
-                  show={s.config.service}
+                  show={s.config.service && (s.action !== "repair" || s.serviceApplied)}
                 >
                   <View
                     as="h2"
@@ -140,11 +234,11 @@ export default function ToolsPage({ scope, args = [] }) {
                     as="img"
                     scope={s}
                     src={
-                      (s.choosingPhoto
+                      (s.choosingPhoto || (s.action === "repair" && !s.serviceApplied)
                         ? s.sourceURL
                         : s.outputURL || s.sourceURL) || undefined
                     }
-                    alt={s.config.title + "结果预览"}
+                    alt={s.action === "repair" && !s.serviceApplied ? "当前原照片" : s.config.title + "结果预览"}
                   ></View>
                   <View
                     as="div"
@@ -167,26 +261,6 @@ export default function ToolsPage({ scope, args = [] }) {
                   {s.action === "repair" && s.serviceApplied && (
                     <ToolComparisonSlider value={s.comparison} onChange={(value) => { s.comparison = value; }} />
                   )}
-                  <View
-                    as="button"
-                    scope={s}
-                    className="tool-adjust"
-                    show={s.action === "crop" && !s.choosingPhoto && !s.busy}
-                    events={[
-                      {
-                        type: "click",
-                        prevent: false,
-                        stop: false,
-                        self: false,
-                        passive: false,
-                        run: function (scope, $event, $el) {
-                          scope.openPanel("crop");
-                        },
-                      },
-                    ]}
-                  >
-                    {"手动裁剪"}
-                  </View>
                   <PhotoProcessingEffect
                     active={!!toolPhotoProcessingLabel(s)}
                     imageSrc={s.outputURL || s.sourceURL}
@@ -202,7 +276,7 @@ export default function ToolsPage({ scope, args = [] }) {
                   </div>
                 )}
                 <PhotoProcessingStatus label={toolPhotoProcessingLabel(s)} />
-                <View as="div" scope={s} className="tool-photo-meta">
+                <View as="div" scope={s} className="tool-photo-meta" show={s.action !== "repair" || s.serviceApplied}>
                   <View
                     as="span"
                     scope={s}
@@ -220,18 +294,10 @@ export default function ToolsPage({ scope, args = [] }) {
                   ></View>
                 </View>
               </View>
-              {s.action === "repair" && s.step === 1 && (
-                <RepairBackgroundOptions
-                  colors={s.colors}
-                  color={s.repairColor}
-                  disabled={s.repairSettingsLocked}
-                  required={!s.legacyRepairOrder}
-                  onChange={(id) => s.selectRepairBackground(id)}
-                />
-              )}
               {s.showPortraitCheck && s.portraitCheck.status !== "checking" && (
                 <PortraitCheckStatus
                   check={s.portraitCheck}
+                  repair={s.action === "repair"}
                   onReasons={() => s.openPanel("portrait")}
                   onRetry={() => s.validatePortraitPhoto()}
                 />
@@ -250,7 +316,7 @@ export default function ToolsPage({ scope, args = [] }) {
                     {"裁剪尺寸"}
                   </View>
                 </View>
-                <View as="div" scope={s} className="tool-spec-list">
+                <View as="div" scope={s} className="tool-spec-list tool-crop-options">
                   <Repeat
                     scope={s}
                     items={s.specs}
@@ -294,6 +360,11 @@ export default function ToolsPage({ scope, args = [] }) {
                       </>
                     )}
                   </Repeat>
+                  <button type="button" disabled={!s.photo || s.choosingPhoto || s.busy}
+                    aria-haspopup="dialog"
+                    onClick={() => s.openPanel("crop")}>
+                    <strong>手动裁剪</strong>
+                  </button>
                 </View>
               </View>
               <View
@@ -464,43 +535,8 @@ export default function ToolsPage({ scope, args = [] }) {
                   <View as="h2" scope={s}>
                     {"目标文件体积"}
                   </View>
-                  <View
-                    as="select"
-                    scope={s}
-                    disabled={s.busy}
-                    aria-label="文件体积单位"
-                    events={[
-                      {
-                        type: "change",
-                        prevent: false,
-                        stop: false,
-                        self: false,
-                        passive: false,
-                        run: function (scope, $event, $el) {
-                          scope.needsPreview = true;
-                        },
-                      },
-                    ]}
-                    model={{
-                      read: function (scope, $event, $el) {
-                        return scope.sizeUnit;
-                      },
-                      write: function (scope, $event, $el) {
-                        scope.sizeUnit = $event;
-                      },
-                      number: false,
-                      lazy: false,
-                    }}
-                  >
-                    <View as="option" scope={s}>
-                      {"KB"}
-                    </View>
-                    <View as="option" scope={s}>
-                      {"MB"}
-                    </View>
-                  </View>
                 </View>
-                <View as="label" scope={s} className="tool-size-input">
+                <View as="div" scope={s} className="tool-size-input">
                   <View as="span" scope={s}>
                     {"不超过"}
                   </View>
@@ -536,8 +572,18 @@ export default function ToolsPage({ scope, args = [] }) {
                       lazy: false,
                     }}
                   ></View>
-                  <View as="strong" scope={s} text={s.sizeUnit}></View>
+                  <SegmentedControl label="文件体积单位" options={sizeUnits}
+                    value={s.sizeUnit} disabled={s.busy} onChange={(unit) => s.changeSizeUnit(unit)} />
                 </View>
+                <div className="tool-size-presets" role="group" aria-label="快捷体积">
+                  {sizePresets[s.sizeUnit]?.map((value) => (
+                    <button type="button" key={value} disabled={s.busy}
+                      aria-pressed={Number(s.targetValue) === value}
+                      onClick={() => { s.targetValue = value; s.needsPreview = true; }}>
+                      {value} {s.sizeUnit}
+                    </button>
+                  ))}
+                </div>
                 <View as="div" scope={s} className="tool-size-comparison" show={!!s.photo}>
                   <View as="span" scope={s}>
                     {"原文件"}
@@ -583,51 +629,10 @@ export default function ToolsPage({ scope, args = [] }) {
                   </View>
                   <View as="span" scope={s} text={s.photo || s.outfitExampleActive ? s.chosenOutfit?.name : ""}></View>
                 </View>
-                <View
-                  as="div"
-                  scope={s}
-                  className="tool-outfit-tabs"
-                  role="group"
-                  aria-label="服装分类"
-                >
-                  <Repeat
-                    scope={s}
-                    items={s.outfitCategories}
-                    names={["category"]}
-                    keyFor={function (scope, $event, $el) {
-                      return scope.category.id;
-                    }}
-                  >
-                    {(s) => (
-                      <>
-                        <>
-                          <View
-                            as="button"
-                            scope={s}
-                            disabled={s.busy}
-                            dynamicClass={{
-                              selected: s.outfitCategory === s.category.id,
-                            }}
-                            aria-pressed={s.outfitCategory === s.category.id}
-                            text={s.category.name}
-                            events={[
-                              {
-                                type: "click",
-                                prevent: false,
-                                stop: false,
-                                self: false,
-                                passive: false,
-                                run: function (scope, $event, $el) {
-                                  scope.selectOutfitCategory(scope.category.id);
-                                },
-                              },
-                            ]}
-                          ></View>
-                        </>
-                      </>
-                    )}
-                  </Repeat>
-                </View>
+                <SegmentedControl label="服装分类"
+                  options={s.outfitCategories.map(({ id, name }) => ({ value: id, label: name }))}
+                  value={s.outfitCategory} disabled={s.busy}
+                  onChange={(category) => s.selectOutfitCategory(category)} />
                 <View
                   as="div"
                   scope={s}
@@ -925,109 +930,17 @@ export default function ToolsPage({ scope, args = [] }) {
               </Repeat>
             </View>
           </View>
-          <Portal target="#tool-modal-layer">
-            <View
-              as="div"
-              scope={s}
-              className="tool-overlay"
-              show={s.page === "tool" && s.panel}
-              events={[
-                {
-                  type: "click",
-                  prevent: false,
-                  stop: false,
-                  self: true,
-                  passive: false,
-                  run: function (scope, $event, $el) {
-                    scope.closePanel();
-                  },
-                },
-                {
-                  type: "keydown",
-                  prevent: false,
-                  stop: false,
-                  self: false,
-                  passive: false,
-                  run: function (scope, $event, $el) {
-                    scope.trap($event);
-                  },
-                },
-              ]}
-              transition={{
-                opacity: true,
-                duration: 180,
-              }}
-            >
-              <View
-                as="section"
-                scope={s}
-                className="tool-sheet"
-                dynamicClass={{ "photo-selection-sheet": s.panel === "album" }}
-                refName="toolDialog"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="tool-sheet-title"
-              >
-                {s.panel !== "album" && (
-                  <View as="header" scope={s}>
-                    <View
-                      as="button"
-                      scope={s}
-                      disabled={s.paying || s.saving}
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.closePanel();
-                          },
-                        },
-                      ]}
-                    >
-                      {"取消"}
-                    </View>
-                    <View
-                      as="h2"
-                      scope={s}
-                      id="tool-sheet-title"
-                      text={
-                        {
-                          album: "选择照片",
-                          crop: "手动裁剪",
-                          portraitOutcome: "照片检查",
-                          portrait: "照片检查未通过",
-                          payment:
-                            s.action === "outfit"
-                              ? "确认换装订单"
-                              : "开始照片精修",
-                        }[s.panel]
-                      }
-                    ></View>
-                    <View
-                      as="button"
-                      scope={s}
-                      show={s.panel === "crop"}
-                      disabled={s.busy}
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.applyCrop();
-                          },
-                        },
-                      ]}
-                    >
-                      {"完成"}
-                    </View>
-                  </View>
-                )}
+            <SheetFrame opened={s.page === "tool" && !!s.panel} target="#tool-modal-layer"
+              id="tool-sheet-title" className={s.panel === "album" ? "tool-sheet photo-selection-sheet" : "tool-sheet"}
+              busy={s.paying || s.saving} onClose={() => s.closePanel()}
+              dialogRef={(node) => { s.$refs.toolDialog = node; }}>
+              {s.panel !== "album" && <SheetHeader id="tool-sheet-title" onClose={() => s.closePanel()}
+                busy={s.paying || s.saving} title={{
+                  crop: "手动裁剪",
+                  portraitOutcome: "照片检查",
+                  portrait: "照片检查未通过",
+                  payment: s.action === "outfit" ? "确认换装订单" : "照片精修订单",
+                }[s.panel]} />}
                 <View
                   as="div"
                   scope={s}
@@ -1036,6 +949,7 @@ export default function ToolsPage({ scope, args = [] }) {
                   <PortraitCheckPanel
                     panel={s.panel}
                     check={s.portraitCheck}
+                    repair={s.action === "repair"}
                     onChoose={(outcome, reason) =>
                       s.choosePortraitOutcome(outcome, reason)
                     }
@@ -1050,6 +964,7 @@ export default function ToolsPage({ scope, args = [] }) {
                       busy={s.busy}
                       error={s.error}
                       requiresPortrait={s.config.requiresPortrait}
+                      selectionHint={s.action === "repair" ? "请选择一张清晰的单人正面人像，选取后需通过照片检查。" : undefined}
                       titleId="tool-sheet-title"
                       onClose={() => s.closePanel()}
                       onPhone={() => s.pickPhone()}
@@ -1248,63 +1163,11 @@ export default function ToolsPage({ scope, args = [] }) {
                         {"重置裁剪"}
                       </View>
                     </View>
+                    <footer className="ui-sheet-footer">
+                      <button type="button" className="ui-button-primary" disabled={s.busy} onClick={() => s.applyCrop()}>完成</button>
+                    </footer>
                   </View>
-                  <View
-                    as="div"
-                    scope={s}
-                    show={s.panel === "payment"}
-                    className="ui-sheet-panel"
-                  >
-                    <View as="div" scope={s} className="ui-sheet-body">
-                      <View as="div" scope={s} className="tool-payment-order">
-                        <View
-                          as="img"
-                          scope={s}
-                          src={s.outputURL || s.sourceURL || undefined}
-                          alt="本次处理照片"
-                        ></View>
-                        <View as="div" scope={s}>
-                          <View
-                            as="strong"
-                            scope={s}
-                            text={s.config.title}
-                          ></View>
-                          {s.action === "repair" && s.repairColor && (
-                            <small>{s.repairColor.name}背景</small>
-                          )}
-                        </View>
-                        <View as="b" scope={s}>
-                          <span className="ui-price">¥2.00</span>
-                        </View>
-                      </View>
-                      <PaymentChoices kind={s.action} method={s.paymentMethod}
-                        setMethod={(value) => { s.paymentMethod = value; }}
-                        outcome={s.paymentOutcome} setOutcome={(value) => { s.paymentOutcome = value; }}
-                        disabled={s.paying}
-                      />
-                    </View>
-                    <View as="footer" scope={s} className="ui-sheet-footer">
-                      <View
-                        as="button"
-                        scope={s}
-                        className="tool-primary"
-                        disabled={s.busy || s.ordersStore.busy}
-                        text={s.paying ? "正在确认…" : checkoutLabel(s.action, s.paymentMethod, s.currentOrder)}
-                        events={[
-                          {
-                            type: "click",
-                            prevent: false,
-                            stop: false,
-                            self: false,
-                            passive: false,
-                            run: function (scope, $event, $el) {
-                              scope.pay({ handoff: true });
-                            },
-                          },
-                        ]}
-                      ></View>
-                    </View>
-                  </View>
+                  {s.panel === "payment" && <ToolPaymentPanel key={s.action} s={s} />}
                   <View
                     as="p"
                     scope={s}
@@ -1314,9 +1177,7 @@ export default function ToolsPage({ scope, args = [] }) {
                     role="alert"
                   ></View>
                 </View>
-              </View>
-            </View>
-          </Portal>
+            </SheetFrame>
         </View>
       )}
     </Controller>

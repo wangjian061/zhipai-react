@@ -79,12 +79,6 @@ registerStore("photoActions", {
   photoId: null,
   notice: "",
   downloading: false,
-  deleting: false,
-  working: false,
-  get deleteDisabled() {
-    const library = getStore("photoLibrary");
-    return !library.ready || library.busy || this.working || this.downloading;
-  },
   get photo() {
     return (
       getStore("photoLibrary").finished.find(
@@ -106,7 +100,6 @@ registerStore("photoActions", {
     const q = new URLSearchParams(location.search);
     this.opened = q.get("page") === "my" && !!q.get("photoAction");
     this.photoId = this.opened ? q.get("photoAction") : null;
-    this.deleting = this.opened && history.state?.personalPhotoDelete === this.photoId;
     this.notice = "";
     this.checkPhotoReadability();
   },
@@ -134,41 +127,6 @@ registerStore("photoActions", {
   },
   url(photo) {
     return actualPhotoURL(photo);
-  },
-  requestDelete() {
-    if (!this.photo || this.deleteDisabled || this.deleting) return;
-    history.pushState({ ...history.state, personalPhotoDelete: this.photoId }, "", location.href);
-    this.notice = "";
-    this.deleting = true;
-  },
-  cancelDelete() {
-    if (this.working) return;
-    if (history.state?.personalPhotoDelete === this.photoId) history.back();
-    else this.deleting = false;
-  },
-  async confirmDelete() {
-    if (!this.deleting || !this.photo || this.deleteDisabled) return;
-    const id = this.photoId, source = location.href;
-    this.working = true;
-    this.notice = "";
-    try {
-      await getStore("photoLibrary").removePhotos([id]);
-      if (location.href !== source || this.photoId !== id || !this.deleting) return;
-      if (history.state?.personalPhotoDelete === id && history.state?.personalPhotoSource && history.length > 2) {
-        history.go(-2);
-      } else {
-        const q = new URLSearchParams(location.search);
-        q.delete("photoAction");
-        history.replaceState({}, "", location.pathname + "?" + q);
-        window.dispatchEvent(new Event("zhipai-route"));
-      }
-      this.deleting = false;
-    } catch {
-      if (location.href === source && this.photoId === id)
-        this.notice = "删除未完成，照片已保留，请重试。";
-    } finally {
-      this.working = false;
-    }
   },
   async download() {
     if (this.downloading || !this.photoReadable) return;

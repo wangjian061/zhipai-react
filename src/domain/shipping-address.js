@@ -47,13 +47,22 @@ export function cleanShippingAddress(fields, id) {
     clean[key] = String(fields[key] || "").trim();
   return clean;
 }
-export function shippingAddressError(clean) {
+export function shippingAddressIssue(clean) {
   if (!clean.name || clean.name.length > 30)
-    return "请填写收件人姓名，最多30字。";
-  if (!/^1[3-9]\d{9}$/.test(clean.phone)) return "请填写正确的11位手机号码。";
-  if (clean.region.length < 4 || clean.street.length < 5)
-    return "请补齐省市区与详细地址。";
+    return { fields: ["name"], message: "请填写收件人姓名，最多30字。" };
+  if (!/^1[3-9]\d{9}$/.test(clean.phone))
+    return { fields: ["phone"], message: "请填写正确的11位手机号码。" };
+  if (clean.region.length < 4 || clean.street.length < 5) {
+    const fields = [];
+    if (clean.region.length < 4) fields.push("region");
+    if (clean.street.length < 5) fields.push("street");
+    return { fields, message: "请补齐省市区与详细地址。" };
+  }
   if (clean.postal && !/^\d{6}$/.test(clean.postal))
-    return "邮政编码应为6位数字，也可以留空。";
-  return "";
+    return { fields: ["postal"], message: "邮政编码应为6位数字，也可以留空。" };
+  return null;
+}
+
+export function shippingAddressError(clean) {
+  return shippingAddressIssue(clean)?.message || "";
 }

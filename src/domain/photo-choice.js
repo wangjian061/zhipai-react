@@ -52,16 +52,6 @@ registerStore("photoChoice", {
   },
 });
 registerController("photoChooser", () => ({
-  init() {
-    this.$watch("$store.photoChoice.opened", (opened) => {
-      if (opened)
-        this.$nextTick(() =>
-          this.$refs.choiceDialog.querySelector("button")?.focus({
-            preventScroll: true,
-          }),
-        );
-    });
-  },
   get choice() {
     return this.$store.photoChoice;
   },
@@ -157,34 +147,6 @@ registerController("photoChooser", () => ({
         detail: context,
       }),
     );
-  },
-  trap(event) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      this.choice.close();
-      return;
-    }
-    if (event.key !== "Tab") return;
-    const controls = [
-      ...this.$refs.choiceDialog.querySelectorAll("button:not([disabled])"),
-    ].filter((el) => el.getClientRects().length);
-    const first = controls[0],
-      last = controls.at(-1);
-    if (!first) {
-      event.preventDefault();
-      return;
-    }
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus({
-        preventScroll: true,
-      });
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus({
-        preventScroll: true,
-      });
-    }
   },
 }));
 export {};

@@ -8,6 +8,8 @@ const actionBars = [
   ".print-footer",
   ".tool-footer",
   ".album-actions.manage-actions",
+  ".document-viewer-actions",
+  ".archive-holder-actions",
   ".ui-sheet-footer",
   ".collection-support-actions",
 ].join(",");

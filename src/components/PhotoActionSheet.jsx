@@ -2,7 +2,6 @@ import React from "react";
 import { useArchiveZoom, ArchiveZoom } from "./ArchiveZoom.jsx";
 import SharedSheet from "./SharedSheet.jsx";
 import PhotoOperations from "./PhotoOperations.jsx";
-import PhotoDeleteDialog from "./PhotoDeleteDialog.jsx";
 import { photoFacts } from "../domain/photo-actions.js";
 import { openKeepsake } from "../domain/keepsakes.js";
 export default function PhotoActionSheet({ scope, album = null, archive = null, returnFocusRef }) {
@@ -18,10 +17,6 @@ export default function PhotoActionSheet({ scope, album = null, archive = null, 
         <img src={url} alt={p.name} />
       </ArchiveZoom>
     );
-  if (!album && !archive && opened && s.deleting)
-    return <PhotoDeleteDialog description="删除后无法恢复，个人中心也将不再显示这张照片。"
-      busy={s.working} error={s.notice} unavailable={!p || s.deleteDisabled}
-      onClose={() => s.cancelDelete()} onDelete={() => s.confirmDelete()} />;
   return (
     <SharedSheet
       id={album ? "album-photo-title" : "personal-photo-title"}
@@ -98,11 +93,6 @@ export default function PhotoActionSheet({ scope, album = null, archive = null, 
             onTool={(action) => scope.openPhotoTool(action, p, "finished")}
             onKeepsake={(kind) => openKeepsake(kind, p)}
           />
-          <button type="button" className="archive-delete-document" data-photo-delete
-            disabled={s.downloading || s.working || s.disabled || s.deleteDisabled}
-            onClick={event => album ? album.deleteCurrent() : s.requestDelete(event)}>
-            删除照片
-          </button>
         </>
       ) : album && !album.store.ready && !album.store.error ? (
         <p role="status">正在读取照片…</p>

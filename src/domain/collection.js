@@ -1671,7 +1671,7 @@ registerController("collectionFlow", () => ({
   openEmailContact() {
     if (
       this.busy ||
-      (!this.isRecordView && this.view !== "services") ||
+      (this.view !== "services" && !(this.isRecordView && this.current)) ||
       (this.panel && !["taskSupport", "serviceHelp"].includes(this.panel))
     )
       return;
@@ -1688,6 +1688,7 @@ registerController("collectionFlow", () => ({
   confirmEmailContact() {
     if (
       !["email", "taskSupport"].includes(this.panel) ||
+      (this.view !== "services" && !(this.isRecordView && this.current)) ||
       !this.supportEmail ||
       this.busy
     )

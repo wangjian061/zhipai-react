@@ -32,6 +32,7 @@ import {
   photoData,
   decodeKeepsakePhoto,
   renderKeepsake,
+  loadKeepsakeFrame,
   templateGeometry,
   orientedPhoto,
 } from "./keepsake-templates.js";
@@ -207,8 +208,29 @@ registerController("keepsakeStudio", () => ({
   activeSlot: "center",
   cropDraft: null,
   detachedCropPath: null,
+  previewRevision: 0,
+  previewFrames: new Map(),
+  previewFrame: null,
+  previewRequest: null,
+  previewLoading: false,
+  previewError: "",
+  checkoutFromPreview: false,
+  cameraPreviewReturn: null,
+  get isProductView() {
+    return this.view === "work" || this.view === "templates";
+  },
+  get previewReady() {
+    return !!(this.photo && this.image && !this.previewLoading && !this.previewError &&
+      this.previewFrame?.templateId === this.templateId);
+  },
+  get canContinue() {
+    return this.previewReady && !this.locked && !this.purchaseLocked;
+  },
   stampView: "inner",
   studentProof: null,
+  studentProofURL: "",
+  proofError: "",
+  proofReading: false,
   get activeTransform() {
     if (this.cropDraft) return this.cropDraft[this.activeSlot];
     return this.kind === "stamp" && this.activeSlot === "corners"
@@ -314,7 +336,7 @@ registerController("keepsakeStudio", () => ({
     this.onCreatedPhoto = ({ detail: { context, photo } }) => {
       if (
         this.page !== "keepsake" ||
-        this.view !== "work" ||
+        !this.isProductView ||
         this.locked ||
         this.purchaseLocked ||
         context.intent !== "keepsake" ||
@@ -332,7 +354,7 @@ registerController("keepsakeStudio", () => ({
         this.error = "新制作的照片暂不可用，请重新选取。";
         return;
       }
-      return this.accept(photo, "finished");
+      return this.startPhotoPreview(photo, "finished");
     };
     window.addEventListener("zhipai-keepsake-open", this.onOpen);
     window.addEventListener("zhipai-keepsake-template", this.onTemplate);
@@ -343,12 +365,13 @@ registerController("keepsakeStudio", () => ({
     this.$watch("$store.account.session.phone", (phone, previous) => {
       if (previous && previous !== phone) {
         this.token++;
+        this.resetPreview();
         this.selectionId = this.candidateId = null;
         this.release();
         this.photo = null;
         this.image = null;
-        this.studentProof = null;
-        this.busy = false;
+        this.setStudentProof(null);
+        this.proofReading = this.busy = false;
         this.error = "";
         this.orderId = null;
         this.cropDraft = null;
@@ -362,6 +385,8 @@ registerController("keepsakeStudio", () => ({
   },
   destroy() {
     this.token++;
+    this.setStudentProof(null);
+    this.resetPreview();
     this.release();
     window.removeEventListener("zhipai-keepsake-open", this.onOpen);
     window.removeEventListener("zhipai-keepsake-template", this.onTemplate);
@@ -396,9 +421,14 @@ registerController("keepsakeStudio", () => ({
       }
       this.detachedCropPath = null;
     }
-    if (this.panel === "keepsakeCrop" && event?.type === "popstate") {
+    if (event?.type === "popstate" && this.cropDraft) {
+      const sameProduct = location.pathname + location.search === this.panelReturn;
+      if (sameProduct && history.state?.keepsakeCrop && !history.state.keepsakePicker) {
+        if (this.panel === "album") this.dismissPreviewPicker(false);
+        return;
+      }
       this.close(false);
-      if (location.pathname + location.search === this.panelReturn) return;
+      if (sameProduct) return;
     }
     if (
       this.panel &&
@@ -418,10 +448,17 @@ registerController("keepsakeStudio", () => ({
     }
     const q = new URLSearchParams(location.search);
     if (q.get("page") !== "keepsake") {
-      if (q.get("page") !== "camera") this.selectionId = null;
+      if (q.get("page") !== "camera") {
+        this.selectionId = null;
+        this.cameraPreviewReturn = null;
+      }
+      if (this.previewLoading) {
+        this.previewRevision++;
+        this.previewLoading = false;
+      }
       if (this.busy) {
         this.token++;
-        this.busy = false;
+        this.proofReading = this.busy = false;
       }
       this.close();
       return;
@@ -435,15 +472,16 @@ registerController("keepsakeStudio", () => ({
       : "templates";
     if (this.busy && (kind !== this.kind || nextView !== this.view)) {
       this.token++;
-      this.busy = false;
+      this.proofReading = this.busy = false;
     }
     if (kind !== this.kind) {
       this.token++;
+      this.resetPreview();
       this.selectionId = null;
       this.release();
       this.kind = kind;
       this.templateId = this.templates[0].id;
-      this.studentProof = null;
+      this.setStudentProof(null);
       this.cornerTransform = freshTransform();
       this.activeSlot = "center";
       this.stampView = "inner";
@@ -462,9 +500,10 @@ registerController("keepsakeStudio", () => ({
           x.owner === this.$store.account.session?.phone,
       );
       if (o) {
+        this.resetPreview();
         this.orderId = o.id;
         this.templateId = templateFor(o.templateId)?.id || this.templates[0].id;
-        this.studentProof = o.studentProof || null;
+        this.setStudentProof(o.studentProof);
         this.cornerTransform = { ...freshTransform(), ...o.cornerTransform };
         this.image = null;
         this.photo = o.photo;
@@ -473,12 +512,13 @@ registerController("keepsakeStudio", () => ({
         this.output = o.output;
         this.outputURL = URL.createObjectURL(o.output);
         this.addressId = o.addressId;
-        if (nextView === "work" && !this.purchaseLocked && this.photo)
+        if (this.isProductView && !this.purchaseLocked && this.photo)
           void this.restoreOrderPhoto();
       } else {
+        this.resetPreview();
         this.orderId = null;
         this.release();
-        this.studentProof = null;
+        this.setStudentProof(null);
         this.photo = null;
         this.image = null;
         this.error = "订单不存在或不属于当前账号。";
@@ -498,8 +538,12 @@ registerController("keepsakeStudio", () => ({
       this.view = this.output ? "confirm" : "work";
     if (this.view === "confirm" && !this.output) this.view = "work";
     if (nextView === "templates") this.route("work", true);
-    if (event?.type === "popstate" && history.state?.keepsakeCrop)
+    if (this.cameraPreviewReturn === location.pathname + location.search && this.isProductView) {
+      this.cameraPreviewReturn = null;
+      this.editComposition();
+    } else if (event?.type === "popstate" && history.state?.keepsakeCrop) {
       this.editComposition(false);
+    }
   },
   async enter({ kind, photo, returnTo, templateId }) {
     if (this.locked || !KEEPSAKE_PRODUCTS[kind]) return;
@@ -542,6 +586,7 @@ registerController("keepsakeStudio", () => ({
       return;
     }
     this.token++;
+    this.resetPreview();
     this.selectionId = null;
     this.release();
     this.kind = kind;
@@ -557,33 +602,43 @@ registerController("keepsakeStudio", () => ({
     this.transform = freshTransform();
     this.cornerTransform = freshTransform();
     this.activeSlot = "center";
-    this.studentProof = null;
+    this.setStudentProof(null);
     this.stampView = "inner";
     if (kind === "postcard" && templateFor(templateId)?.kind === kind)
       this.templateId = templateId;
     this.route("work");
-    if (photo) await this.accept(photo, "finished");
+    if (photo) await this.startPhotoPreview(photo, "finished");
   },
   chooseTemplate(value) {
-    if (this.panel || this.locked || this.purchaseLocked) return;
+    if ((this.panel && this.panel !== "keepsakeCrop") || this.locked || this.purchaseLocked) return;
     const t = templateFor(value);
     if (
       !t ||
       t.kind !== this.kind ||
-      (value === this.templateId && this.view === "work")
+      (value === this.templateId && this.isProductView)
     )
       return;
     this.templateId = value;
-    this.orderId = null;
-    this.release();
+    this.invalidateComposition();
     this.error = "";
-    if (this.view !== "work") this.route("work");
+    if (!this.isProductView) this.route("work");
+    if (this.image || this.previewRequest) void this.loadPreview();
   },
   pick() {
-    if (this.view !== "work" || this.locked || this.purchaseLocked) return;
+    if (!this.isProductView || this.locked || this.purchaseLocked) return;
     this.error = "";
     this.candidateId = this.photo?.id || null;
+    if (this.panel === "keepsakeCrop") {
+      history.pushState({ ...history.state, keepsakeCrop: true, keepsakePicker: true }, "", this.panelReturn);
+      this.gesture = null;
+      this.pointers.clear();
+    }
     this.open("album");
+  },
+  dismissPreviewPicker(pop = true) {
+    this.candidateId = null;
+    this.panel = "keepsakeCrop";
+    if (pop && history.state?.keepsakePicker) history.back();
   },
   selectCandidate(value) {
     if (this.panel !== "album" || this.locked) return;
@@ -604,15 +659,7 @@ registerController("keepsakeStudio", () => ({
       (p) => p.id === this.candidateId && p.blob,
     );
     if (!photo) return;
-    if (
-      photo.id === this.photo?.id &&
-      photo.blob === this.photo.blob &&
-      this.image
-    ) {
-      this.close();
-      return;
-    }
-    if (await this.accept(photo, "finished")) this.close();
+    await this.startPhotoPreview(photo, "finished");
   },
   async usePhoneFile(file) {
     if (!file || this.panel !== "album" || this.locked || this.purchaseLocked)
@@ -624,7 +671,7 @@ registerController("keepsakeStudio", () => ({
       size: file.size,
       blob: file,
     };
-    if (await this.accept(photo, "phone")) this.close();
+    await this.startPhotoPreview(photo, "phone");
   },
   makePhoto() {
     if (
@@ -634,7 +681,13 @@ registerController("keepsakeStudio", () => ({
       !this.$store.photoLibrary.ready
     )
       return;
-    this.close();
+    if (history.state?.keepsakePicker) {
+      const { keepsakePicker, keepsakeCrop, ...state } = history.state;
+      history.replaceState(state, "", location.href);
+    }
+    const returnToPreview = !!this.cropDraft;
+    this.close(false);
+    if (returnToPreview) this.cameraPreviewReturn = location.pathname + location.search;
     this.selectionId = id();
     const context = {
       intent: "keepsake",
@@ -653,69 +706,123 @@ registerController("keepsakeStudio", () => ({
     );
     this.go("camera");
   },
-  async accept(photo, kind) {
-    if (
-      this.locked ||
-      this.purchaseLocked ||
-      !["phone", "finished"].includes(kind)
-    )
-      return;
-    if (kind === "finished")
-      photo = this.$store.photoLibrary.finished.find(
-        (x) => x.id === photo?.id && x.blob,
-      );
-    if (!photo) return;
-    const token = ++this.token;
-    this.busy = true;
-    this.error = "";
-    try {
-      const image = await photoData(photo);
-      if (token !== this.token) return;
-      this.photo =
-        kind === "phone"
-          ? { ...photo, width: image.width, height: image.height }
-          : photo;
-      this.image = image;
-      this.transform = freshTransform();
-      this.cornerTransform = freshTransform();
-      this.release();
-      this.orderId = null;
-      return true;
-    } catch (e) {
-      if (token === this.token)
-        this.error = e.message || "照片读取失败，请更换照片。";
-    } finally {
-      if (token === this.token) this.busy = false;
+  resetPreview() {
+    this.previewRevision++;
+    this.detachedCropPath = null;
+    this.previewFrame = this.previewRequest = null;
+    this.previewLoading = false;
+    this.previewError = "";
+    this.checkoutFromPreview = false;
+    this.cameraPreviewReturn = null;
+  },
+  async startPhotoPreview(photo, kind) {
+    if (this.locked || this.purchaseLocked) return;
+    if (kind === "finished") {
+      photo = this.$store.photoLibrary.finished.find((item) => item.id === photo?.id && item.blob);
     }
+    if (!photo) return;
+    const samePhoto = photo.id === this.photo?.id && photo.blob === this.photo.blob && this.image;
+    this.previewRequest = samePhoto ? null : { photo, kind };
+    this.candidateId = null;
+    if (this.panel === "album" && this.cropDraft) {
+      this.dismissPreviewPicker();
+    } else {
+      if (this.panel === "album") this.close(false);
+      this.editComposition(true, false);
+    }
+    return this.loadPreview();
+  },
+  loadPreviewFrame(template) {
+    const cached = this.previewFrames.get(template.id);
+    if (cached) return cached;
+    const pending = loadKeepsakeFrame(template).catch((error) => {
+      this.previewFrames.delete(template.id);
+      throw error;
+    });
+    this.previewFrames.set(template.id, pending);
+    return pending;
+  },
+  async loadPreview() {
+    const request = this.previewRequest;
+    const template = this.template;
+    const revision = ++this.previewRevision;
+    this.gesture = null;
+    this.pointers.clear();
+    this.previewError = "";
+    this.previewLoading = true;
+    try {
+      const photo = request?.photo || this.photo;
+      if (!photo) throw Error("请重新选取照片。");
+      const frame = this.previewFrame?.templateId === template.id
+        ? this.previewFrame.data
+        : this.loadPreviewFrame(template);
+      const [image, frameData] = await Promise.all([
+        request || !this.image ? photoData(photo) : this.image,
+        frame,
+      ]);
+      if (revision !== this.previewRevision) return false;
+      if (request) {
+        this.invalidateComposition();
+        this.photo = request.kind === "phone" ? { ...photo, width: image.width, height: image.height } : photo;
+        this.transform = freshTransform();
+        this.cornerTransform = freshTransform();
+        if (this.cropDraft) this.cropDraft = { center: freshTransform(), corners: freshTransform() };
+      }
+      this.image = image;
+      this.previewFrame = { templateId: template.id, data: frameData };
+      this.previewRequest = null;
+      return true;
+    } catch (error) {
+      if (revision === this.previewRevision)
+        this.previewError = error.message || "定制效果生成失败，请重试。";
+      return false;
+    } finally {
+      if (revision === this.previewRevision) this.previewLoading = false;
+    }
+  },
+  setStudentProof(file = null) {
+    const proof = file instanceof Blob ? file : null;
+    const url = proof ? URL.createObjectURL(proof) : "";
+    if (this.studentProofURL) URL.revokeObjectURL(this.studentProofURL);
+    this.studentProof = proof;
+    this.studentProofURL = url;
+    this.proofError = "";
   },
   async acceptProof(file) {
-    if (
-      !file ||
-      this.kind !== "stamp" ||
-      this.view !== "work" ||
-      this.locked ||
-      this.purchaseLocked
-    )
+    if (!file || this.kind !== "stamp" || this.view !== "confirm" || this.locked || this.purchaseLocked)
       return;
     const token = ++this.token;
-    this.busy = true;
-    this.error = "";
+    const owner = this.$store.account.session?.phone;
+    const orderId = this.order?.id;
+    const path = location.pathname + location.search;
+    const isCurrent = () =>
+      token === this.token && path === location.pathname + location.search &&
+      this.view === "confirm" && this.kind === "stamp" &&
+      this.order?.id === orderId && this.$store.account.session?.phone === owner;
+    this.proofReading = this.busy = true;
+    this.proofError = "";
     try {
       await decodeKeepsakePhoto({ blob: file });
-      if (token !== this.token) return;
-      this.studentProof = file;
-      this.orderId = null;
+      if (!isCurrent() || this.purchaseLocked) return;
+      if (orderId) {
+        await this.orders.commit((items) => {
+          const order = items.find((item) => item.id === orderId && item.owner === owner);
+          if (!isCurrent() || order?.status !== "pending")
+            throw Error("订单状态已变化，请重新查看。");
+          order.studentProof = file;
+        });
+      }
+      if (isCurrent()) this.setStudentProof(file);
     } catch (error) {
-      if (token === this.token)
-        this.error = error.message || "学生证图片读取失败，请重新上传。";
+      if (isCurrent()) this.proofError = error.message || "学生身份凭证读取失败，请重新上传。";
     } finally {
-      if (token === this.token) this.busy = false;
+      if (token === this.token) this.proofReading = this.busy = false;
     }
   },
-  editComposition(addHistory = true) {
+  editComposition(addHistory = true, load = true) {
     if (
-      this.view !== "work" ||
-      !this.image ||
+      !this.isProductView ||
+      (!this.photo && !this.previewRequest) ||
       this.panel ||
       this.locked ||
       this.purchaseLocked
@@ -727,14 +834,27 @@ registerController("keepsakeStudio", () => ({
     };
     this.activeSlot = "center";
     this.open("keepsakeCrop");
-    if (addHistory)
+    if (addHistory && !history.state?.keepsakeCrop)
       history.pushState(
         { ...history.state, keepsakeCrop: true },
         "",
         this.panelReturn,
       );
+    if (load && !this.previewReady && !this.previewLoading && !this.previewError)
+      void this.loadPreview();
   },
-  applyCrop() {
+  invalidateComposition() {
+    if (this.orderId && new URLSearchParams(location.search).get("order") === this.orderId) {
+      const url = new URL(location.href);
+      this.detachedCropPath = url.pathname + url.search;
+      url.searchParams.delete("order");
+      history.replaceState(history.state, "", url.pathname + url.search);
+      if (this.panel) this.panelReturn = url.pathname + url.search;
+    }
+    this.release();
+    this.orderId = null;
+  },
+  commitComposition() {
     if (
       !this.cropDraft ||
       this.panel !== "keepsakeCrop" ||
@@ -755,17 +875,10 @@ registerController("keepsakeStudio", () => ({
       },
     );
     if (changed) {
-      if (
-        this.orderId &&
-        new URLSearchParams(location.search).get("order") === this.orderId
-      )
-        this.detachedCropPath = this.panelReturn;
       this.transform = center;
       this.cornerTransform = corners;
-      this.release();
-      this.orderId = null;
+      this.invalidateComposition();
     }
-    this.close();
   },
   setTransform(next) {
     if (this.locked || this.purchaseLocked) return;
@@ -774,13 +887,14 @@ registerController("keepsakeStudio", () => ({
       offsetX: Math.max(-100, Math.min(100, Number(next.offsetX) || 0)),
       offsetY: Math.max(-100, Math.min(100, Number(next.offsetY) || 0)),
     };
-    if (this.kind === "postcard" && [90, 180, 270].includes(next.rotation))
+    if ([90, 180, 270].includes(next.rotation))
       value.rotation = next.rotation;
     if (this.panel === "keepsakeCrop" && this.cropDraft)
       this.cropDraft[this.activeSlot] = value;
   },
-  turnPostcard(clockwise) {
-    if (this.kind !== "postcard" || !this.cropDraft) return;
+  turnPhoto(clockwise) {
+    if (this.panel !== "keepsakeCrop" || !this.cropDraft || this.locked || this.purchaseLocked)
+      return;
     this.pointers.clear();
     this.gesture = null;
     const t = this.activeTransform;
@@ -793,118 +907,97 @@ registerController("keepsakeStudio", () => ({
   resetTransform() {
     this.setTransform({ scale: 1, offsetX: 0, offsetY: 0 });
   },
+  selectCropSlot(slot) {
+    this.activeSlot = slot;
+    this.gesture = null;
+    this.pointers.clear();
+  },
+  cropGeometry(point, rect) {
+    const geometry = templateGeometry(this.template);
+    const viewport = this.kind === "stamp" ? STAMP_PANE : geometry;
+    const x = (viewport.x ?? 0) + ((point.x - rect.left) * viewport.width) / rect.width;
+    const y = (viewport.y ?? 0) + ((point.y - rect.top) * viewport.height) / rect.height;
+    const hit = geometry.slots.find((slot) =>
+      x >= slot.x && x <= slot.x + slot.w && y >= slot.y && y <= slot.y + slot.h);
+    const slot = hit || geometry.slots.find((item) => item.group === this.activeSlot) || geometry.slots[0];
+    return { slot, viewport };
+  },
+  moveComposition(from, scale, start, end, { rect, slot, viewport }) {
+    const oriented = orientedPhoto(this.image, from.rotation);
+    const next = { ...from, scale: Math.max(1, Math.min(3, scale)) };
+    const previous = photoCropBounds(oriented.width, oriented.height, slot.w, slot.h, from);
+    const crop = photoCropBounds(oriented.width, oriented.height, slot.w, slot.h, next);
+    const origin = {
+      x: ((viewport.x ?? 0) - slot.x) / slot.w,
+      y: ((viewport.y ?? 0) - slot.y) / slot.h,
+    };
+    const fraction = (point, axis) => axis === "x"
+      ? origin.x + ((point.x - rect.left) * viewport.width) / (rect.width * slot.w)
+      : origin.y + ((point.y - rect.top) * viewport.height) / (rect.height * slot.h);
+    const offset = (axis, size, dimension) => {
+      const travel = dimension - crop[size];
+      if (travel <= 0) return 0;
+      const position = previous[axis] + fraction(start, axis) * previous[size] - fraction(end, axis) * crop[size];
+      return (position / travel) * 200 - 100;
+    };
+    this.setTransform({
+      ...next, offsetX: offset("x", "w", oriented.width), offsetY: offset("y", "h", oriented.height),
+    });
+  },
+  zoomCrop(point, rect, { factor, toggle = false } = {}) {
+    if (!this.cropDraft || !this.image || this.locked || this.purchaseLocked) return;
+    const geometry = this.cropGeometry(point, rect);
+    if (geometry.slot.group) this.activeSlot = geometry.slot.group;
+    const from = this.activeTransform;
+    if (toggle && from.scale > 1) this.setTransform({ ...from, scale: 1, offsetX: 0, offsetY: 0 });
+    else this.moveComposition(from, toggle ? 2 : from.scale * factor, point, point, { ...geometry, rect });
+  },
   pointerDown(e) {
-    if (
-      !this.image ||
-      this.locked ||
-      this.purchaseLocked ||
-      this.pointers.size >= 2 ||
-      !this.cropDraft
-    )
-      return;
+    if (!this.image || this.locked || this.purchaseLocked || this.pointers.size >= 2 || !this.cropDraft) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    if (!this.pointers.size) {
-      const geometry = templateGeometry(this.template);
-      const { slots } = geometry;
-      const viewport = this.kind === "stamp" ? STAMP_PANE : geometry;
-      const x =
-        (viewport.x ?? 0) +
-        ((e.clientX - rect.left) * viewport.width) / rect.width;
-      const y =
-        (viewport.y ?? 0) +
-        ((e.clientY - rect.top) * viewport.height) / rect.height;
-      const slot = slots.find(
-        (s) => x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h,
-      );
-      if (!slot) return;
-      if (slot.group) this.activeSlot = slot.group;
-    }
+    const point = { x: e.clientX, y: e.clientY };
+    const geometry = this.pointers.size ? this.gesture : this.cropGeometry(point, rect);
+    if (geometry.slot.group) this.activeSlot = geometry.slot.group;
     e.currentTarget.setPointerCapture(e.pointerId);
-    this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    this.pointers.set(e.pointerId, point);
     this.gesture = {
-      transform: { ...this.activeTransform },
-      points: [...this.pointers.values()],
-      rect,
+      rect, slot: geometry.slot, viewport: geometry.viewport,
+      transform: { ...this.activeTransform }, points: [...this.pointers.values()],
     };
   },
   pointerMove(e) {
     if (!this.gesture || !this.pointers.has(e.pointerId) || this.locked) return;
     this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    const points = [...this.pointers.values()],
-      g = this.gesture;
-    if (points.length === 2 && g.points.length === 2) {
-      const d = Math.hypot(
-          points[0].x - points[1].x,
-          points[0].y - points[1].y,
-        ),
-        old = Math.hypot(
-          g.points[0].x - g.points[1].x,
-          g.points[0].y - g.points[1].y,
-        );
-      this.setTransform({
-        ...g.transform,
-        scale: (g.transform.scale * d) / Math.max(1, old),
-      });
-    } else if (points.length === 1 && this.image) {
-      const geometry = templateGeometry(this.template);
-      const slot =
-        geometry.slots.find((item) => item.group === this.activeSlot) ||
-        geometry.slots[0];
-      const oriented = orientedPhoto(this.image, g.transform.rotation);
-      const crop = photoCropBounds(
-        oriented.width,
-        oriented.height,
-        slot.w,
-        slot.h,
-        g.transform,
-      );
-      const width = this.kind === "stamp" ? STAMP_PANE.width : geometry.width;
-      const photoScale = ((g.rect.width / width) * slot.w) / crop.w;
-      const travelX = (oriented.width - crop.w) * photoScale;
-      const travelY = (oriented.height - crop.h) * photoScale;
-      this.setTransform({
-        ...g.transform,
-        offsetX:
-          travelX > 0
-            ? g.transform.offsetX -
-              ((points[0].x - g.points[0].x) * 200) / travelX
-            : g.transform.offsetX,
-        offsetY:
-          travelY > 0
-            ? g.transform.offsetY -
-              ((points[0].y - g.points[0].y) * 200) / travelY
-            : g.transform.offsetY,
-      });
+    const points = [...this.pointers.values()];
+    const g = this.gesture;
+    if (points.length === 2) {
+      const distance = ([a, b]) => Math.hypot(b.x - a.x, b.y - a.y);
+      const middle = ([a, b]) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+      const scale = (g.transform.scale * distance(points)) / Math.max(1, distance(g.points));
+      this.moveComposition(g.transform, scale, middle(g.points), middle(points), g);
+    } else {
+      this.moveComposition(g.transform, g.transform.scale, g.points[0], points[0], g);
     }
   },
   pointerUp(e) {
     if (!this.pointers.delete(e.pointerId)) return;
-    this.gesture = this.pointers.size
-      ? {
-          transform: { ...this.activeTransform },
-          points: [...this.pointers.values()],
-          rect: e.currentTarget.getBoundingClientRect(),
-        }
-      : null;
+    this.gesture = this.pointers.size ? {
+      ...this.gesture, transform: { ...this.activeTransform }, points: [...this.pointers.values()],
+    } : null;
   },
   async confirm() {
     if (this.order?.status === "paid") {
       this.route("result", true);
       return;
     }
-    if (
-      this.view !== "work" ||
-      !this.photo ||
-      !this.image ||
-      !this.proofReady ||
-      this.panel ||
-      this.locked
-    )
+    const fromPreview = this.panel === "keepsakeCrop";
+    if (!this.isProductView || (this.panel && !fromPreview) || !this.canContinue)
       return;
     if (this.order?.status === "verifying") {
       this.open("resolution");
       return;
     }
+    if (fromPreview) this.commitComposition();
     const token = ++this.token;
     const path = location.pathname + location.search;
     const template = this.template,
@@ -916,10 +1009,12 @@ registerController("keepsakeStudio", () => ({
         this.template,
         this.image,
         this.composition,
+        this.previewFrame.data,
       );
       if (
         token !== this.token ||
-        this.view !== "work" ||
+        !this.isProductView ||
+        (fromPreview && this.panel !== "keepsakeCrop") ||
         path !== location.pathname + location.search ||
         template !== this.template ||
         photo !== this.photo
@@ -928,9 +1023,11 @@ registerController("keepsakeStudio", () => ({
       this.release();
       this.output = blob;
       this.outputURL = URL.createObjectURL(blob);
+      this.checkoutFromPreview = fromPreview;
+      if (fromPreview) this.close(false);
       this.route("confirm");
     } catch (e) {
-      if (token === this.token)
+      if (token === this.token && (!fromPreview || this.panel === "keepsakeCrop"))
         this.error = e.message || "成品生成失败，请重试。";
     } finally {
       if (token === this.token) this.busy = false;
@@ -949,13 +1046,23 @@ registerController("keepsakeStudio", () => ({
   },
   close(popCrop = true) {
     if (this.paying) return;
-    const returnToProduct =
-      popCrop && this.panel === "keepsakeCrop" && history.state?.keepsakeCrop;
     if (this.panel === "album") {
       this.candidateId = null;
       this.error = "";
+      if (popCrop && this.cropDraft) {
+        this.dismissPreviewPicker();
+        return;
+      }
+      if (this.cropDraft) this.panel = "keepsakeCrop";
     }
+    const returnToProduct = popCrop && this.panel === "keepsakeCrop" && history.state?.keepsakeCrop;
     if (this.panel === "keepsakeCrop") {
+      if (this.previewLoading && !this.image) {
+        this.previewRevision++;
+        this.previewLoading = false;
+        this.previewRequest = null;
+      }
+      this.commitComposition();
       this.cropDraft = null;
       this.gesture = null;
       this.pointers.clear();
@@ -1225,7 +1332,8 @@ registerController("keepsakeStudio", () => ({
           demoDueAt: o.reviewedAt + 2200,
         };
       });
-      this.studentProof = null;
+      if (this.orderId === orderId && this.$store.account.session?.phone === owner)
+        this.setStudentProof(null);
     } catch (error) {
       this.error = error.message || "审核结果保存失败，请重试。";
     }
@@ -1246,9 +1354,12 @@ registerController("keepsakeStudio", () => ({
     this.busy = true;
     this.error = "";
     try {
-      const image = await photoData(this.photo);
+      const template = this.template;
+      const [image, frame] = await Promise.all([photoData(this.photo), this.loadPreviewFrame(template)]);
       if (token !== this.token) return false;
       this.image = image;
+      this.previewFrame = { templateId: template.id, data: frame };
+      this.previewError = "";
       return true;
     } catch (error) {
       if (token === this.token) this.error = error.message;
@@ -1270,7 +1381,8 @@ registerController("keepsakeStudio", () => ({
     if (this.view === "confirm") {
       if (!this.image && this.photo && !(await this.restoreOrderPhoto()))
         return;
-      this.route("work");
+      if (this.checkoutFromPreview) history.back();
+      else this.route("work");
     } else orderNavigate(safeOrderPath(this.returnTo));
   },
 }));

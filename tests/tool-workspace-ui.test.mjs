@@ -11,6 +11,17 @@ import { createServer } from "vite";
 const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "zhipai-workspace-ui-"));
 const server = await createServer({
   cacheDir,
+  plugins: [{
+    name: "ssr-tool-sheet-host",
+    enforce: "pre",
+    transform(code, id) {
+      if (!id.endsWith("/src/runtime/components.jsx")) return;
+      return code.replace(
+        "return host ? createPortal(children, host) : null;",
+        'return target === "#tool-modal-layer" ? children : null;',
+      );
+    },
+  }],
   server: { middlewareMode: true, hmr: false, ws: false, watch: null },
   appType: "custom",
 });
@@ -51,7 +62,7 @@ function render(action, selected = false, status = "passed", settings = {}) {
       standardized: selected && status === "passed",
       backgroundEditing: selected && status === "passed",
       portraitCheck: { status: selected ? status : "idle", reasons: [] },
-      repairBackgroundId: selected && status === "passed" ? "white" : null,
+      repairBackgroundId: null,
       ...settings,
     }),
   );
@@ -97,12 +108,13 @@ for (const [action, heading] of [
   ["background", "背景颜色"],
   ["format", "输出格式"],
   ["resize", "目标文件体积"],
-  ["repair", "背景颜色"],
+  ["repair", null],
   ["outfit", "选择服装"],
 ]) {
   test(`${action}: empty workspace shows an example and selection without old step navigation`, () => {
     const { nodes, content } = render(action);
-    assert.match(content, new RegExp(heading));
+    if (heading) assert.match(content, new RegExp(heading));
+    else assert.doesNotMatch(content, /背景颜色/);
     assert.equal(byClass(nodes, "tool-stepper").length, 0);
     assert.equal(byClass(nodes, "photo-selection-empty").length, 0);
     const [poster] = byClass(nodes, `${action}-workspace-poster`);
@@ -119,7 +131,8 @@ for (const [action, heading] of [
   });
   test(`${action}: chosen real photo exposes only replacement and save with the existing settings`, () => {
     const { nodes, content } = render(action, true);
-    assert.match(content, new RegExp(heading));
+    if (heading) assert.match(content, new RegExp(heading));
+    else assert.doesNotMatch(content, /背景颜色/);
     assert.equal(byClass(nodes, "tool-stepper").length, 0);
     assert.equal(byClass(nodes, "tool-capability-poster").length, 0);
     assert.doesNotMatch(content, /效果示例 · 未选照片/);
@@ -140,21 +153,71 @@ for (const [action, heading] of [
     );
   });
 }
-test("repair poster stays static when choosing a background, then yields to real input and its result comparison", () => {
+test("repair shows the original until processing and keeps background controls off both work states", () => {
   const first = render("repair");
+  const [service] = byClass(first.nodes, "tool-repair-service");
+  assert.ok(first.nodes.indexOf(service) > first.nodes.indexOf(byClass(first.nodes, "repair-workspace-poster")[0]));
+  assert.match(first.content, /人像质感精修/);
+  assert.doesNotMatch(first.content, /¥2\.00/);
+  assert.match(first.content, /高清画质增强自然肤色匀净五官光影立体可选四色证件底/);
+  assert.match(first.content, /拍照建议单人正面平视 · 光线充足/);
+  assert.match(first.content, /交付方式自动存至知拍相册（保留原图）/);
+  assert.doesNotMatch(first.content, /标准化/);
   const chosen = render("repair", false, "idle", { repairBackgroundId: "red" });
   assert.equal(posterSource(first), posterSource(chosen));
   assert.equal(byClass(chosen.nodes, "photo-selection-next").length, 1);
   assert.match(chosen.content, /选取照片/);
+  assert.doesNotMatch(chosen.content, /背景颜色/);
 
-  const real = render("repair", true, "passed", { output: null, outputURL: "", repairBackgroundId: "red" });
+  const real = render("repair", true, "passed", { repairBackgroundId: "red" });
   assert.equal(posterSource(real), undefined);
+  assert.equal(byClass(real.nodes, "tool-repair-service").length, 0);
   assert.ok(real.nodes.some((node) => node.name === "img" && node.attribs.src === "blob:original"));
+  assert.ok(!real.nodes.some((node) => node.name === "img" && node.attribs.src === "blob:output"));
   assert.equal(byClass(real.nodes, "tool-photo-range").length, 0);
+  assert.doesNotMatch(real.content, /背景颜色|标准化/);
 
   const result = render("repair", true, "passed", { serviceApplied: true });
   assert.equal(posterSource(result), undefined);
+  assert.equal(byClass(result.nodes, "tool-repair-service").length, 0);
   assert.equal(byClass(result.nodes, "tool-photo-range").length, 1);
+  assert.doesNotMatch(result.content, /背景颜色|标准化/);
+});
+test("repair payment sheet presents four unselected colors before payment and updates the order summary", () => {
+  const open = (repairBackgroundId) => render("repair", true, "passed", {
+    panel: "payment",
+    repairBackgroundId,
+  });
+  const initial = open(null);
+  const [sheet] = byClass(initial.nodes, "shared-sheet");
+  const [order] = byClass(initial.nodes, "tool-payment-order");
+  const [colorGroup] = byClass(initial.nodes, "tool-repair-background");
+  const [body] = byClass(initial.nodes, "ui-sheet-body");
+  assert.equal(sheet.attribs.role, "dialog");
+  assert.equal(order.parent, body);
+  assert.equal(colorGroup.parent, body);
+  assert.ok(body.children.indexOf(order) < body.children.indexOf(colorGroup));
+  assert.match(initial.content, /照片精修订单.*请选择背景颜色.*¥2\.00.*背景颜色蓝色白色红色浅灰.*Apple 内购/);
+  assert.doesNotMatch(initial.content, /请先选择一种背景颜色|标准化/);
+  const radios = ({ nodes }) => nodes.filter((node) => node.attribs?.name === "repair-background");
+  assert.deepEqual(radios(initial).map((radio) => radio.attribs.value), ["blue", "white", "red", "gray"]);
+  assert.ok(radios(initial).every((radio) => radio.attribs.checked === undefined && radio.attribs.disabled === undefined));
+  const pay = byClass(initial.nodes, "ui-sheet-footer")[0].children.find((node) => node.name === "button");
+  assert.equal(pay.attribs.disabled, undefined);
+  assert.equal(pay.children[0].data, "使用 Apple 内购");
+  const selected = open("white");
+  assert.match(selected.content, /白色背景/);
+  assert.deepEqual(radios(selected).filter((radio) => radio.attribs.checked !== undefined).map((radio) => radio.attribs.value), ["white"]);
+});
+test("repair photo selection and check accept clear individual portraits without a plain background requirement", () => {
+  const selection = render("repair", false, "idle", { panel: "album" });
+  assert.match(selection.content, /请选择一张清晰的单人正面人像/);
+  const check = render("repair", true, "awaiting", { panel: "portraitOutcome" });
+  assert.match(check.content, /清晰的单人正面人像，可继续精修/);
+  assert.doesNotMatch(check.content, /证件照|照片背景复杂|标准化/);
+  const busy = render("repair", true, "passed", { stage: "processing", paid: true });
+  assert.match(busy.content, /正在精修照片/);
+  assert.doesNotMatch(busy.content, /标准化|背景颜色/);
 });
 test("rejected background visibly disables its colors and save while keeping replacement and reasons", () => {
   const { nodes, content } = render("background", true, "rejected");

@@ -1,3 +1,4 @@
+import { SheetFrame, SheetHeader } from "./SharedSheet.jsx";
 import React, { useCallback, useLayoutEffect, useRef } from "react";
 import { CollectionIcon } from "./CollectionHome.jsx";
 
@@ -254,30 +255,13 @@ export default function CollectionIdentityDrawer({ scope: s }) {
     s.panel,
   );
   return (
-    <section
-      className="collection-drawer collection-auth-drawer"
-      data-panel={s.panel}
-      ref={attach}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="collection-auth-title"
-      aria-describedby="collection-auth-subtitle"
-    >
-      <header className="collection-auth-header">
-        <div>
-          <h2 id="collection-auth-title">{s.panelTitle}</h2>
-          <p id="collection-auth-subtitle">{subtitles[s.panel]}</p>
-        </div>
-        <button
-          type="button"
-          disabled={s.busy}
-          onClick={() => s.closePanel()}
-          aria-label="关闭"
-        >
-          <CollectionIcon name="close" />
-        </button>
-      </header>
-      <div className="collection-auth-body" ref={body}>
+    <SheetFrame opened embedded id="collection-auth-title" className="collection-drawer collection-auth-drawer"
+      sectionProps={{ "data-panel": s.panel, "aria-describedby": "collection-auth-title-description" }}
+      dialogRef={attach} busy={s.busy} onClose={() => s.closePanel()}>
+      <SheetHeader id="collection-auth-title" title={s.panelTitle} subtitle={subtitles[s.panel]}
+        busy={s.busy} onClose={() => s.closePanel()} />
+      <div className="ui-sheet-panel">
+      <div className="ui-sheet-body collection-auth-body" ref={body}>
         <div className="collection-auth-project-context">
           <span>{s.project.organization}</span>
           <strong>{s.project.name}</strong>
@@ -320,7 +304,7 @@ export default function CollectionIdentityDrawer({ scope: s }) {
           onChange={(event) => s.uploadQR(event)}
         />
       </div>
-      <footer className="collection-auth-footer">
+      <footer className="ui-sheet-footer collection-auth-footer">
         {s.panel === "identity" && (
           <>
             <button
@@ -408,6 +392,7 @@ export default function CollectionIdentityDrawer({ scope: s }) {
           </>
         )}
       </footer>
-    </section>
+      </div>
+    </SheetFrame>
   );
 }

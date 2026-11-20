@@ -237,7 +237,7 @@ test("the existing library opens on My; private spaces offer sign-in without ren
   assert.match(html,/aria-label="添加日期 2026\/11\/05">2026\/11\/05<\/time>/);
 });
 
-test("document folders count documents and sheets display document names without individual photo names", async () => {
+test("document folders open a secondary page with adaptive cards and one edit sheet", async () => {
   let injected = false;
   const front = { ...photo, id: "front", archiveName: "人像面" };
   const back = { ...photo, id: "back", archiveName: "国徽面" };
@@ -245,13 +245,15 @@ test("document folders count documents and sheets display document names without
     members: [{ id: "mother", name: "妈妈", photos: [] }, { id: "father", name: "爸爸", photos: [] }],
     documents: [
       { id: "id-group", holderId: "mother", name: "身份证", photos: [front, back] },
-      { id: "trip-group", holderId: "mother", name: "旅行资料", photos: [{ ...front, id: "passport", archiveName: "资料页" }] },
+      { id: "trip-group", holderId: "mother", name: "旅行资料", photos: [front, back, { ...front, id: "passport" }] },
       { id: "old-group", holderId: "removed", holderNameSnapshot: "外婆", name: "医保卡", photos: [front] },
     ],
   };
+  const ToolNavigation = await compile("src/components/ToolNavigation.jsx", "ToolNavigation", {});
   const Component = await compile("src/components/AlbumSpaces.jsx", "AlbumSpaces", {
-    ...archiveDomain, ...documentPhotos, PhotoDeleteDialog, useArchiveZoom, ArchiveZoom, SharedSheet, albumDate,
-    FamilyPhotoPicker: ({ member, documentSlots }) => React.createElement("p", { "data-document-slots": String(documentSlots) }, member.name + "选图"),
+    ...archiveDomain, ...documentPhotos, PhotoDeleteDialog, SharedSheet, albumDate, ToolNavigation,
+    DocumentPhotoViewer: ({ group, index }) => React.createElement("p", {}, group.name + " · " + (index + 1)),
+    FamilyPhotoPicker: ({ documentSlots }) => React.createElement("p", { "data-document-slots": String(documentSlots) }, "选图"),
     getStore: () => ({ finished: [] }),
     useRef: React.useRef, useEffect: React.useEffect,
     useLayoutEffect: React.useLayoutEffect, useCallback: React.useCallback,
@@ -270,70 +272,99 @@ test("document folders count documents and sheets display document names without
   assert.equal((folders.match(/class="archive-folder-tile"/g) || []).length, 4);
   assert.equal((folders.match(/data-cover="document"/g) || []).length, 4);
   assert.match(folders, /archive-document-placeholder/);
-  assert.doesNotMatch(folders, /photo-placeholder-silhouette/);
   assert.match(folders, /本人.*0 份.*妈妈.*2 份.*爸爸.*外婆/);
-  assert.doesNotMatch(folders, /role="dialog"|data-document-type|删除证件/);
+  assert.doesNotMatch(folders, /role="dialog"|document-holder-page/);
+
   const documents = draw("&member=mother");
-  assert.equal((documents.match(/role="dialog"/g) || []).length, 1);
-  assert.match(documents, /id="document-groups-title">妈妈/);
-  assert.match(documents, /<h3>身份证<\/h3><div class="document-group-actions"><button[^>]*data-document-list-action="download:id-group"[^>]*aria-haspopup="dialog"[^>]*>下载<\/button><button[^>]*aria-label="身份证的操作"/);
-  assert.match(documents, /身份证.*archive-photo-grid.*第 2 张照片.*旅行资料.*archive-photo-grid.*添加证件/);
-  assert.doesNotMatch(documents, /照片组|人像面|国徽面|资料页|删除证件|修改证件名称|>替换</);
+  assert.match(documents, /document-holder-page.*data-appearance="task".*妈妈的证件/);
+  assert.match(documents, /<h2>身份证<\/h2><span>2张<\/span>.*aria-label="编辑身份证".*data-columns="2"/);
+  assert.match(documents, /<h2>旅行资料<\/h2><span>3张<\/span>.*data-columns="3"/);
+  assert.match(documents, /document-holder-actions.*添加证件/);
+  assert.doesNotMatch(documents, /role="dialog"|下载|照片组|人像面|国徽面|删除证件/);
   assert.match(draw("&member=father"), /还没有证件.*添加证件/);
+  assert.match(draw("&member=self"), /本人的证件.*还没有证件.*添加证件/);
   assert.doesNotMatch(draw("&member=removed"), /添加证件/);
-  const management = draw("&sheet=manage");
-  assert.match(management, /管理家人相册.*data-archive-action="member"[^>]*>.*添加家人/);
-  assert.doesNotMatch(management, /data-archive-action="(?:edit|delete)-member:self"/);
-  assert.match(draw("&member=self"), /id="document-groups-title">本人.*还没有证件.*添加证件/);
-  const downloads = draw("&member=mother&group=id-group&sheet=download-group");
-  assert.match(downloads, /id="document-download-title">下载证件照片.*<h3[^>]*>身份证.*aria-label="下载第 1 张照片".*>下载<.*aria-label="下载第 2 张照片".*>下载</);
-  assert.doesNotMatch(downloads, /删除证件|修改证件名称|>替换</);
-  const add = draw("&member=mother&sheet=new-group");
-  assert.match(add, /data-document-slots="5">妈妈选图/);
-  const groupMenu = draw("&member=mother&group=id-group&sheet=group-actions");
-  assert.match(groupMenu, /添加照片.*修改证件名称.*证件照片.*第 1 张.*第 2 张.*删除证件/);
-  assert.doesNotMatch(groupMenu, /人像面|国徽面|照片组/);
-  const photoMenu = draw("&member=mother&group=id-group&item=back&sheet=group-photo-actions");
-  assert.match(photoMenu, /id="document-photo-actions-title">照片操作.*下载.*替换.*删除照片/);
-  assert.doesNotMatch(photoMenu, /国徽面|重命名|<input/);
-  assert.match(draw("&member=mother&group=id-group&sheet=rename-group"), /修改证件名称.*<label>证件名称.*value="身份证"/);
-  assert.equal(draw("&member=mother&group=id-group&item=back&sheet=rename-group-photo"), photoMenu);
-  assert.match(draw("&member=mother&group=id-group&item=back&sheet=replace-group-photo"), /data-document-slots="1">妈妈选图/);
-  const confirm = draw("&member=mother&group=trip-group&item=passport&sheet=delete-group-photo");
-  assert.match(confirm, /role="alertdialog".*最后一张照片.*移除这份证件.*删除证件/);
+
+  assert.match(draw("&sheet=manage"), /管理家人相册.*data-archive-action="member"[^>]*>.*添加家人/);
+  assert.match(draw("&member=mother&sheet=new-document"), /data-document-slots="5">选图/);
+  const edit = draw("&member=mother&group=id-group&sheet=edit-document");
+  assert.equal((edit.match(/role="dialog"/g) || []).length, 1);
+  assert.match(edit, /编辑证件.*<label>证件名称.*value="身份证".*替换第 1 张照片.*删除第 1 张照片.*添加.*删除整份证件.*>保存</);
+  assert.match(draw("&member=mother&group=id-group&item=front&sheet=pick-document-replace"), /data-document-slots="1">选图/);
+  assert.match(draw("&member=mother&group=id-group&sheet=pick-document-add"), /data-document-slots="3">选图/);
+  assert.match(draw("&member=mother&group=id-group&item=2&sheet=view-document"), /身份证 · 2/);
 });
 
-test("after photo selection only a new document has a name input", async () => {
-  let seeded = false;
-  const photos = [photo, { ...photo, id: "two", archiveName: "旧照片名称" }];
-  const Composer = await compile("src/components/AlbumSpaces.jsx", "DocumentGroupComposer", {
-    ...archiveDomain, ...documentPhotos, SharedSheet,
-    useEffect: React.useEffect, useRef: React.useRef,
-    useState(initial) {
-      if (!seeded) { seeded = true; return React.useState(photos); }
-      return React.useState(initial);
-    },
+test("viewer provides direct save and replacement and disables saving a missing original", async () => {
+  const Viewer = await compile("src/components/DocumentPhotoViewer.jsx", "DocumentPhotoViewer", {
+    Portal: renderPortal, useRef: React.useRef, useEffect: React.useEffect, useState: React.useState,
   });
-  const draw = (group) => {
-    seeded = false;
-    return renderToStaticMarkup(React.createElement(Composer, { group }));
-  };
-  const added = draw();
-  assert.equal((added.match(/<input/g) || []).length, 1);
-  assert.match(added, /添加证件.*证件名称（选填）.*已选 2 张照片.*继续添加照片.*>保存</);
-  assert.doesNotMatch(added, /照片名称|照片组|证件照\.jpg/);
-  const appended = draw({ name: "身份证", photos: [photo] });
-  assert.match(appended, /添加照片.*已选 2 张照片.*继续添加照片.*保存照片/);
-  assert.doesNotMatch(appended, /<input|照片名称/);
-  const filled = draw({ name: "身份证", photos: [photo, photo, photo] });
-  assert.match(filled, /已选 2 张照片.*保存照片/);
-  assert.doesNotMatch(filled, /继续添加照片/);
+  const group = { name: "身份证", photos: [photo, { ...photo, id: "missing", blob: null }] };
+  const draw = (index) => renderToStaticMarkup(React.createElement(Viewer, { group, index }));
+  assert.match(draw(0), /身份证 · 1\/2.*<button type="button">保存照片<\/button>.*替换/);
+  assert.match(draw(1), /身份证 · 2\/2.*照片暂时无法显示.*disabled="">保存照片.*替换/);
 });
 
-test("family list lives in one sheet; single photos keep the established facts/services/download layout", async () => {
+test("document viewer separates swipe, double-tap, pinch, and enlarged pan", async () => {
+  const gestures = await import("../src/domain/document-viewer.js");
+  const changes = [];
+  let view;
+  const Stage = await compile("src/components/DocumentPhotoViewer.jsx", "DocumentPhotoStage", {
+    ...gestures,
+    useRef: (current) => ({ current }),
+    useEffect: () => {},
+    useState: (initial) => [initial, (next) => { if (next?.zoom) view = next; }],
+  });
+  const frame = {
+    clientWidth: 300, clientHeight: 400,
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 300, height: 400 }),
+    setPointerCapture() {},
+  };
+  const { props } = Stage({
+    blob: photo.blob, onStep: (direction) => changes.push(direction), onClose: () => changes.push("close"),
+  });
+  const event = (pointerId, clientX, clientY, timeStamp = 0) => ({
+    pointerId, clientX, clientY, timeStamp, button: 0, currentTarget: frame,
+  });
+  const down = (id, x, y, time) => props.onPointerDown(event(id, x, y, time));
+  const move = (id, x, y, time) => props.onPointerMove(event(id, x, y, time));
+  const up = (id, x, y, time) => props.onPointerUp(event(id, x, y, time));
+
+  down(1, 170, 100);
+  move(1, 80, 100);
+  up(1, 80, 100);
+  assert.deepEqual(changes, [1]);
+  down(1, 150, 180, 500);
+  up(1, 150, 180, 520);
+  down(1, 150, 180, 640);
+  up(1, 150, 180, 650);
+  assert.equal(view.zoom, 2);
+  down(1, 150, 180, 900);
+  move(1, 90, 180, 935);
+  up(1, 90, 180, 950);
+  assert.equal(view.x, -60);
+  assert.deepEqual(changes, [1]);
+  down(1, 125, 180);
+  down(2, 175, 180);
+  move(2, 275, 180);
+  assert.equal(view.zoom, 3);
+  up(2, 275, 180);
+  up(1, 125, 180);
+  assert.deepEqual(changes, [1]);
+  assert.equal(gestures.documentGestureAction(0, 100), "close");
+  assert.equal(gestures.documentGestureAction(70, 73), null);
+
+  const landscape = gestures.fitDocumentPhoto(300, 500, 400, 300);
+  const moved = gestures.documentViewport({ zoom: 1, x: 0, y: 0 }, landscape, 2,
+    { x: 0, y: 0 }, { x: 999, y: 999 });
+  assert.deepEqual(moved, { zoom: 2, x: 150, y: 0 });
+});
+
+test("family photos use a task page and keep the established single-photo sheet", async () => {
   let injected = false, archive;
+  const ToolNavigation = await compile("src/components/ToolNavigation.jsx", "ToolNavigation", {});
   const Component = await compile("src/components/AlbumSpaces.jsx", "AlbumSpaces", {
-    ...archiveDomain, PhotoDeleteDialog, FamilyPhotoDetail,
+    ...archiveDomain, PhotoDeleteDialog, FamilyPhotoDetail, ToolNavigation, FeedbackToast,
     useArchiveZoom, ArchiveZoom, SharedSheet, albumDate,
     useRef:React.useRef, useEffect:React.useEffect, useLayoutEffect:React.useLayoutEffect, useCallback:React.useCallback,
     useState(initial) {
@@ -352,8 +383,8 @@ test("family list lives in one sheet; single photos keep the established facts/s
   assert.match(member, /class="archive-folder-grid"/);
   assert.equal((member.match(/class="archive-folder-tile"/g) || []).length, 1);
   assert.match(member, /<strong>妈妈<\/strong><span>1 张<\/span>/);
-  assert.match(member, /id="member-photos-title">妈妈/);
-  assert.equal((member.match(/role="dialog"/g)||[]).length,1);
+  assert.match(member, /family-holder-page.*data-appearance="task".*id="member-photos-title">妈妈的照片/);
+  assert.equal((member.match(/role="dialog"/g)||[]).length,0);
   assert.match(member, /archive-photo-grid/);
   assert.match(member, /添加照片/);
   const empty = draw([]);
@@ -362,14 +393,21 @@ test("family list lives in one sheet; single photos keep the established facts/s
   assert.match(empty, /<strong>妈妈<\/strong><span>空相册<\/span>/);
   assert.match(empty, /还没有照片/);
   const detail = draw([photo], "&item=one");
-  assert.doesNotMatch(detail, /id="member-photos-title"|archive-full-image/);
-  for (const content of ["photo-action-summary", "sheet-photo-preview", "照片规格", "413 × 579 px", "精选服务", "下载电子照片", "删除照片"])
+  assert.match(detail, /id="member-photos-title">妈妈的照片/);
+  assert.doesNotMatch(detail, /archive-full-image/);
+  for (const content of ["photo-action-summary", "sheet-photo-preview", "照片规格", "413 × 579 px", "精选服务", "下载电子照片"])
     assert.ok(detail.includes(content), content);
   assert.equal((detail.match(/role="dialog"/g)||[]).length,1);
-  const confirmation=draw([photo], "&item=one&sheet=delete-photo");
-  assert.match(confirmation, /role="alertdialog"/);
-  assert.match(confirmation, /原照片和其他家人的照片不会删除/);
-  assert.doesNotMatch(confirmation, /photo-action-summary|archive-photo-grid/);
+  assert.doesNotMatch(detail, /删除照片|role="alertdialog"/);
+  const legacy = draw([photo], "&item=one&sheet=delete-photo");
+  assert.match(legacy, /photo-action-summary/);
+  assert.doesNotMatch(legacy, /删除照片|role="alertdialog"/);
+  const selecting = draw([photo], "&sheet=manage-photos");
+  assert.match(selecting, /已选 0 张.*全选.*取消/);
+  assert.match(selecting, /aria-pressed="false".*class="photo-check"/);
+  assert.match(selecting, /class="ui-button-danger-soft" disabled="">删除（已选 0 张）/);
+  assert.doesNotMatch(selecting, /添加照片|role="alertdialog"/);
+  assert.doesNotMatch(empty, /archive-holder-control/);
 
   const photos = [photo, { ...photo, id: "two" }, { ...photo, id: "three" }, { ...photo, id: "four" }];
   const list = draw(photos, "", false);
@@ -390,10 +428,9 @@ test("family list lives in one sheet; single photos keep the established facts/s
   assert.match(draw([], "&sheet=delete-member"), /<button[^>]*>删除相册<\/button>/);
 });
 
-test("unreadable personal photo keeps a direct delete action outside the services and original footer", () => {
+test("unreadable photos keep retry and disable download with no direct delete action", () => {
   const html=renderToStaticMarkup(React.createElement(PhotoActionSheet,{scope:{},album:makeState({view:"detail",photo:{...photo,blob:null},photoReadStatus:"failed"})}));
-  assert.match(html, /data-photo-delete="true"/);
-  assert.doesNotMatch(html, /更多操作/);
-  assert.match(html, /下载电子照片/);
-  assert.ok(html.indexOf("data-photo-delete") < html.indexOf("ui-sheet-footer"));
+  assert.doesNotMatch(html, /data-photo-delete|删除照片|更多操作/);
+  assert.match(html, /重新读取/);
+  assert.match(html, /disabled="">下载电子照片/);
 });

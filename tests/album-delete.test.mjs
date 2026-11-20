@@ -5,7 +5,7 @@ import { database } from "./helpers/memory-indexeddb.mjs";
 import { createDetachedController, getStore, registerStore } from "../src/runtime/state.js";
 import { readAlbumState } from "../src/domain/album.js";
 import "../src/domain/photo-actions.js";
-import { updateArchive, readArchive, deleteFamilyPhoto, newMember, appendFamilyPhotos } from "../src/domain/album-spaces.js";
+import { updateArchive, readArchive, deleteFamilyPhotos, newMember, appendFamilyPhotos, archivePath, navigateArchive, backInArchive } from "../src/domain/album-spaces.js";
 
 globalThis.window = new EventTarget();
 globalThis.document = { activeElement: null, querySelector: () => null };
@@ -33,100 +33,136 @@ async function seed() {
   await library.commit({ finished: [{ id: "photo", blob: new Blob(["portrait"], { type: "image/jpeg" }) }, { id: "broken", blob: null }], archivedOriginals: [] });
   return library;
 }
-test("personal center delete cancels without writing, retains failure for retry, and updates the same album", async () => {
-  const library = await seed(), s = getStore("photoActions");
-  Object.assign(s, { deleting: false, working: false, downloading: false, opened: false });
-  navigation("/?page=my", () => s.sync());
-  s.show(library.finished[0]); s.sync();
-  s.requestDelete();
-  assert.equal(s.deleting, true);
-  s.cancelDelete();
-  assert.equal(s.deleting, false);
-  assert.equal(s.photoId, "photo");
+function albumController(library) {
+  const s = createDetachedController("albumCenter", {
+    page: "album", $store: { photoLibrary: library }, $refs: {}, $nextTick: (fn) => fn?.(),
+  });
+  navigation("/?page=album", (event) => s.syncLocation(event));
+  s.syncLocation();
+  s.startManage();
+  return s;
+}
+
+test("personal album management cancels, retries failed deletes, and only removes checked records", async () => {
+  const library = await seed();
+  const album = albumController(library);
+  const profile = getStore("photoActions");
+  navigation("/?page=my&photoAction=photo", () => profile.sync());
+  profile.sync();
+  album.toggle("photo");
+  album.showModal("delete");
+  album.closeModal();
+  assert.deepEqual(album.selected, ["photo"]);
   assert.equal(library.finished.length, 2);
-  s.requestDelete();
+  album.showModal("delete");
   library.commit = async () => { throw Error("storage unavailable"); };
-  await s.confirmDelete();
-  assert.equal(s.deleting, true);
-  assert.match(s.notice, /保留/);
+  await album.confirmDelete();
+  assert.match(album.message, /保留/);
+  assert.deepEqual(album.selected, ["photo"]);
   assert.equal((await readAlbumState()).finished.length, 2);
   library.commit = originalCommit;
-  await s.confirmDelete();
-  assert.equal(location.search, "?page=my");
-  assert.deepEqual(library.finished.map(p => p.id), ["broken"]);
-  assert.deepEqual((await readAlbumState()).finished.map(p => p.id), ["broken"]);
-  assert.equal(s.working, false);
+  await album.confirmDelete();
+  assert.equal(album.modal, null);
+  assert.deepEqual(album.selected, []);
+  assert.equal(profile.photo, null);
+  assert.deepEqual((await readAlbumState()).finished.map(({ id }) => id), ["broken"]);
 });
-test("unreadable personal photo remains deletable and duplicate confirmations cannot double-write", async () => {
-  const library = await seed(), s = getStore("photoActions");
-  navigation("/?page=my&photoAction=broken", () => s.sync());
-  s.sync();
-  assert.equal(s.photo.id, "broken");
-  assert.equal(s.photoReadable, false);
-  s.requestDelete();
+
+test("personal management deletes unreadable records and ignores duplicate confirmation", async () => {
+  const library = await seed();
+  const album = albumController(library);
+  album.selectAll();
+  assert.equal(album.downloadableSelection, false);
+  album.selectAll();
+  assert.deepEqual(album.selected, []);
+  album.toggle("broken");
+  album.toggle("photo");
+  album.showModal("delete");
+
   let release, calls = 0;
-  library.commit = async function(next) { calls++; await new Promise(resolve => { release = resolve; }); return originalCommit.call(this, next); };
-  const pending = s.confirmDelete();
-  await s.confirmDelete();
-  assert.equal(calls, 1);
-  release(); await pending;
-  assert.equal(location.search, "?page=my");
-  assert.deepEqual(library.finished.map(p => p.id), ["photo"]);
-});
-test("album detail delete confirmation returns to detail on back and to its list on success", async () => {
-  const library = await seed();
-  const s = createDetachedController("albumCenter", { page: "album", $store: { photoLibrary: library },
-    $refs: {}, $nextTick: fn => fn?.() });
-  navigation("/?page=album", event => s.syncLocation(event));
-  const route = () => s.syncLocation();
-  window.addEventListener("zhipai-route", route);
+  library.commit = async function(next) {
+    calls++;
+    await new Promise((resolve) => { release = resolve; });
+    return originalCommit.call(this, next);
+  };
   try {
-    s.openPhoto("finished", "photo");
-    s.deleteCurrent();
-    assert.equal(s.modal, "delete");
-    history.back();
-    assert.equal(s.modal, null);
-    assert.equal(s.view, "detail");
-    s.deleteCurrent();
-    await s.confirmDelete();
-    assert.equal(location.search, "?page=album");
-    assert.equal(s.view, "library");
-    assert.deepEqual(library.finished.map(p => p.id), ["broken"]);
-  } finally { window.removeEventListener("zhipai-route", route); }
+    const pending = album.confirmDelete();
+    await album.confirmDelete();
+    assert.equal(calls, 1);
+    release();
+    await pending;
+    assert.equal(album.managing, false);
+    assert.equal(album.working, false);
+    assert.deepEqual((await readAlbumState()).finished, []);
+  } finally {
+    library.commit = originalCommit;
+  }
 });
-test("album late deletion completion never navigates away from a newer selection", async () => {
+
+test("personal deletion requires library management and a confirmation", async () => {
   const library = await seed();
-  const s = createDetachedController("albumCenter", { page: "album", $store: { photoLibrary: library }, $refs: {}, $nextTick: fn => fn?.() });
-  navigation("/?page=album&album=finished&photo=photo", event => s.syncLocation(event));
-  s.syncLocation(); s.deleteCurrent();
-  let release;
-  library.commit = async function(next) { await new Promise(resolve => { release = resolve; }); return originalCommit.call(this, next); };
-  const pending = s.confirmDelete();
-  history.back();
-  release(); await pending;
-  assert.equal(location.search, "?page=album&album=finished&photo=photo");
-  assert.equal(s.view, "detail");
-  assert.equal(s.working, false);
+  const album = albumController(library);
+  album.toggle("photo");
+  await album.confirmDelete();
+  album.showModal("delete");
+  album.view = "detail";
+  await album.confirmDelete();
+  assert.equal(library.finished.length, 2);
 });
-test("family deletion retains the member, source photo, other member, and documents, including after transactional failure", async () => {
+
+test("family management history returns from confirmation to selection and then to the member", () => {
+  const folder = archivePath("family");
+  const member = archivePath("family", { member: "member" });
+  const manage = archivePath("family", { member: "member", sheet: "manage-photos" });
+  const confirm = archivePath("family", { member: "member", sheet: "delete-photos" });
+  const path = () => location.pathname + location.search;
+  navigation(folder, () => {});
+  navigateArchive(member);
+  navigateArchive(manage);
+  navigateArchive(confirm);
+  backInArchive(manage);
+  assert.equal(path(), manage);
+  navigateArchive(confirm);
+  backInArchive(member);
+  assert.equal(path(), member);
+  backInArchive(folder);
+  assert.equal(path(), folder);
+});
+
+test("family single and batch delete are atomic and keep the member, source, other albums, and documents", async () => {
   await seed();
   registerStore("account", { session: { phone: "family-owner" } });
   const one = newMember("妈妈"), two = newMember("爸爸");
   const p = { id: "copy", sourceId: "photo", blob: new Blob(["copy"]) };
-  await updateArchive("family-owner", state => {
-    state.members.push(one, two); appendFamilyPhotos(state, one.id, [p]); appendFamilyPhotos(state, two.id, [{...p, id:"other-copy"}]);
-    state.documents.push({id:"doc",type:"identity",holderId:one.id,front:p});
+  const other = { ...p, id: "other-copy" };
+  await updateArchive("family-owner", (state) => {
+    state.members.push(one, two);
+    appendFamilyPhotos(state, one.id, [p, { ...p, id: "copy-2" }, { ...p, id: "copy-3", blob: null }]);
+    appendFamilyPhotos(state, two.id, [other]);
+    state.documents.push({ id: "doc", type: "identity", holderId: one.id, front: p });
   });
-  await assert.rejects(updateArchive("family-owner", state => { deleteFamilyPhoto(state, one.id, p.id); throw Error("write failed"); }), /write failed/);
-  assert.equal((await readArchive("family-owner")).members[0].photos.length, 1);
-  await updateArchive("family-owner", state => deleteFamilyPhoto(state, one.id, p.id));
+  const ids = async () => (await readArchive("family-owner")).members[0].photos.map(({ id }) => id);
+  const remove = (selection) => updateArchive("family-owner", (state) => deleteFamilyPhotos(state, one.id, selection));
+
+  await assert.rejects(updateArchive("family-owner", (state) => {
+    deleteFamilyPhotos(state, one.id, ["copy", "copy-2"]);
+    throw Error("write failed");
+  }), /write failed/);
+  await assert.rejects(remove(["copy-2", "other-copy"]), /已变化/);
+  assert.deepEqual(await ids(), ["copy", "copy-2", "copy-3"]);
+  await remove(["copy"]);
+  assert.deepEqual(await ids(), ["copy-2", "copy-3"]);
+  await assert.rejects(remove(["copy", "copy-2"]), /已变化/);
+  assert.deepEqual(await ids(), ["copy-2", "copy-3"]);
+
+  await remove(await ids());
   const archive = await readArchive("family-owner");
-  assert.equal(archive.members.length, 2);
-  assert.deepEqual(archive.members.map(m => m.photos.length), [0, 1]);
+  assert.deepEqual(archive.members.map((m) => [m.id, m.photos.length]), [[one.id, 0], [two.id, 1]]);
+  assert.equal(archive.members[1].photos[0].id, other.id);
   assert.equal(archive.documents[0].photos[0].id, "copy");
-  assert.equal((await readAlbumState()).finished.length, 2);
-  await updateArchive("family-owner", state => deleteFamilyPhoto(state, one.id, p.id));
-  getStore("account").session = {phone:"another"};
-  await assert.rejects(updateArchive("family-owner", state => deleteFamilyPhoto(state, two.id, "other-copy")), /登录/);
+  assert.ok((await readAlbumState()).finished.some(({ id }) => id === "photo"));
+
+  getStore("account").session = { phone: "other-owner" };
+  await assert.rejects(remove(["other-copy"]), /登录/);
   await tick();
 });

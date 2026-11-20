@@ -33,6 +33,7 @@ const tools = {
 };
 const panels = {
   layoutPreview: "排版预览",
+  printPreview: "冲印预览",
   identity: "上传身份证",
   verify: "核对身份",
   alternate: "其他认证方式",
@@ -259,7 +260,7 @@ export function resolveWorkbenchContext(
       {
         select: "冲印照片 · 选择照片",
         crop: "冲印照片 · 裁剪照片",
-        layouts: "照片冲印 · 照片与排版",
+        layouts: "照片冲印 · 商品与排版",
         confirm: "确认订单",
         addresses: "收货地址",
         address: "编辑收货地址",
@@ -279,6 +280,7 @@ export function resolveWorkbenchContext(
     source = "common-tools-1.4.6.md";
     panel = scope?.panel || scope?.dialog || scope?.modal || "";
     if (panel === "layoutPreview") state = "排版预览";
+    if (panel === "printPreview") state = scope?.previewTab === "crop" ? "手动裁剪" : "冲印预览";
   } else if (page === "keepsake") {
     scope = scopes.keepsakeStudio;
     const kind = scope?.kind || q.get("kind") || "postcard";
@@ -296,7 +298,7 @@ export function resolveWorkbenchContext(
         result: "下单完成",
       }[view] || "选择模板");
     source = "personal-business-upgrade-20261104.md";
-    panel = ({ album: "选择照片", keepsakeCrop: "调整构图" })[scope?.panel] || scope?.panel || "";
+    panel = ({ album: "选择照片", keepsakeCrop: "定制预览" })[scope?.panel] || scope?.panel || "";
   } else if (page === "album") {
     scope = scopes.albumCenter;
     const space = scope?.space || q.get("space");
@@ -319,23 +321,22 @@ export function resolveWorkbenchContext(
         "edit-member": "编辑家人相册",
         "delete-member": "删除家人相册",
         photos: "添加照片",
-        "delete-photo": "删除照片",
       })[sheet] || panel;
+    }
+    if (space === "family" && q.has("member") && !q.has("item")) {
+      if (sheet === "manage-photos") panel = "管理家人照片";
+      if (sheet === "delete-photos") panel = "删除家人照片";
     }
     if (space === "documents") {
       if (q.has("member") && !sheet) panel = "证件列表";
       panel = ({
-        "new-group": "添加证件",
-        "append-group": "添加证件照片",
-        "pick-group-photos": "继续添加照片",
-        "download-group": "下载证件照片",
-        "group-actions": "证件操作",
-        "group-photo-actions": "照片操作",
-        "rename-group": "修改证件名称",
-        "rename-group-photo": "照片操作",
-        "replace-group-photo": "替换照片",
-        "delete-group": "删除证件",
-        "delete-group-photo": "删除证件照片",
+        "new-document": "添加证件",
+        "edit-document": "编辑证件",
+        "pick-document-add": "添加证件照片",
+        "pick-document-replace": "替换证件照片",
+        "confirm-document-delete": "删除证件",
+        "view-document": "查看证件照片",
+        "replace-document": "替换查看中的照片",
       })[sheet] || panel;
     }
     state = scope?.previewHistoryId
@@ -451,7 +452,8 @@ export function sectionFor(context) {
       ].includes(panel)
     )
       return "照片检查";
-    if (panel === "payment" || panel === "paymentOutcome") return "付款与处理";
+    if (panel === "payment" || panel === "paymentOutcome")
+      return guide === "tool.repair.settings" ? "背景颜色与付款抽屉" : "付款与处理";
     return guide.endsWith(".select") ? "照片检查" : "处理设置";
   }
   if (page === "collection") {
@@ -501,23 +503,25 @@ export function sectionFor(context) {
     );
   }
   if (page === "print")
-    return panel === "layoutPreview"
-      ? "排版示例与独立预览"
-      : panel === "album" || panel === "选择照片"
-        ? "照片来源"
-        : "付款与恢复";
+    return {
+      layoutPreview: "商品展示、多图画廊与内嵌版式选择（与明信片样式一致）",
+      printPreview: "冲印预览",
+      album: "照片来源",
+      选择照片: "照片来源",
+    }[panel] || "付款与恢复";
   if (page === "album") {
     if (["管理家人相册", "添加家人", "编辑家人相册", "删除家人相册", "添加照片", "家人照片列表"].includes(panel)) return "家人照片";
-    if (["证件列表", "添加证件", "添加证件照片", "继续添加照片"].includes(panel)) return "证件照片";
-    if (panel === "下载证件照片") return "下载证件照片";
-    if (["证件操作", "照片操作", "修改证件名称", "替换照片", "删除证件", "删除证件照片"].includes(panel)) return "证件操作";
-    if (["delete", "删除照片"].includes(panel)) return guide === "album.detail" ? "删除照片" : "管理与删除";
+    if (["证件列表", "添加证件"].includes(panel)) return "证件照片";
+    if (["查看证件照片", "替换查看中的照片"].includes(panel)) return "沉浸查看与保存证件照片";
+    if (["编辑证件", "添加证件照片", "替换证件照片", "删除证件"].includes(panel))
+      return "单层编辑与删除证件";
+    if (["delete", "管理家人照片", "删除家人照片"].includes(panel)) return "管理与删除";
     return panel === "preview" ? "照片预览" : "照片信息";
   }
   if (page === "keepsake") {
     if (panel === "addresses" || panel === "addressEdit") return "收货地址";
     if (panel === "payment" || panel === "resolution") return "付款与未知结果";
-    if (panel === "调整构图") return "调整构图";
+    if (panel === "定制预览") return "定制预览";
     if (panel === "选择照片")
       return guide.includes(".stamp.") ? "定制照片" : "当前明信片";
     return "";

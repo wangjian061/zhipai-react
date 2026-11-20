@@ -1,6 +1,6 @@
 /* These sections stay within their original dialog, preserving focus and submit ownership. */
 .ui-sheet-header{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none;min-height:76px;padding:20px 20px 12px;border-bottom:1px solid #edf1f6;background:#fff}
-.ui-sheet-header h2{font-size:var(--ui-sheet-title);font-weight:650;line-height:1.45;margin:0;color:var(--ui-heading);min-width:0;flex:1}
+.ui-sheet-header h2{font-size:var(--ui-sheet-title);font-weight:600;line-height:1.45;margin:0;color:var(--ui-heading);text-align:start;min-width:0;flex:1}
 .ui-sheet-header>button{position:static;display:grid;place-items:center;width:44px;height:44px;flex:none;margin:0;color:#73849a}
 .ui-sheet-panel{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
 .ui-sheet-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:20px}
@@ -8,10 +8,10 @@
 .ui-sheet-footer>button{margin:0}
 
 /* All content remains in its original dialog and form; only the body owns scrolling. */
-.device-fit .ui-sheet{display:flex;flex-direction:column;max-height:calc(100% - var(--device-status-height,62px) - 16px);overflow:hidden;padding:0;border-radius:var(--ui-sheet-radius) var(--ui-sheet-radius) 0 0;box-shadow:var(--ui-sheet-shadow)}
+.ui-sheet{display:flex;flex-direction:column;max-height:calc(100% - var(--device-status-height,62px) - 16px);overflow:hidden;padding:0;border-radius:var(--ui-sheet-radius) var(--ui-sheet-radius) 0 0;box-shadow:var(--ui-sheet-shadow)}
 .ui-sheet>.sheet-handle{position:absolute;top:8px;left:calc(50% - 18px);width:36px;height:4px;margin:0;z-index:1;border-radius:3px;background:#d7deea}
 .ui-sheet>.ui-sheet-header{margin:0;padding:20px 20px 12px;min-height:76px}
-.ui-sheet>.ui-sheet-header h2{font-size:var(--ui-sheet-title);line-height:1.45;font-weight:650;margin:0;color:var(--ui-heading)}
+.ui-sheet>.ui-sheet-header h2{font-size:var(--ui-sheet-title);line-height:1.45;font-weight:600;margin:0;color:var(--ui-heading)}
 .ui-sheet>.ui-sheet-header>button{position:static;width:44px;height:44px;min-width:44px;min-height:44px;flex:none;margin:0;color:var(--ui-muted)}
 .ui-sheet>.ui-sheet-panel,.ui-sheet-panel>.ui-sheet-panel{padding:0;margin:0}
 .ui-sheet .ui-sheet-footer>button,.ui-sheet .ui-sheet-footer .camera-pay-button,.tool-sheet .ui-sheet-footer>button{margin:0}
@@ -20,12 +20,12 @@
 .ui-sheet>.my-panel-message,.ui-sheet>.print-modal-message,.ui-sheet>.print-form-error{flex:none;margin:0;padding:10px 20px;max-height:100px;overflow:auto;background:#fff}
 .ui-sheet .ui-sheet-footer:has(+.ui-sheet-footer){padding-bottom:10px}
 .tool-sheet{border-radius:var(--ui-sheet-radius) var(--ui-sheet-radius) 0 0;box-shadow:var(--ui-sheet-shadow);max-height:calc(100% - var(--device-status-height,62px) - 16px)}
-.tool-sheet>header h2{font-size:var(--ui-sheet-title)}
-.tool-sheet>header{min-height:76px;padding:20px 16px 12px;border-bottom:1px solid #edf1f6}
 .device-fit .tool-sheet-body.ui-sheet-panels{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;padding:0}
 .tool-sheet-panels>.tool-error{flex:none;margin:0;padding:12px 20px;max-height:100px;overflow:auto}
-.ui-sheet-panel .camera-discard-actions{margin:0}
-.account-drawer>header h2,.collection-drawer>header h2{font-size:var(--ui-sheet-title);font-weight:650}
+.account-drawer>header h2,.collection-drawer>header h2{font-size:var(--ui-sheet-title);font-weight:600}
 .account-drawer,.collection-drawer{border-radius:var(--ui-sheet-radius) var(--ui-sheet-radius) 0 0;box-shadow:var(--ui-sheet-shadow)}
 
-.photo-choice-sheet.ui-sheet .choice-sources{margin:0;padding-top:0;border-top:0}
+.shared-sheet > .ui-sheet-header::before { content:none; }
+.shared-sheet-heading { flex:1; min-width:0; }
+.shared-sheet-heading > p { margin:4px 0 0; color:var(--ui-body); font-size:13px; line-height:1.5; }
+.shared-sheet .ui-sheet-header svg { width:20px; height:20px; }

@@ -5,6 +5,7 @@ import { View } from "../runtime/components.jsx";
 import { FAMILY_PORTRAIT_DEMO_MESSAGE } from "../domain/album-portrait.js";
 import CameraConfirmationSettings from "./CameraConfirmationSettings.jsx";
 import CameraResultVersions from "./CameraResultVersions.jsx";
+import ToolNavigation from "./ToolNavigation.jsx";
 import "../styles/camera-dual-results.css";
 import "../styles/camera-workflow.css";
 
@@ -12,33 +13,28 @@ function Header({ scope: s }) {
   const isResult = s.step === "editor";
   const resultHeading = isResult && s.dualResults && !s.unlocked;
   const focusRef = resultHeading ? "cameraResultTitle" : isResult ? undefined : "cameraConfirmTitle";
+  const title = s.familyCamera ? "确认照片" : isResult && !s.unlocked ? "解锁照片" : "证件照制作";
+  const backLabel = s.familyCamera || isResult ? "返回" : s.confirmationBackLabel;
   return (
-    <header className="camera-stage-header">
-      <button
-        type="button"
-        aria-label={s.familyCamera || isResult ? "返回" : s.confirmationBackLabel}
-        disabled={s.busy}
-        onClick={() => s.back()}
-      >
-        <svg aria-hidden="true">
-          <use href="#i-chevron" />
-        </svg>
-      </button>
-      <View
-        as="h1"
-        scope={s}
-        refName={focusRef}
-        className={resultHeading ? "camera-result-focus" : undefined}
-        tabIndex={focusRef ? -1 : undefined}
-      >
-        {s.familyCamera
-          ? "确认照片"
-          : isResult && !s.unlocked
-            ? "解锁照片"
-            : "证件照制作"}
-      </View>
-      <span />
-    </header>
+    <ToolNavigation
+      title={title}
+      appearance={s.collectionCapture ? "overlay" : "task"}
+      backLabel={backLabel}
+      disabled={s.busy}
+      onBack={() => s.back()}
+      renderTitle={(props) => (
+        <View
+          {...props}
+          as="h1"
+          scope={s}
+          refName={focusRef}
+          className={resultHeading ? props.className + " camera-result-focus" : props.className}
+          tabIndex={focusRef ? -1 : undefined}
+        >
+          {title}
+        </View>
+      )}
+    />
   );
 }
 
@@ -226,6 +222,7 @@ export function CameraWorkflowModal({ scope: s }) {
   return (
     <div
       className="camera-workflow-overlay"
+      data-blocking={making || choosing || undefined}
       onKeyDown={(e) => s.trapFocus(e)}
       onClick={(event) => {
         if (selecting && event.target === event.currentTarget) s.closePanel();

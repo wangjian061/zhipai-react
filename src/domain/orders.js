@@ -290,6 +290,7 @@ registerStore("orderCenter", {
   electronicReady: false,
   error: "",
   loading: false,
+  retrying: false,
   refreshAgain: false,
   init() {
     this.refresh();
@@ -339,7 +340,7 @@ registerStore("orderCenter", {
     ].filter(Boolean);
   },
   get complete() {
-    return this.ready && !this.errors.length;
+    return this.ready && !this.loading && !this.retrying && !this.errors.length;
   },
   get unavailable() {
     return this.errors.length === 5 && !this.all.length;
@@ -354,13 +355,19 @@ registerStore("orderCenter", {
     );
   },
   async retry() {
-    await Promise.allSettled([
-      this.refresh(),
-      getStore("printLibrary").load(),
-      getStore("toolOrders").load(),
-      getStore("collectionRecords").load(),
-      getStore("keepsakeOrders")?.load(),
-    ]);
+    if (this.retrying) return;
+    this.retrying = true;
+    try {
+      await Promise.allSettled([
+        this.refresh(),
+        getStore("printLibrary").load(),
+        getStore("toolOrders").load(),
+        getStore("collectionRecords").load(),
+        getStore("keepsakeOrders")?.load(),
+      ]);
+    } finally {
+      this.retrying = false;
+    }
   },
 });
 registerStore("orderUi", { opened: false });

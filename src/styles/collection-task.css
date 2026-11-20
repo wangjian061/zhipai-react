@@ -1,6 +1,6 @@
 /* Status color stays on the canvas and artwork; task copy sits on opaque white. */
 .collection-page:is([data-view="detail"], [data-view="complete"]) {
-  --task-accent: var(--collection-status-blue, #1677ff);
+  --task-accent: var(--collection-status-blue, var(--ui-info-ink));
   --task-title-ink: #1d1d1f;
   --task-heading: #123d78;
   --task-description: #3f4248;
@@ -19,7 +19,7 @@
     [data-view="detail"],
     [data-view="complete"]
   )[data-task-tone="orange"] {
-  --task-accent: var(--collection-status-orange, #f97316);
+  --task-accent: var(--collection-status-orange, var(--ui-warning-ink));
   --task-heading: #9a3412;
   --task-art-light: #fbb477;
   --task-art-paper: #fff7ed;
@@ -29,7 +29,7 @@
     [data-view="detail"],
     [data-view="complete"]
   )[data-task-tone="green"] {
-  --task-accent: var(--collection-status-green, #16a34a);
+  --task-accent: var(--collection-status-green, var(--ui-success-ink));
   --task-heading: #14532d;
   --task-art-light: #68cb8c;
   --task-art-paper: #f0fdf4;
@@ -39,7 +39,7 @@
     [data-view="detail"],
     [data-view="complete"]
   )[data-task-tone="red"] {
-  --task-accent: var(--collection-status-red, #ef4444);
+  --task-accent: var(--collection-status-red, var(--ui-danger-ink));
   --task-heading: #881b1b;
   --task-art-light: #f78c8c;
   --task-art-paper: #fff1f2;
@@ -83,7 +83,7 @@
   border-radius: 24px;
   padding: 0 14px;
   font-size: 13px;
-  font-weight: 550;
+  font-weight: 600;
 }
 .collection-task-support svg {
   width: 18px;
@@ -123,7 +123,7 @@
   font-size: 27px;
   line-height: 1.35;
   letter-spacing: 0.01em;
-  font-weight: 750;
+  font-weight: 700;
   color: var(--task-title-ink);
   margin: 0;
   overflow-wrap: anywhere;
@@ -324,7 +324,7 @@
 }
 .collection-task-information strong {
   font-size: inherit;
-  font-weight: 750;
+  font-weight: 700;
 }
 .collection-task-footer {
   display: flex;
@@ -443,7 +443,7 @@
   min-width: 0;
   color: #415d7e;
   font-size: 14px;
-  font-weight: 550;
+  font-weight: 600;
   overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
 }
@@ -482,7 +482,7 @@
 .collection-task-email-entry strong {
   font-size: 14px;
   color: #3c5573;
-  font-weight: 550;
+  font-weight: 600;
 }
 .collection-task-email-entry small {
   font-size: 12px;

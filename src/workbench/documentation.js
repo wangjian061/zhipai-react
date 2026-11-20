@@ -7,6 +7,7 @@ const moduleLoaders = import.meta.glob(
 );
 const globalLoaders = {
   "PRODUCT.md": () => import("../../PRODUCT.md?raw").then((m) => m.default),
+  "docs/design/page-design-guide.md": () => import("../../docs/design/page-design-guide.md?raw").then((m) => m.default),
   "DESIGN.md": () => import("../../DESIGN.md?raw").then((m) => m.default),
 };
 const pageLoaders = import.meta.glob("../../docs/product/pages/*.md", {

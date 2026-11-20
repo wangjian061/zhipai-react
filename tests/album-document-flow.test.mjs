@@ -9,6 +9,7 @@ import { parse } from "@babel/parser";
 import generateModule from "@babel/generator";
 import { transformWithOxc } from "vite";
 import * as domain from "../src/domain/album-spaces.js";
+import { albumDate } from "../src/domain/photo-date.js";
 import { albumPhotoId } from "../src/domain/album.js";
 import * as documentPhotos from "../src/domain/document-photos.js";
 import { getStore, registerStore } from "../src/runtime/state.js";
@@ -66,8 +67,8 @@ async function fixture(
     family
       ? { member: row.id, sheet: side === "member-import" ? "photos" : "delete-member" }
       : {
-          member: "self", group: row.id, item: side === "front" || side === "replace" ? row.photos[0].id : null,
-          sheet: side === "replace" ? "replace-group-photo" : side === "front" ? "delete-group-photo" : "delete-group",
+          member: "self", group: row.id, item: side === "replace" ? 1 : side === "front" ? row.photos[0].id : null,
+          sheet: side === "replace" ? "replace-document" : "confirm-document-delete",
         },
   );
   globalThis.location = new URL("http://localhost" + path);
@@ -87,13 +88,18 @@ async function fixture(
     ...domain,
     ...documentPhotos,
     getStore,
-    useArchiveZoom: () => ({ side: "" }),
+    ToolNavigation: () => null,
+    albumDate, FeedbackToast: () => null,
     SharedSheet: () => null,
     FamilyPhotoPicker: (props) => {
       picker = props;
       return null;
     },
     PhotoDeleteDialog: (props) => {
+      confirmation = props;
+      return null;
+    },
+    ConfirmationDialog: (props) => {
       confirmation = props;
       return null;
     },
@@ -148,7 +154,7 @@ test("document confirmation deletes immediately, tolerates equivalent route orde
   history.replaceState(
     {},
     "",
-    "/?page=album&space=documents&sheet=delete-group&group=" + f.row.id + "&member=self",
+    "/?page=album&space=documents&sheet=confirm-document-delete&group=" + f.row.id + "&member=self",
   );
   release();
   await pending;
@@ -159,15 +165,33 @@ test("document confirmation deletes immediately, tolerates equivalent route orde
   assert.equal(f.updates[2], false);
 });
 
-test("deleting one group photo preserves the other and returns to the group menu", async () => {
+test("removing one of several photos edits the draft and leaves stored files intact", async () => {
   const f = await fixture("delete-side", "front");
-  await f.confirmation.onDelete();
+  assert.equal(f.confirmation.confirmLabel, "移除照片");
+  assert.match(f.confirmation.description, /点击「保存」后/);
+  f.confirmation.onConfirm();
   const [row] = (await domain.readArchive(f.owner)).documents;
-  assert.equal(row.id, f.row.id);
-  assert.deepEqual(row.photos.map((photo) => photo.id), [f.row.photos[1].id]);
-  assert.equal(new URLSearchParams(location.search).get("group"), row.id);
-  assert.equal(new URLSearchParams(location.search).get("sheet"), "group-actions");
-  assert.equal(f.updates[0].documents[0].photos.length, 1);
+  assert.deepEqual(row.photos.map((photo) => photo.id), f.row.photos.map((photo) => photo.id));
+  assert.equal(new URLSearchParams(location.search).get("sheet"), "edit-document");
+  assert.ok(f.updates.some((value) => Array.isArray(value) && value.length === 1 &&
+    value[0].id === f.row.photos[1].id));
+});
+
+test("saving a complete edit commits the name, order, replacements, and removals together", async () => {
+  const f = await fixture("save-draft");
+  const upload = image("new");
+  await assert.rejects(domain.updateArchive(f.owner, (state) =>
+    domain.saveDocumentGroupEdit(state, f.row, "新版证件", [image("image"), { id: "bad" }])), /可用/);
+  assert.equal((await domain.readArchive(f.owner)).documents[0].name, f.row.name);
+
+  await domain.updateArchive(f.owner, (state) =>
+    domain.saveDocumentGroupEdit(state, f.row, "新版证件", [f.row.photos[1], upload]));
+  const [record] = (await domain.readArchive(f.owner)).documents;
+  assert.equal(record.name, "新版证件");
+  assert.equal(record.photos[0].id, f.row.photos[1].id);
+  assert.equal(await record.photos[1].blob.text(), "new");
+  await assert.rejects(domain.updateArchive(f.owner, (state) =>
+    domain.saveDocumentGroupEdit(state, f.row, "过期更改", [image("another")])), /证件已变化/);
 });
 
 test("failed deletion keeps the certificate and confirmation; retry succeeds", async () => {
@@ -178,11 +202,11 @@ test("failed deletion keeps the certificate and confirmation; retry succeeds", a
     return domain.updateArchive(...args);
   });
   await f.confirmation.onDelete();
-  assert.match(f.updates[1], /删除未完成，照片已保留，请重试/);
+  assert.match(f.updates[1], /删除未完成，证件已保留，请重试/);
   assert.equal((await domain.readArchive(f.owner)).documents.length, 1);
   assert.equal(
     new URLSearchParams(location.search).get("sheet"),
-    "delete-group",
+    "confirm-document-delete",
   );
   fail = false;
   await f.confirmation.onDelete();
@@ -211,7 +235,7 @@ test("a changed document rejects stale confirmation and preserves current images
   assert.equal(row.photos[0].id, f.row.photos[0].id);
   assert.equal(
     new URLSearchParams(location.search).get("sheet"),
-    "delete-group",
+    "confirm-document-delete",
   );
 });
 
@@ -232,7 +256,7 @@ test("cancel never writes; a late deletion cannot navigate away from a newer pag
     domain.archivePath("documents", {
       member: "self",
       group: f.row.id,
-      sheet: "delete-group",
+      sheet: "confirm-document-delete",
     }),
   );
   const pending = f.confirmation.onDelete();
@@ -285,89 +309,71 @@ test("replacement picker is single-select, retains the original after failure an
   assert.equal(await group.photos[0].blob.text(), "replacement");
   assert.equal(group.name, f.row.name);
   assert.equal(group.photos[1].id, f.row.photos[1].id);
-  assert.equal(new URLSearchParams(location.search).get("sheet"), "group-actions");
+  assert.equal(new URLSearchParams(location.search).get("sheet"), "view-document");
+  assert.equal(new URLSearchParams(location.search).get("item"), "1");
 });
 
-test("visible download starts a single original immediately and selects individual originals for multiple photos", () => {
+test("the viewer saves the current original, flips without adding history, and opens one replacement picker", () => {
   const owner = "document-download-owner";
   registerStore("account", { session: { phone: owner } });
   const first = image("first"), second = image("second");
-  const data = { members: [], documents: [
-    { id: "passport", holderId: "", name: "护照", photos: [first] },
-    { id: "identity", holderId: "", name: "身份证", photos: [first, second, { id: "missing" }] },
-  ] };
-  const fields = { member: "self" };
-  const listPath = domain.archivePath("documents", fields);
-  const downloadPath = domain.archivePath("documents", { ...fields, group: "identity", sheet: "download-group" });
+  const group = { id: "identity", holderId: "", name: "身份证", photos: [first, second, { id: "missing" }] };
+  const data = { members: [], documents: [group] };
+  const fields = { member: "self", group: group.id };
+  const listPath = domain.archivePath("documents", { member: "self" });
+  const viewerPath = (item) => domain.archivePath("documents", { ...fields, item, sheet: "view-document" });
   const downloads = [];
-  let sheet, navigation, feedback, focused, fail = false;
+  let viewer, navigation, replaced, fail = false;
   const deps = {
     ...domain, getStore,
-    useRef: React.useRef, useEffect: React.useEffect, useCallback: React.useCallback,
-    useArchiveZoom: () => ({ side: "" }),
-    SharedSheet: (props) => { sheet = props; return null; },
-    useState(initial) {
-      const [value] = React.useState(initial);
-      return [value, (next) => { feedback = next?.message; }];
-    },
+    useRef: React.useRef, useEffect: React.useEffect, useState: React.useState,
+    ToolNavigation: () => null,
+    DocumentPhotoViewer: (props) => { viewer = props; return null; },
     navigateArchive: (path) => { navigation = path; },
+    replaceArchiveEntry: (path) => { replaced = path; },
     backInArchive: (path) => { navigation = path; },
     downloadAlbumBlob: (blob, name) => {
       if (fail) throw new Error("download unavailable");
       downloads.push({ blob, name });
     },
-    requestAnimationFrame: (callback) => { callback(); return 1; },
-    cancelAnimationFrame: () => {},
   };
   const Albums = new Function("React", ...Object.keys(deps), transformed.code + ";return DocumentAlbums;")(
     React, ...Object.values(deps),
   );
-  const renderSheet = (path) => {
-    renderToStaticMarkup(React.createElement(Albums, { owner, data, search: new URL(path, "http://localhost").search, clearError: () => {} }));
-    return sheet;
-  };
-  const buttons = (children) => React.Children.toArray(children).flatMap((child) => {
-    if (!React.isValidElement(child)) return [];
-    return child.type === "button" ? [child.props] : buttons(child.props.children);
-  });
+  const render = (path) => renderToStaticMarkup(React.createElement(Albums, {
+    owner, data, search: new URL(path, "http://localhost").search,
+    clearError: () => {}, renderLibrary: (children) => children,
+  }));
 
-  const list = renderSheet(listPath);
-  const listButtons = buttons(list.children);
-  listButtons.find((button) => button["data-document-list-action"] === "download:passport").onClick();
-  assert.deepEqual(downloads, [{ blob: first.blob, name: "护照-1.png" }]);
-  assert.equal(navigation, undefined);
-  assert.match(feedback, /已发起/);
-
-  const body = {
-    scrollTop: 0,
-    querySelectorAll: () => ["menu:identity", "download:identity"].map((action) => ({
-      dataset: { documentListAction: action }, focus: () => { focused = action; },
-    })),
-  };
-  const unmountListBody = list.bodyRef(body);
-  body.scrollTop = 144;
-  listButtons.find((button) => button["data-document-list-action"] === "download:identity").onClick();
-  unmountListBody();
-  assert.equal(navigation, downloadPath);
-  const selector = renderSheet(downloadPath);
-  assert.equal(selector.title, "下载证件照片");
-  const choices = buttons(selector.children);
-  assert.equal(choices[2].disabled, true);
+  assert.doesNotMatch(render(listPath), /下载|下载证件照片/);
+  render(viewerPath(1));
+  assert.equal(viewer.index, 0);
+  assert.equal(viewer.onSave(first, 0), "已发起照片下载");
+  assert.deepEqual(downloads, [{ blob: first.blob, name: "身份证-1.png" }]);
   fail = true;
-  choices[1].onClick();
-  assert.match(feedback, /请重试/);
-  fail = false;
-  choices[1].onClick();
-  assert.deepEqual(downloads[1], { blob: second.blob, name: "身份证-2.png" });
-  assert.equal(navigation, downloadPath);
-  selector.onClose();
+  assert.match(viewer.onSave(first, 0), /请重试/);
+  viewer.onPage(1);
+  assert.equal(replaced, viewerPath(2));
+  assert.equal(navigation, undefined);
+  render(viewerPath(2));
+  assert.equal(viewer.index, 1);
+  viewer.onReplace();
+  assert.equal(navigation, domain.archivePath("documents", { ...fields, item: 2, sheet: "replace-document" }));
+  viewer.onClose();
   assert.equal(navigation, listPath);
-  body.scrollTop = 0;
-  list.bodyRef(body)();
-  assert.equal(body.scrollTop, 144);
-  assert.equal(focused, "download:identity");
 });
 
+test("old document menu and download URLs have safe destinations", () => {
+  const first = image("first"), second = image("second");
+  const group = { id: "identity", holderId: "", name: "身份证", photos: [first, second] };
+  const data = { members: [], documents: [group] };
+  const fields = { member: "self", group: group.id };
+  const old = (sheet, item) => domain.archivePath("documents", { ...fields, item, sheet });
+  assert.equal(domain.legacyDocumentPath(data, old("download-group")), old("view-document", 1));
+  assert.equal(domain.legacyDocumentPath(data, old("group-photo-actions", second.id)), old("view-document", 2));
+  assert.equal(domain.legacyDocumentPath(data, old("delete-group")), old("edit-document"));
+  assert.equal(domain.legacyDocumentPath(data, old("edit-document")), null);
+});
 
 function phoneSelection(picker, files) {
   const deps = {

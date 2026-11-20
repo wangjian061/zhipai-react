@@ -43,6 +43,51 @@ export function navigateArchive(path, replace = false) {
   );
   window.dispatchEvent(new Event("zhipai-route"));
 }
+// Changing the current photo is a page change inside the same viewer entry.
+export function replaceArchiveEntry(path) {
+  if (location.pathname + location.search === path) return;
+  history.replaceState(history.state, "", path);
+  window.dispatchEvent(new Event("zhipai-route"));
+}
+
+const legacyDocumentSheets = new Map([
+  ["new-group", "new-document"],
+  ["group-actions", "edit-document"],
+  ["rename-group", "edit-document"],
+  ["append-group", "edit-document"],
+  ["pick-group-photos", "edit-document"],
+  ["delete-group", "edit-document"],
+  ["delete-group-photo", "edit-document"],
+  ["download-group", "view-document"],
+  ["group-photo-actions", "view-document"],
+  ["rename-group-photo", "view-document"],
+  ["replace-group-photo", "view-document"],
+]);
+
+export function legacyDocumentPath(data, search) {
+  const query = new URLSearchParams(search);
+  const sheet = query.get("sheet");
+  const item = query.get("item");
+  const groupId = query.get("group");
+  if (query.has("doctype") || sheet === "document") {
+    const group = data.documents.find((entry) => entry.id === item);
+    return archivePath("documents", group ? { member: group.holderId || SELF_DOCUMENT_ALBUM } : {});
+  }
+
+  if (!legacyDocumentSheets.has(sheet)) return null;
+  const member = query.get("member");
+  if (!member) return archivePath("documents");
+  const group = documentAlbums(data).find((entry) => entry.id === member)
+    ?.groups.find((entry) => entry.id === groupId);
+  const target = legacyDocumentSheets.get(sheet);
+  if (target === "new-document") return archivePath("documents", { member, sheet: target });
+  if (!group) return archivePath("documents", { member });
+  const index = Math.max(0, group.photos.findIndex((photo) => photo.id === item));
+  return archivePath("documents", {
+    member, group: group.id, item: target === "view-document" ? index + 1 : null, sheet: target,
+  });
+}
+
 export function backInArchive(parent) {
   const trail = history.state?.albumSpaceTrail || [];
   const ancestor = trail.lastIndexOf(parent);
@@ -193,11 +238,15 @@ export function appendFamilyPhotos(state, memberId, photos) {
   if (!member) throw new Error("这个家人相册已不存在。");
   member.photos.unshift(...photos);
 }
-export function deleteFamilyPhoto(state, memberId, photoId) {
+export function deleteFamilyPhotos(state, memberId, photoIds) {
   const member = state.members.find((m) => m.id === memberId);
   if (!member) throw new Error("这个家人相册已不存在。");
+  const selected = new Set(photoIds);
+  const remaining = member.photos.filter((photo) => !selected.has(photo.id));
+  if (!selected.size || member.photos.length - remaining.length !== selected.size)
+    throw new Error("家人相册已变化，请重新选择要删除的照片。");
   // Each member owns a copy. Removing it never removes the source library photo.
-  member.photos = member.photos.filter((photo) => photo.id !== photoId);
+  member.photos = remaining;
 }
 export function documentAlbums({ members, documents }) {
   // The signed-in owner is a virtual album, outside the editable family list.
@@ -277,6 +326,27 @@ export function renameDocumentGroup(state, snapshot, name) {
     group.customName = true;
   }
 }
+// Commit the complete draft against the snapshot that opened the editor.
+export function saveDocumentGroupEdit(state, snapshot, name, photos) {
+  const group = currentDocumentGroup(state, snapshot);
+  assertDocumentPhotoCount(photos.length, remainingDocumentPhotoSlots());
+  const chosenName = documentName(name);
+  const originals = new Map(group.photos.map((photo) => [photo.id, photo]));
+  const seen = new Set();
+  const nextPhotos = photos.map((photo) => {
+    if (!photo?.id || seen.has(photo.id))
+      throw new Error("证件照片已变化，请重新选择。");
+    seen.add(photo.id);
+    return originals.get(photo.id) || groupPhotos([photo])[0];
+  });
+  group.photos = nextPhotos;
+  if (chosenName && chosenName !== group.name) {
+    group.name = chosenName;
+    group.customName = true;
+  }
+  return group;
+}
+
 export function replaceDocumentPhoto(state, snapshot, photoId, photo) {
   const group = currentDocumentGroup(state, snapshot);
   const index = documentPhotoIndex(group, photoId);

@@ -82,6 +82,34 @@ const adaptedFs = {
           "\n" +
           code;
       }
+      const extractedDependencies = {
+        print: ["shipping-address"],
+        tools: ["outfit-catalogue", "order-payment"],
+      }[match[1]];
+      if (extractedDependencies) {
+        // The legacy VM strips ESM imports; evaluate the actual shared helpers.
+        for (const name of extractedDependencies) {
+          const dependency = parse(
+            fs.readFileSync(path.join(root, "src/domain", name + ".js"), "utf8"),
+            { sourceType: "module" },
+          );
+          dependency.program.body = dependency.program.body.flatMap((node) =>
+            node.type === "ImportDeclaration" ? [] :
+            node.type === "ExportNamedDeclaration" ? [node.declaration] : [node],
+          );
+          code = generate(dependency).code + "\n" + code;
+        }
+      }
+      if (match[1] === "print") {
+        const album = parse(
+          fs.readFileSync(path.join(root, "src/domain/album.js"), "utf8"),
+          { sourceType: "module" },
+        );
+        const cropBounds = album.program.body.find(
+          (node) => node.type === "FunctionDeclaration" && node.id.name === "photoCropBounds",
+        );
+        code = generate(cropBounds).code + "\n" + code;
+      }
       if (["album", "camera", "tools"].includes(match[1])) {
         const helpers = match[1] === "album" ? ["photo-date", "photo-readability"] : ["photo-date"];
         for (const name of helpers) {

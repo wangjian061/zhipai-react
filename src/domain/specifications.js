@@ -41,6 +41,7 @@ registerController("specificationPicker", () => ({
   init() {
     // A reload or Forward entry must not silently reopen a completed drawer.
     this.clearStalePanelEntry();
+    let previouslyActive = new URLSearchParams(location.search).get("page") === "specifications";
     this.routeHandler = () => {
       this.closing = false;
       const active =
@@ -49,9 +50,10 @@ registerController("specificationPicker", () => ({
       if (!active || !history.state?.specificationPanel) {
         const wasOpen = this.opened;
         this.opened = false;
-        if (wasOpen && active)
-          this.$nextTick(() => this.previousFocus?.focus());
+        if (active && (wasOpen || !previouslyActive))
+          this.$nextTick(() => this.previousFocus?.focus({ preventScroll: true }));
       }
+      previouslyActive = active;
     };
     window.addEventListener("popstate", this.routeHandler);
     window.addEventListener("zhipai-route", this.routeHandler);
@@ -69,20 +71,19 @@ registerController("specificationPicker", () => ({
     window.removeEventListener("popstate", this.routeHandler);
     window.removeEventListener("zhipai-route", this.routeHandler);
   },
-  choose(id) {
+  choose(id, trigger = document.activeElement) {
     if (this.opened || this.closing) return;
     const spec = this.specifications.find((item) => item.id === id);
     if (!spec) return;
     this.selectedId = id;
     this.backgroundId = this.backgroundState.backgroundId;
-    this.previousFocus = document.activeElement;
+    this.previousFocus = trigger;
     history.pushState(
       { ...history.state, specificationPanel: true },
       "",
       location.href,
     );
     this.opened = true;
-    this.$nextTick(() => this.$refs.colorDialog?.focus());
   },
   selectBackground(id) {
     if (this.backgrounds.some((item) => item.id === id)) this.backgroundId = id;
@@ -125,34 +126,5 @@ registerController("specificationPicker", () => ({
     // Replace the drawer's history entry, so Back returns to the unchanged list.
     history.replaceState({}, "", location.pathname + "?" + query);
     window.dispatchEvent(new Event("zhipai-route"));
-  },
-  trap(event) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      this.close();
-      return;
-    }
-    if (event.key !== "Tab") return;
-    const items = this.$refs.colorDialog?.querySelectorAll(
-      "button:not(:disabled),[tabindex='0']",
-    );
-    if (!items?.length) return;
-    const first = items[0],
-      last = items[items.length - 1];
-    if (
-      event.shiftKey &&
-      (document.activeElement === first ||
-        document.activeElement === this.$refs.colorDialog)
-    ) {
-      event.preventDefault();
-      last.focus();
-    } else if (
-      !event.shiftKey &&
-      (document.activeElement === last ||
-        document.activeElement === this.$refs.colorDialog)
-    ) {
-      event.preventDefault();
-      first.focus();
-    }
   },
 }));

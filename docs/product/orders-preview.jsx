@@ -10,6 +10,7 @@ import {
   orderTime,
 } from "../../src/domain/orders.js";
 import { PRINT_FULFILLMENT_STEPS } from "../../src/domain/order-status.js";
+import "../../src/styles/ui-foundations.css";
 import "../../src/styles/orders.css";
 import "../../src/styles/ui-sheets.css";
 import "./orders-preview.css";
@@ -368,6 +369,9 @@ function Preview() {
       <div className="preview-device device-fit">
         <svg width="0" height="0" aria-hidden="true">
           <defs>
+            <symbol id="i-check" viewBox="0 0 24 24">
+              <path d="m5 12 5 5L20 7" />
+            </symbol>
             <symbol id="i-chevron-left" viewBox="0 0 24 24">
               <path d="m15 5-7 7 7 7" />
             </symbol>
@@ -399,7 +403,7 @@ function Preview() {
           </svg>
         </div>
         <section
-          className="orders-page"
+          className="page orders-page ui-task-page"
           data-order-view={s.selected ? "detail" : "list"}
           inert={!!s.sheet}
         >

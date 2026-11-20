@@ -15,11 +15,6 @@ export const toolPosterArtwork = {
   background: workspaceBanner("background"),
   format: workspaceBanner("format"),
   resize: workspaceBanner("resize"),
-  specifications: {
-    src: "./assets/specifications-hero-series-20261117.webp",
-    width: 1644,
-    height: 957,
-  },
 };
 
 export default function ToolCapabilityPoster({ kind, disabled, onSelect }) {

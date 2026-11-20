@@ -78,7 +78,7 @@ function ConfirmationContent({
   return (
     <div
       className={
-        overSheet ? "album-overlay confirmation-over-sheet" : "album-overlay"
+        overSheet ? "album-overlay confirmation-overlay confirmation-over-sheet" : "album-overlay confirmation-overlay"
       }
       onClick={(event) => {
         if (!busy && event.target === event.currentTarget) onClose();

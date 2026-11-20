@@ -1,16 +1,11 @@
 import React from "react";
-import { CollectionIcon } from "./CollectionHome.jsx";
+import ToolNavigation from "./ToolNavigation.jsx";
 export default function CollectionAnnouncement({ scope: s }) {
   if (s.view !== "announcement") return null;
   const n = s.sourceMessage;
   return (
     <div className="collection-announcement-page">
-      <header className="collection-nav">
-        <button type="button" aria-label="返回" onClick={() => s.back()}>
-          <CollectionIcon name="chevron-left" />
-        </button>
-        <h1>通知详情</h1>
-      </header>
+      <ToolNavigation title="通知详情" onBack={() => s.back()} />
       {n?.body ? (
         <>
           <article className="collection-announcement-content">

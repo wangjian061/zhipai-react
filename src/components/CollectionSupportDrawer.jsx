@@ -1,6 +1,6 @@
+import { SheetFrame, SheetHeader } from "./SharedSheet.jsx";
 import React, { useLayoutEffect, useRef } from "react";
 import { FeedbackToast } from "./Feedback.jsx";
-import { CollectionIcon } from "./CollectionHome.jsx";
 export default function CollectionSupportDrawer({
   scope: s,
   modal = true,
@@ -21,28 +21,13 @@ export default function CollectionSupportDrawer({
   if (!visible) return null;
   const task = s.isRecordView ? s.current : null;
   return (
-    <section
-      ref={dialog}
+    <SheetFrame opened embedded modal={modal} id={`${idPrefix}-title`}
       className="collection-drawer collection-auth-drawer collection-support-drawer"
-      role="dialog"
-      aria-modal={modal}
-      aria-labelledby={`${idPrefix}-title`}
-    >
-      <header className="collection-auth-header">
-        <span className="collection-drawer-symbol">
-          <CollectionIcon name={help ? "document" : "nav-service"} />
-        </span>
-        <div>
-          <h2 id={`${idPrefix}-title`}>
-            {help ? s.helpArticle?.title || "采集帮助" : "联系知拍客服"}
-          </h2>
-          {!help && <p>由知拍客服统一受理并协调机构</p>}
-        </div>
-        <button type="button" aria-label="关闭" onClick={() => s.closePanel()}>
-          <CollectionIcon name="close" />
-        </button>
-      </header>
-      <div className="collection-auth-body collection-support-body">
+      dialogRef={(node) => { dialog.current = node; }} onClose={() => s.closePanel()}>
+      <SheetHeader id={`${idPrefix}-title`} title={help ? s.helpArticle?.title || "采集帮助" : "联系知拍客服"}
+        subtitle={!help && "由知拍客服统一受理并协调机构"} onClose={() => s.closePanel()} />
+      <div className="ui-sheet-panel">
+      <div className="ui-sheet-body collection-auth-body collection-support-body">
         {help ? (
           <>
             {s.helpArticle?.url ? (
@@ -104,7 +89,7 @@ export default function CollectionSupportDrawer({
           </>
         )}
       </div>
-      <footer className="collection-auth-footer collection-support-actions">
+      <footer className="ui-sheet-footer collection-auth-footer collection-support-actions">
         {help ? (
           <button className="collection-primary" onClick={() => s.closePanel()}>
             我知道了
@@ -136,7 +121,8 @@ export default function CollectionSupportDrawer({
           </button>
         )}
       </footer>
+      </div>
       <FeedbackToast sheet message={s.contactNotice === "邮箱已复制" && s.contactNotice} />
-    </section>
+    </SheetFrame>
   );
 }

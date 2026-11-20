@@ -200,11 +200,42 @@ test("order center has exactly four transaction states plus the all filter", () 
     html = render(s);
   assert.match(html, /role="tablist"/);
   assert.match(html, /role="radiogroup"/);
+  assert.ok(html.indexOf('role="radiogroup"') < html.indexOf('role="tablist"'));
+  assert.match(html, /<span>全部类型<\/span>/);
   assert.equal((html.match(/aria-checked="true"/g) || []).length, 1);
+  assert.match(
+    html,
+    /class="order-status-text is-paid"><svg[^>]*><use href="#i-check"/,
+  );
+  assert.match(html, /class="ui-price"><span class="ui-price-currency">¥<\/span>\d+\.\d{2}<\/span>/);
   assert.doesNotMatch(
     html,
     /待付款|付款确认中|已关闭|搜索订单|共\d+笔|已加载\d+笔/,
   );
+});
+test("status badges count the selected type only after all sources are ready", () => {
+  const s = scope();
+  const counts = () =>
+    Array.from(
+      render(s).matchAll(/class="orders-status-count" aria-hidden="true">(\d+)</g),
+      ([, count]) => Number(count),
+    );
+
+  assert.deepEqual(counts(), [5, 5, 0, 0, 0]);
+  s.filter("repair", "failed");
+  assert.equal(s.list.length, 0);
+  assert.deepEqual(counts(), [1, 1, 0, 0, 0]);
+
+  s.hub.electronicReady = false;
+  assert.deepEqual(counts(), []);
+  s.hub.electronicReady = true;
+  s.hub.error = "读取失败";
+  assert.deepEqual(counts(), []);
+  s.hub.retrying = true;
+  s.hub.error = "";
+  assert.deepEqual(counts(), []);
+  s.hub.retrying = false;
+  assert.deepEqual(counts(), [1, 1, 0, 0, 0]);
 });
 test("five sources retain their own identifiers, amounts and readonly thumbnails", () => {
   const list = normalizeOrders(data());
@@ -580,7 +611,7 @@ test("refund detail displays only recorded facts, distinguishes refund amount fr
   assert.match(html, /实付金额/);
   assert.match(html, /已退金额/);
   assert.match(html, /class="ui-price">¥1\.00<\/span>/);
-  assert.match(html, /class="ui-price">¥2\.00<\/span>/);
+  assert.match(html, /实付金额<\/span><strong><span class="ui-price"><span class="ui-price-currency">¥<\/span>2\.00<\/span>/);
   assert.match(html, /原路退回/);
   assert.doesNotMatch(html, /申请退款|确认收货|orders-footer/);
   r.refund = { status: "refunding" };

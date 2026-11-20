@@ -63,7 +63,7 @@
 .photo-selection-empty strong {
   font-size: 16px;
   line-height: 1.5;
-  font-weight: 650;
+  font-weight: 600;
 }
 .photo-selection-empty span {
   font-size: 13px;
@@ -93,8 +93,8 @@
 }
 .tool-photo-selection > .ui-sheet-header h2 {
   margin: 0;
-  font-size: var(--ui-sheet-title, 18px);
-  font-weight: 650;
+  font-size: var(--ui-sheet-title);
+  font-weight: 600;
   line-height: 1.45;
   color: var(--ui-heading, #293e60);
 }
@@ -173,7 +173,7 @@
 .photo-selection-heading h3 {
   margin: 0;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 600;
 }
 .photo-selection-heading > span {
   font-size: 12px;

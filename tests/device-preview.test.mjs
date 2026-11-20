@@ -265,7 +265,8 @@ test("full-bleed page hosts use fixed transparent OS chrome with protected contr
     foundations,
     /\.brand-page-header \{[^}]*min-height: var\(--brand-header-height\);[^}]*padding: var\(--brand-safe-top\)/,
   );
-  assert.ok(css.includes(".photo-choice-sheet)"));
+  const sheets = fs.readFileSync("src/styles/ui-sheets.css", "utf8");
+  assert.match(sheets, /\.ui-sheet-footer\{[^}]*padding:[^;}]*var\(--device-nav-bottom,29px\)/);
   for (const name of ["ToolsPage", "PrintPage"])
     assert.ok(
       fs

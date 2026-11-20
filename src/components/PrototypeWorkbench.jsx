@@ -443,6 +443,9 @@ export default function PrototypeWorkbench({ children }) {
               <button type="button" onClick={() => openDocument("DESIGN.md")}>
                 DESIGN.md
               </button>
+              <button type="button" onClick={() => openDocument("docs/design/page-design-guide.md")}>
+                新页面设计指导手册
+              </button>
             </div>
             <p>文档随Git维护；已确认规则、实际实现及待整改分别标明。</p>
           </footer>

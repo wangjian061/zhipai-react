@@ -121,9 +121,12 @@ for (const action of allWorkspaces) {
             ["outfit", "background"].includes(action) ? 1 : 0,
           );
           if (action === "repair") {
-            assert.equal(s.primaryEnabled, false);
-            s.selectRepairBackground("white");
             assert.equal(s.primaryEnabled, true);
+            assert.equal(s.repairColor, null);
+            await s.primary();
+            assert.equal(s.panel, "payment");
+            s.selectRepairBackground("white");
+            assert.equal(s.repairColor.id, "white");
           }
         } else {
           assert.equal(calls.checks, 0);

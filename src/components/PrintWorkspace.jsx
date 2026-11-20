@@ -1,95 +1,101 @@
-import React from "react";
-import PhotoSelectionPreview from "./PhotoSelectionPreview.jsx";
+import React, { useEffect, useRef } from "react";
 import PhotoSelectionActions from "./PhotoSelectionActions.jsx";
-import ToolCapabilityPoster from "./ToolCapabilityPoster.jsx";
+import PrintSheetArtwork from "./PrintSheetArtwork.jsx";
+
+function PrintProductGallery({ studio: s }) {
+  const current = s.galleryItem;
+  const rail = useRef(null);
+  useEffect(() => {
+    const list = rail.current;
+    const selected = list?.querySelector('[aria-pressed="true"]');
+    if (!selected) return;
+    const track = list.getBoundingClientRect();
+    const item = selected.getBoundingClientRect();
+    if (item.left < track.left) list.scrollLeft += item.left - track.left;
+    else if (item.right > track.right) list.scrollLeft += item.right - track.right;
+  }, [current.id]);
+
+  return (
+    <figure className="print-product-gallery">
+      <button
+        type="button"
+        className="keepsake-product-stage print-gallery-stage"
+        aria-label={"查看大图：" + current.label}
+        aria-haspopup="dialog"
+        disabled={!s.store.ready || s.processing}
+        onClick={() => s.openLayoutPreview()}
+      >
+        <span className="keepsake-product-art">
+          <PrintSheetArtwork image={current.image} />
+        </span>
+      </button>
+      <figcaption ref={rail} className="keepsake-choice-rail print-gallery-rail" aria-label="产品视图">
+        {s.galleryItems.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            aria-pressed={current.id === item.id}
+            onClick={() => s.selectGalleryImage(item.id)}
+          >
+            <img src={item.image} alt="" />
+            {item.label}
+          </button>
+        ))}
+      </figcaption>
+    </figure>
+  );
+}
 
 export default function PrintWorkspace({ studio: s }) {
-  const photo = s.draft.photo;
+  const hasPhoto = !!s.cropSource?.blob;
+  const layout = s.layout;
   return (
     <div className="print-screen">
-      <div className="print-body print-direct-workspace" tabIndex={-1}>
-        {photo ? (
-          <PhotoSelectionPreview photo={photo} src={s.photoURL} />
-        ) : (
-          <ToolCapabilityPoster
-            kind="print"
-            disabled={s.disabled}
-            onSelect={() => s.openAlbum()}
-          />
+      <div className="print-body keepsake-scroll" tabIndex={-1}>
+        <PrintProductGallery studio={s} />
+        {hasPhoto && (s.cropJob || s.layoutsLoading) && (
+          <p className="sr-only" role="status">正在生成冲印预览…</p>
         )}
-        <section
-          className="tool-settings print-workspace-layouts"
-          aria-label="冲印排版"
-        >
-          <h2>选择排版</h2>
-          <div className="print-workspace-options">
-            {s.layouts.map((item) => (
-              <div
-                key={item.id}
-                className="print-workspace-option"
-                data-selected={s.draft.layout === item.id}
-              >
-                <button
-                  type="button"
-                  className="print-workspace-select"
-                  aria-pressed={s.draft.layout === item.id}
-                  aria-label={"选择" + item.description}
-                  disabled={s.disabled}
-                  onClick={() => s.selectLayout(item.id)}
-                >
-                  <span
-                    className="print-workspace-sheet"
-                    aria-hidden="true"
-                    dangerouslySetInnerHTML={{
-                      __html: s.workspaceSheet(item.id),
-                    }}
-                  />
-                  <strong>{item.description}</strong>
-                </button>
-                <button
-                  type="button"
-                  className="print-workspace-preview"
-                  aria-haspopup="dialog"
-                  aria-label={"预览" + item.description + "排版"}
-                  disabled={s.disabled}
-                  onClick={() => s.openLayoutPreview(item.id)}
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <circle cx="10.5" cy="10.5" r="5.5" />
-                    <path d="m15 15 5 5" />
-                  </svg>
-                </button>
-              </div>
-            ))}
-          </div>
-          {s.layoutsLoading && <p role="status">正在准备本次排版…</p>}
-          {s.layoutError && (
-            <div role="alert">
-              <p>{s.layoutError}</p>
-              <button
-                type="button"
-                className="tool-secondary"
-                onClick={() => s.loadLayouts(true)}
-              >
-                重新获取排版
-              </button>
+        {!s.disabled && (s.cropError || s.layoutError) && (
+          <p className="print-preview-error" role="alert">{s.cropError || s.layoutError}</p>
+        )}
+        <section className="tool-settings keepsake-product-spec">
+          <header>
+            <h2>背胶模切证件照</h2>
+          </header>
+          <p>自带背胶 · 免剪裁，下单前可预览并手动裁剪构图</p>
+          <dl>
+            <div className="print-sku-row">
+              <dt>版式</dt>
+              <dd role="group" aria-label="版式">
+                {s.layouts.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-pressed={layout.id === item.id}
+                    disabled={s.disabled}
+                    onClick={() => s.selectLayout(item.id)}
+                  >
+                    {item.description}
+                  </button>
+                ))}
+              </dd>
             </div>
-          )}
-          <p className="print-workspace-product">
-            <span className="print-workspace-product-label">背胶模切</span>{" "}
-            <span className="print-workspace-product-note">每单 1 版，不支持加印</span>
-          </p>
+            <div><dt>相纸规格</dt><dd>富士相纸 六寸</dd></div>
+            <div><dt>相纸工艺</dt><dd>背胶模切</dd></div>
+            <div><dt>购买限制</dt><dd>每单 1 版，不支持加印</dd></div>
+          </dl>
         </section>
       </div>
-      <footer className="print-footer photo-selection-footer">
+      <footer className="print-footer photo-selection-footer print-preview-footer">
         <PhotoSelectionActions
-          hasPhoto={!!photo?.blob}
-          disabled={s.disabled}
-          nextEnabled={
-            !!photo && !!s.selectedLayout && !s.layoutError && !s.disabled
-          }
-          nextLabel="确认排版"
-          onSelect={() => s.openAlbum()}
+          hasPhoto={hasPhoto}
+          disabled={!s.store.ready || s.processing || (s.store.busy && !s.cropJob)}
+          nextEnabled={!s.disabled || !!s.cropJob}
+          selectLabel="上传照片 · 预览效果"
+          replaceLabel="继续预览"
+          nextLabel="去确认订单"
+          onSelect={() => hasPhoto ? s.openPrintPreview() : s.openAlbum()}
           onNext={() => s.confirm()}
         />
       </footer>

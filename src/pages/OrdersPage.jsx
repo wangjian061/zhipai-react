@@ -215,53 +215,69 @@ function TypeFilters({ s, positions }) {
             select(s.types[next].id, node);
           }}
         >
-          {type.label}
+          <span>{type.id === "all" ? "全部类型" : type.label}</span>
         </button>
       ))}
     </div>
   );
 }
 function StatusFilters({ s }) {
+  const complete = s.hub.complete;
   return (
     <nav
       className="orders-status-tabs"
       role="radiogroup"
-      aria-label={s.hub.complete ? "订单状态" : "订单状态（仅已加载）"}
+      aria-label={complete ? "订单状态" : "订单状态（仅已加载）"}
     >
-      {s.statuses.map((t) => (
-        <button
-          key={t.id}
-          type="button"
-          role="radio"
-          data-status={t.id}
-          className={s.status === t.id ? "active" : ""}
-          aria-checked={s.status === t.id}
-          tabIndex={s.status === t.id ? 0 : -1}
-          onClick={() => {
-            if (s.status !== t.id) s.filter(s.type, t.id);
-          }}
-          onKeyDown={(event) => {
-            const index = s.statuses.findIndex((item) => item.id === t.id);
-            const next = ["ArrowRight", "ArrowDown"].includes(event.key)
-              ? (index + 1) % s.statuses.length
-              : ["ArrowLeft", "ArrowUp"].includes(event.key)
-                ? (index - 1 + s.statuses.length) % s.statuses.length
-                : event.key === "Home"
-                  ? 0
-                  : event.key === "End"
-                    ? s.statuses.length - 1
-                    : null;
-            if (next == null) return;
-            event.preventDefault();
-            event.currentTarget.parentElement
-              .querySelectorAll('[role="radio"]')
-              [next].focus({ preventScroll: true });
-            s.filter(s.type, s.statuses[next].id);
-          }}
-        >
-          <span>{t.label}</span>
-        </button>
-      ))}
+      {s.statuses.map((status, index) => {
+        const count = complete ? s.count(status.id) : null;
+        const checked = s.status === status.id;
+        return (
+          <button
+            key={status.id}
+            type="button"
+            role="radio"
+            data-status={status.id}
+            aria-checked={checked}
+            aria-label={
+              count === null ? undefined : `${status.label}，${count} 笔`
+            }
+            tabIndex={checked ? 0 : -1}
+            onClick={() => {
+              if (!checked) s.filter(s.type, status.id);
+            }}
+            onKeyDown={(event) => {
+              const next = ["ArrowRight", "ArrowDown"].includes(event.key)
+                ? (index + 1) % s.statuses.length
+                : ["ArrowLeft", "ArrowUp"].includes(event.key)
+                  ? (index - 1 + s.statuses.length) % s.statuses.length
+                  : event.key === "Home"
+                    ? 0
+                    : event.key === "End"
+                      ? s.statuses.length - 1
+                      : null;
+              if (next == null) return;
+              event.preventDefault();
+              const row = event.currentTarget.parentElement;
+              const button = row.querySelectorAll('[role="radio"]')[next];
+              button.focus({ preventScroll: true });
+              // Keep the focus indicator visible when the status row overflows.
+              const visible = row.getBoundingClientRect();
+              const bounds = button.getBoundingClientRect();
+              if (bounds.left < visible.left || bounds.right > visible.right)
+                button.scrollIntoView({ block: "nearest", inline: "nearest" });
+              s.filter(s.type, s.statuses[next].id);
+            }}
+          >
+            {status.label}
+            {count !== null && (
+              <span className="orders-status-count" aria-hidden="true">
+                {count}
+              </span>
+            )}
+          </button>
+        );
+      })}
     </nav>
   );
 }
@@ -297,7 +313,7 @@ function Detail({ s, order: o }) {
             </div>
             <div className="order-transaction-amount">
               <span>{o.state === "failed" ? "订单金额" : "实付金额"}</span>
-              <strong><PriceText value={s.money(o.amount)} /></strong>
+              <strong><PriceText value={s.money(o.amount)} emphasizeAmount /></strong>
             </div>
             {o.failureReason && <p>{o.failureReason}</p>}
           </section>
@@ -516,7 +532,10 @@ function OrderListCard({ s, order: o, onOpen }) {
     >
       <span className="order-card-heading order-ticket-seam">
         <strong>{o.title}</strong>
-        <span className={`order-status-text is-${o.state}`}>{o.payment}</span>
+        <span className={`order-status-text is-${o.state}`}>
+          {o.state === "paid" && <Icon name="check" />}
+          {o.payment}
+        </span>
       </span>
       <span className="order-card-body">
         <OrderThumbnail blob={o.thumbnailBlob} title={o.title} />
@@ -524,7 +543,7 @@ function OrderListCard({ s, order: o, onOpen }) {
         <strong
           className={`order-card-amount${Number.isFinite(o.amount) ? "" : " is-unconfirmed"}`}
         >
-          <PriceText value={s.money(o.amount)} />
+          <PriceText value={s.money(o.amount)} emphasizeAmount />
         </strong>
         {secondary && (
           <span className="order-card-dimensions">{secondary}</span>
@@ -665,8 +684,8 @@ export function OrdersContent({ s }) {
           )}
           {s.owner && (
             <>
-              <TypeFilters s={s} positions={typePositions} />
               <StatusFilters s={s} />
+              <TypeFilters s={s} positions={typePositions} />
             </>
           )}
         </div>
@@ -730,7 +749,7 @@ export default function OrdersPage() {
             scope={s}
             scopeRoot
             show={s.page === "orders"}
-            className="page orders-page"
+            className="page orders-page ui-task-page"
             data-order-view={s.selected ? "detail" : "list"}
             id="orders-page"
             aria-label="订单中心"

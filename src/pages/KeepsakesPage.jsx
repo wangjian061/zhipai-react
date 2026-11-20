@@ -1,5 +1,5 @@
 import ShippingAddressFields from "../components/ShippingAddressFields.jsx";
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Controller, View } from "../runtime/components.jsx";
 import ToolNavigation from "../components/ToolNavigation.jsx";
 import PhotoSelectionActions from "../components/PhotoSelectionActions.jsx";
@@ -10,13 +10,135 @@ import ToolPhotoSelection from "../components/ToolPhotoSelection.jsx";
 import { PaymentChoices, PaymentRecovery } from "../components/PaymentHandoff.jsx";
 import { checkoutLabel } from "../domain/payment-handoff.js";
 const money = (v) => "¥" + (v / 100).toFixed(2);
+function readConnection() {
+  return globalThis.navigator?.onLine !== false;
+}
+
+function subscribeToConnection(update) {
+  window.addEventListener("online", update);
+  window.addEventListener("offline", update);
+  return () => {
+    window.removeEventListener("online", update);
+    window.removeEventListener("offline", update);
+  };
+}
+
+export function checkoutPaymentAction(s, online) {
+  if (s.locked || !s.orders.ready || !online || (!s.order && (!s.photo || !s.output)))
+    return "disabled";
+  if (s.canPay) return "pay";
+  if (!s.address) return "address";
+  if (!s.proofReady) return "proof";
+  return "disabled";
+}
+
+function CheckoutFieldAlert({ id, pulse, children }) {
+  return (
+    <>
+      <span key={pulse} className="keepsake-checkout-pulse" aria-hidden="true" />
+      <p id={id} className="ui-field-error keepsake-checkout-error" role="alert">{children}</p>
+    </>
+  );
+}
+
+function StampVerification({ s, cardRef, missingPulse }) {
+  const uploaded = s.proofReady;
+  const uploadLabel = uploaded ? "更换学生身份凭证" : "上传学生证照片";
+  const fileInput = !s.purchaseLocked && (
+    <input type="file" aria-label={uploadLabel} accept="image/jpeg,image/png,image/webp"
+      aria-describedby={missingPulse ? "keepsake-proof-required" : undefined}
+      aria-invalid={missingPulse ? true : undefined} disabled={s.locked} onChange={(event) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        s.acceptProof(file);
+      }} />
+  );
+  const proofIcon = (
+    <span className="stamp-verification-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><use href="#i-id" /></svg>
+    </span>
+  );
+  return (
+    <section ref={cardRef} className="tool-settings keepsake-checkout-card stamp-verification-card"
+      data-missing={!!missingPulse} aria-labelledby="stamp-verification-title"
+      aria-busy={s.proofReading || undefined}>
+      <header>
+        <h2 id="stamp-verification-title">学生身份核验</h2>
+        <span className="stamp-verification-status" data-uploaded={uploaded}>
+          {uploaded ? "已上传" : "待上传"}
+        </span>
+      </header>
+      <p>仅限在校学生购买，请上传学生证或学信网截图，支付后人工审核，未通过自动原路退款。</p>
+      {uploaded ? (
+        <div className="stamp-verification-row">
+          {s.studentProofURL
+            ? <img src={s.studentProofURL} alt="已上传的学生身份凭证" />
+            : proofIcon}
+          <div>
+            <strong>学生身份凭证已上传</strong>
+            <small>支付后人工审核</small>
+          </div>
+          {fileInput && (
+            <label className="stamp-proof-input stamp-proof-replace">
+              更换
+              {fileInput}
+            </label>
+          )}
+        </div>
+      ) : fileInput && (
+        <label className="stamp-verification-row stamp-proof-input stamp-proof-entry">
+          {proofIcon}
+          <strong>上传学生证照片</strong>
+          <svg className="stamp-proof-chevron" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chevron" /></svg>
+          {fileInput}
+        </label>
+      )}
+      {missingPulse && (
+        <CheckoutFieldAlert id="keepsake-proof-required" pulse={missingPulse}>
+          请先上传购买人学生证后再继续支付
+        </CheckoutFieldAlert>
+      )}
+      {s.proofReading && <p role="status">正在读取凭证…</p>}
+      {s.proofError && <p className="stamp-proof-error" role="alert">{s.proofError}</p>}
+    </section>
+  );
+}
+
 function Screen({ s }) {
   const phoneInput = useRef(null);
   const photoTrigger = useRef(null);
-  const cropTrigger = useRef(null);
+  const addressCardRef = useRef(null);
+  const proofCardRef = useRef(null);
+  const [missing, setMissing] = useState(null);
+  const online = useSyncExternalStore(subscribeToConnection, readConnection, readConnection);
+  const stamp = s.kind === "stamp";
+  const checkingOut = s.page === "keepsake" && s.view === "confirm";
+  const showMissing = checkingOut && !s.purchaseLocked && missing?.kind === s.kind;
+  const addressPulse = showMissing && missing.field === "address" && !s.address ? missing.pulse : 0;
+  const proofPulse = showMissing && stamp && missing.field === "proof" && !s.proofReady ? missing.pulse : 0;
+
+  useEffect(() => {
+    if (missing && !addressPulse && !proofPulse) setMissing(null);
+  }, [missing, addressPulse, proofPulse]);
+
   if (s.page !== "keepsake") return null;
-  const productTitle =
-    s.kind === "stamp" ? "致青春 · 学生纪念邮折" : s.product.name;
+  const hasSelection = !!(s.photo || s.previewRequest);
+  const inPreview = s.panel === "keepsakeCrop";
+  const productTitle = stamp ? "致青春 · 学生纪念邮折" : s.product.name;
+
+  function handlePayment() {
+    const next = checkoutPaymentAction(s, readConnection());
+    if (next === "pay") {
+      setMissing(null);
+      return s.requestPayment({ handoff: true });
+    }
+    if (next === "disabled") return;
+    setMissing((previous) => ({ kind: s.kind, field: next, pulse: (previous?.pulse || 0) + 1 }));
+    const card = next === "address" ? addressCardRef : proofCardRef;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    card.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  }
+
   const title = {
     templates: productTitle,
     work: productTitle,
@@ -54,7 +176,7 @@ function Screen({ s }) {
   return (
     <>
       <section
-        className="page tool-page keepsake-page"
+        className="page tool-page keepsake-page ui-task-page"
         inert={!!s.panel}
         aria-label={s.product.name}
       >
@@ -76,34 +198,36 @@ function Screen({ s }) {
                 </button>
               </p>
             )}
-            {(s.view === "work" || s.view === "templates") && (
-              <KeepsakeWorkspace
-                s={s}
-                photoTrigger={photoTrigger}
-                cropTrigger={cropTrigger}
-              />
+            {s.isProductView && (
+              <KeepsakeWorkspace s={s} />
             )}
-            {s.busy && <p role="status">正在准备照片…</p>}
+            {s.busy && !s.proofReading && !s.panel && <p role="status">正在准备照片…</p>}
             {s.view === "confirm" && (
               <>
-                <button
-                  type="button"
-                  className="keepsake-address tool-settings"
-                  disabled={s.locked || s.order?.status === "verifying"}
-                  onClick={() => s.open("addresses")}
-                >
-                  <span>收货地址</span>
-                  <strong>
-                    {s.address
-                      ? `${s.address.name} ${s.address.phone}`
-                      : "请选择收货地址"}
-                  </strong>
-                  {s.address && (
-                    <span>
-                      {s.address.region} {s.address.street}
-                    </span>
+                <div ref={addressCardRef} className="tool-settings keepsake-checkout-card keepsake-address-card"
+                  data-missing={!!addressPulse}>
+                  <button
+                    type="button"
+                    className="keepsake-address"
+                    aria-describedby={addressPulse ? "keepsake-address-required" : undefined}
+                    disabled={s.locked || s.order?.status === "verifying"}
+                    onClick={() => s.open("addresses")}
+                  >
+                    <span>收货地址</span>
+                    <strong>
+                      {s.address
+                        ? `${s.address.name} ${s.address.phone}`
+                        : "请选择收货地址"}
+                    </strong>
+                    {s.address && <span>{s.address.region} {s.address.street}</span>}
+                  </button>
+                  {addressPulse > 0 && (
+                    <CheckoutFieldAlert id="keepsake-address-required" pulse={addressPulse}>
+                      请先选择收货地址后再继续支付
+                    </CheckoutFieldAlert>
                   )}
-                </button>
+                </div>
+                {stamp && <StampVerification s={s} cardRef={proofCardRef} missingPulse={proofPulse || undefined} />}
                 <section className="tool-settings keepsake-purchase">
                   <img src={s.outputURL} alt="本次合成成品" />
                   <div>
@@ -124,12 +248,6 @@ function Screen({ s }) {
                       )}
                   </div>
                 </section>
-                {s.kind === "stamp" && s.studentProof && (
-                  <section className="tool-settings stamp-proof">
-                    <h3>学生资格</h3>
-                    <p>学生证已上传，付款后人工审核。</p>
-                  </section>
-                )}
                 <dl className="tool-settings keepsake-fees">
                   <div>
                     <dt>商品金额</dt>
@@ -230,22 +348,28 @@ function Screen({ s }) {
               </p>
             )}
           </div>
-          {(s.view === "work" || s.view === "templates") && (
+          {s.isProductView && (
             <footer className="tool-footer photo-selection-footer">
-              <button
-                type="button"
-                className="tool-primary"
-                disabled={
-                  !s.photo ||
-                  !s.image ||
-                  !s.proofReady ||
-                  s.locked ||
-                  s.purchaseLocked
-                }
-                onClick={() => s.confirm()}
-              >
-                {s.busy ? "正在准备照片…" : "下一步 · 填写收货地址"}
-              </button>
+              {hasSelection && s.previewError && (
+                <p className="keepsake-proof-note" role="status">{s.previewError}</p>
+              )}
+              {hasSelection ? (
+                <div className="keepsake-preview-actions">
+                  <button ref={photoTrigger} type="button" className="tool-secondary"
+                    disabled={s.locked || s.purchaseLocked} onClick={() => s.editComposition()}>
+                    继续预览
+                  </button>
+                  <button type="button" className="tool-primary"
+                    disabled={!s.canContinue} onClick={() => s.confirm()}>
+                    去确认订单
+                  </button>
+                </div>
+              ) : (
+                <button ref={photoTrigger} type="button" className="tool-primary"
+                  disabled={s.locked || s.purchaseLocked} onClick={() => s.pick()}>
+                  上传照片 · 预览效果
+                </button>
+              )}
             </footer>
           )}
           {s.view === "confirm" && (
@@ -257,9 +381,9 @@ function Screen({ s }) {
                 replaceLabel="上一步"
                 selectDisabled={s.order?.status === "verifying"}
                 nextLabel={s.paying ? "正在确认…" : checkoutLabel(s.kind, s.paymentMethod, s.order)}
-                nextEnabled={s.canPay}
+                nextEnabled={checkoutPaymentAction(s, online) !== "disabled"}
                 onSelect={() => s.back()}
-                onNext={() => s.requestPayment({ handoff: true })}
+                onNext={handlePayment}
               />
             </footer>
           )}
@@ -314,7 +438,7 @@ function Screen({ s }) {
         id="keepsake-sheet-title"
         title={
           {
-            keepsakeCrop: "调整构图",
+            keepsakeCrop: "定制预览",
             addresses: "收货地址",
             addressEdit: "新增收货地址",
             payment: "确认付款",
@@ -324,20 +448,19 @@ function Screen({ s }) {
         opened={!!s.panel && s.panel !== "album"}
         onClose={() => s.close()}
         busy={s.locked}
-        returnFocusRef={s.panel === "keepsakeCrop" ? cropTrigger : undefined}
+        returnFocusRef={inPreview ? photoTrigger : undefined}
+        className={inPreview ? "keepsake-preview-sheet" : undefined}
         footer={
-          s.panel === "keepsakeCrop" ? (
-            <button
-              type="button"
-              className="tool-primary"
-              disabled={s.locked}
-              onClick={() => s.applyCrop()}
-            >
-              完成
-            </button>
-          ) : (
-            paymentFooter
-          )
+          inPreview ? (
+            <div className="keepsake-preview-actions">
+              <button type="button" className="tool-secondary" disabled={s.locked}
+                onClick={() => s.pick()}>换一张</button>
+              <button type="button" className="tool-primary" disabled={!s.canContinue}
+                onClick={() => s.confirm()}>
+                满意，去确认订单
+              </button>
+            </div>
+          ) : paymentFooter
         }
       >
         {s.panel === "keepsakeCrop" && s.cropDraft && <KeepsakeCropControls s={s} />}
@@ -385,6 +508,7 @@ function Screen({ s }) {
         {s.panel === "addressEdit" && (
           <ShippingAddressFields
             fields={s.addressFields}
+            error={s.error}
             disabled={s.locked}
             onChange={(key, value) => {
               s.addressFields[key] = value;
@@ -420,7 +544,7 @@ function Screen({ s }) {
             </label>
           </>
         )}
-        {s.error && (
+        {s.error && s.panel !== "addressEdit" && (
           <p className="tool-error" role="alert">
             {s.error}
           </p>

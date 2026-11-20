@@ -455,8 +455,10 @@ test("help uses one shared CHSI tutorial URL while retaining institution help an
   assert.ok(!page.includes("scan-collection-guide.webp"));
   assert.match(css, /font-size:17px/);
   assert.match(css, /var\(--ui-sheet-radius\)/);
-  assert.match(css, /\.scan-sheet-body\{[^}]*overflow-y:auto/);
-  assert.match(css, /\.scan-sheet footer\{flex:none/);
+  const sheet = fs.readFileSync("src/styles/ui-sheets.css", "utf8");
+  assert.match(page, /<SharedSheet opened target="#scan-modal-layer"/);
+  assert.match(sheet, /\.ui-sheet-body\{[^}]*overflow:auto/);
+  assert.match(sheet, /\.ui-sheet-footer\{flex:none/);
   assert.match(css, /prefers-reduced-motion/);
 });
 test("scan-project return preserves homepage/section source, and cancellation preserves category/search return context", async () => {

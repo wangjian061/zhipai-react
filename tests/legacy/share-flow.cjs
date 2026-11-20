@@ -45,12 +45,12 @@ center.init();
   // Save must use one poster snapshot, and route departure cancels its download.
   const save=center.savePoster();setLocation('/?page=home');await center.loadShareContext();await save;assert.equal(downloads.length,0);
   setLocation('/?page=my&my=share&share=resize');await center.loadShareContext();await center.savePoster();
-  assert.equal(downloads.at(-1).name,'修改体积分享海报.png');assert.equal(downloads.at(-1).blob.type,'image/png');
+  assert.equal(downloads.at(-1).name,'修改大小分享海报.png');assert.equal(downloads.at(-1).blob.type,'image/png');
   // System share passes the prepared PNG immediately, then falls back to a public URL.
   let payload;
   context.navigator.canShare=()=>true;
   context.navigator.share=async data=>{payload=data};
-  await center.systemShare();assert.equal(payload.files[0].type,'image/png');assert.equal(payload.files[0].name,'修改体积分享海报.png');
+  await center.systemShare();assert.equal(payload.files[0].type,'image/png');assert.equal(payload.files[0].name,'修改大小分享海报.png');
   context.navigator.canShare=()=>false;await center.systemShare();assert.equal(payload.url,center.shareUrl);assert.equal(payload.files,undefined);
   context.navigator.share=async()=>{throw Object.assign(Error('cancel'),{name:'AbortError'})};await center.systemShare();assert.equal(center.notice,'');assert.equal(center.sharing,false);
   context.navigator.share=async()=>{throw Error('denied')};await center.systemShare();assert.match(center.notice,/分享未完成/);

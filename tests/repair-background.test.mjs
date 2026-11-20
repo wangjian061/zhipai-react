@@ -143,7 +143,7 @@ after(() => {
   URL.revokeObjectURL = nativeRevoke;
 });
 
-test("fresh repair requires an explicit valid color at UI, payment and processing gates", async () => {
+test("fresh repair opens payment with no color and neither charges nor processes without one", async () => {
   const s = studio();
   assert.deepEqual(s.config.steps, []);
   assert.equal(s.step, 1);
@@ -153,11 +153,13 @@ test("fresh repair requires an explicit valid color at UI, payment and processin
     "independent background-tool default remains separate",
   );
   assert.equal(s.repairColor, null);
-  assert.equal(s.primaryEnabled, false);
-  await s.openPayment();
+  assert.equal(s.primaryEnabled, true);
+  await s.primary();
+  assert.equal(s.panel, "payment");
+  assert.equal(s.repairSettingsLocked, false);
   await s.pay();
   await s.runService();
-  assert.equal(s.panel, null);
+  assert.equal(s.panel, "payment");
   assert.equal(orders.items.length, 0);
   assert.equal(s.output, null);
   s.selectRepairBackground("not-a-color");
@@ -166,6 +168,11 @@ test("fresh repair requires an explicit valid color at UI, payment and processin
   assert.equal(s.primaryEnabled, true);
   assert.equal(s.output, null, "selecting color does not generate a preview");
   assert.equal(s.sourceURL && s.photo.blob, source);
+  s.closePanel();
+  assert.equal(s.panel, null);
+  await s.primary();
+  assert.equal(s.panel, "payment");
+  assert.equal(s.repairColor.id, "white");
 });
 
 test("same-page replacement retains a compatible color while invalidating checks and old output", async () => {
@@ -189,6 +196,7 @@ test("same-page replacement retains a compatible color while invalidating checks
 
 test("cancel/change/retry keeps one order; chosen color reaches output, receipt and completion", async () => {
   const s = studio();
+  await s.primary();
   s.selectRepairBackground("white");
   s.paymentOutcome = "cancel";
   await s.pay();
@@ -198,6 +206,11 @@ test("cancel/change/retry keeps one order; chosen color reaches output, receipt 
   assert.equal(s.paid, false);
   assert.equal(s.output, null);
   assert.equal(orders.items[0].purchaseSnapshot.backgroundName, "白色");
+  const pending = orders.items[0];
+  s.reset();
+  await s.resumeOrder(pending);
+  assert.equal(s.panel, "payment");
+  assert.equal(s.repairColor.id, "white");
   s.selectRepairBackground("red");
   s.paymentOutcome = "success";
   await s.pay();
@@ -234,6 +247,10 @@ test("cancel/change/retry keeps one order; chosen color reaches output, receipt 
   );
   await s.pay();
   assert.equal(orders.items.length, 1);
+  await s.start();
+  assert.equal(s.view, "work");
+  assert.equal(s.photo, null);
+  assert.equal(s.repairColor, null);
 });
 
 test("paid processing failure retries the original color without another charge", async () => {
@@ -326,6 +343,7 @@ test("verifying settings are locked; resuming an unpaid legacy order requires a 
     },
   ];
   s.orderId = "uncertain";
+  s.panel = "payment";
   s.selectRepairBackground("red");
   assert.equal(s.repairColor.id, "white");
   assert.equal(s.repairSettingsLocked, true);
@@ -343,10 +361,35 @@ test("verifying settings are locked; resuming an unpaid legacy order requires a 
   await s.resumeOrder(pending);
   assert.equal(s.step, 1);
   assert.equal(s.repairColor, null);
-  assert.equal(s.panel, null);
-  assert.equal(s.primaryEnabled, false);
-  s.selectRepairBackground("red");
+  assert.equal(s.panel, "payment");
   assert.equal(s.primaryEnabled, true);
+  await s.pay();
+  assert.equal(orders.items[0].status, "pending");
+  assert.equal(orders.items[0].repairBackground, undefined);
+  s.selectRepairBackground("red");
+  assert.equal(s.repairColor.id, "red");
+});
+
+test("paid processing blocks missing new color snapshots but can continue an older order without a color field", async () => {
+  const s = studio();
+  const paid = { id: "paid-without-color", owner, action: "repair", status: "paid", photo, sourceKind: "phone", amount: 200 };
+  orders.items = [{ ...paid, repairBackground: null }];
+  await s.resumeOrder(orders.items[0]);
+  await s.runService();
+  assert.equal(s.primaryEnabled, false);
+  assert.equal(s.output, null);
+  assert.equal(library.finished.length, 0);
+
+  orders.items = [paid];
+  await s.resumeOrder(paid);
+  assert.equal(s.primaryLabel, "开始精修");
+  assert.equal(s.repairColor, null);
+  assert.equal(s.repairSettingsLocked, true);
+  await s.primary();
+  assert.equal(s.view, "saved");
+  assert.equal(library.finished.length, 1);
+  assert.equal(orders.items.length, 1);
+  assert.equal(orders.items[0].repairBackground, undefined);
 });
 
 const server = await createServer({
@@ -359,27 +402,31 @@ const { default: Options } = await server.ssrLoadModule(
 );
 test("background control exposes four named native radios, no default and one selected state", () => {
   const s = studio();
-  const render = (color, disabled = false) =>
+  const render = (color, settings = {}) =>
     renderToStaticMarkup(
       React.createElement(Options, {
         colors: s.colors,
         color,
-        disabled,
+        ...settings,
         onChange() {},
       }),
     );
   let html = render(null);
   assert.equal((html.match(/type="radio"/g) || []).length, 4);
   assert.doesNotMatch(html, /checked=""/);
-  assert.match(html, /请选择一种/);
+  assert.doesNotMatch(html, /请先选择一种背景颜色/);
   assert.match(html, /aria-required="true"/);
   for (const name of ["蓝色", "白色", "红色", "浅灰"])
     assert.match(html, new RegExp(name));
   html = render(s.colors[1]);
   assert.equal((html.match(/checked=""/g) || []).length, 1);
-  assert.match(html, /已选：白色/);
+  assert.match(html, /<input(?=[^>]+value="white")(?=[^>]+checked="")[^>]+>/);
   assert.equal(
-    (render(s.colors[1], true).match(/disabled=""/g) || []).length,
+    (render(s.colors[1], { disabled: true }).match(/disabled=""/g) || []).length,
     4,
   );
+  html = render(null, { invalid: true });
+  assert.match(html, /data-invalid="true"/);
+  assert.match(html, /aria-describedby="repair-background-error"[^>]+aria-invalid="true"/);
+  assert.match(html, /id="repair-background-error"[^>]+role="alert">请先选择一种背景颜色/);
 });

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { getStore, registerStore } from "../src/runtime/state.js";
 import {
   checkoutMethods,
@@ -11,6 +12,12 @@ import {
   presentHandoff,
   wasInterrupted,
 } from "../src/domain/payment-handoff.js";
+
+test("the empty payment portal passes clicks through and its open sheet receives them", () => {
+  const styles = readFileSync(new URL("../src/styles/feedback.css", import.meta.url), "utf8");
+  assert.match(styles, /#payment-handoff-layer\s*\{[^}]*pointer-events:\s*none/i);
+  assert.match(styles, /#payment-handoff-layer\s*>\s*\.shared-sheet-overlay\s*\{[^}]*pointer-events:\s*auto/i);
+});
 
 test("digital iOS orders and physical checkout use the correct channels", () => {
   for (const kind of ["electronic", "repair", "outfit"])

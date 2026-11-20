@@ -146,13 +146,16 @@ test("project tasks return to the same project, then category, while filtering o
     } finally {c.stop();}
   }
 });
-test("legacy record lists redirect with replace and task links recover the actual project category", () => {
+test("category record lists stay accessible and legacy task links recover the project category", () => {
   for (const category of ["graduate","enrollment","association"]) {
     const c=collection("/?page=collection&view=records&category="+category);
     try {
-      assert.equal(location.searchParams.get("view"),"projects");
+      assert.equal(location.searchParams.get("view"),"records");
       assert.equal(location.searchParams.get("category"),category);
       assert.equal(history.length,1);
+      c.scope.back();
+      assert.equal(location.searchParams.get("view"),"projects");
+      assert.equal(location.searchParams.get("category"),category);
       c.scope.back();
       assert.equal(location.search,"?page=home");
     } finally {c.stop();}
@@ -160,8 +163,8 @@ test("legacy record lists redirect with replace and task links recover the actua
   const c=collection("/?page=collection&view=detail&from=records&category=graduate&project=association&record=missing");
   try {
     c.scope.back();
-    assert.equal(location.searchParams.get("view"),"project");
-    assert.equal(location.searchParams.get("project"),"association");
+    assert.equal(location.searchParams.get("view"),"records");
+    assert.equal(location.searchParams.get("category"),"association");
     c.scope.back();
     assert.equal(location.searchParams.get("category"),"association");
     assert.equal(location.searchParams.get("view"),"projects");
@@ -259,8 +262,8 @@ test("print examples never become the input, and both layouts swap to the actual
     for (const layout of PRINT_LAYOUTS) {
       const demo = s.workspaceSheet(layout.id);
       assert.equal((demo.match(/<image /g) || []).length, layout.count);
-      assert.ok(demo.includes("photo-placeholder-silhouette-20261106.webp"));
-      assert.doesNotMatch(demo, /<text|免剪裁/);
+      assert.ok(demo.includes("print-portrait-blue.webp"));
+      assert.match(demo, /免剪裁 · 自带胶 · 背胶模切/);
     }
     assert.equal(s.draft.photo, null);
     const photo = {
@@ -576,13 +579,13 @@ test("an old album photo detail URL opens as a sheet and closes to its grid",asy
   } finally {c.stop();}
 });
 
-test("replacing a deep-linked task with its project and category never invents a Back history mark", () => {
+test("replacing a deep-linked task with its categorized records never invents a Back history mark", () => {
   const c=collection("/?page=my");
   try {
     history.pushState({},"","/?page=collection&view=detail&project=graduate&from=records&record=missing");
     window.dispatchEvent(new Event("zhipai-route"));
     c.scope.back();
-    assert.equal(location.searchParams.get("view"),"project");
+    assert.equal(location.searchParams.get("view"),"records");
     c.scope.back();
     assert.equal(location.searchParams.get("category"),"graduate");
     assert.equal(history.state?.collectionCategoryBack,undefined);

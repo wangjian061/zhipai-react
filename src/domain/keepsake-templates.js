@@ -130,6 +130,13 @@ export function orientedPhoto(photo, angle = 0) {
   }
 }
 
+export function keepsakePhotoPlacement(photo, slot, settings) {
+  const oriented = orientedPhoto(photo, settings.rotation);
+  const crop = photoCropBounds(oriented.width, oriented.height, slot.w, slot.h, settings);
+  const factor = slot.w / crop.w;
+  return `translate(${slot.x - crop.x * factor} ${slot.y - crop.y * factor}) scale(${factor}) ${oriented.matrix}`;
+}
+
 export function keepsakeSVG(
   template,
   photo = null,
@@ -152,10 +159,7 @@ export function keepsakeSVG(
       let content;
       if (real) {
         const settings = transform[s.group] || transform;
-        const oriented = orientedPhoto(photo, postcard ? settings.rotation : 0);
-        const crop = photoCropBounds(oriented.width, oriented.height, s.w, s.h, settings);
-        const factor = s.w / crop.w;
-        content = `<use href="#${prefix}-source" transform="translate(${s.x - crop.x * factor} ${s.y - crop.y * factor}) scale(${factor}) ${oriented.matrix}"/>`;
+        content = `<use href="#${prefix}-source" transform="${keepsakePhotoPlacement(photo, s, settings)}"/>`;
       } else {
         const size = Math.min(s.w, s.h) * 0.12;
         content = `<rect ${bounds} fill="#E5E9E7"/><g transform="translate(${s.x + s.w / 2} ${s.y + s.h / 2})"><circle r="${size}" fill="#F6F8F7"/><path d="M-${size / 2} 0h${size} M0 -${size / 2}v${size}" fill="none" stroke="#798C9B" stroke-width="${size * 0.09}"/></g>`;
@@ -192,23 +196,23 @@ export async function photoData(photo) {
   });
   return { data, width: image.naturalWidth, height: image.naturalHeight };
 }
-export async function renderKeepsake(template, photo, transform) {
-  if (!photo?.data || !(photo.width > 0 && photo.height > 0)) {
-    throw Error("请先选取可用的照片。");
-  }
-  let frame;
+export async function loadKeepsakeFrame(template) {
   try {
     const response = await fetch(frameArt(template));
     if (!response.ok) throw Error("frame unavailable");
-    // SVGs decoded as images cannot load external template resources.
-    frame = (await photoData({ blob: await response.blob() })).data;
+    return (await photoData({ blob: await response.blob() })).data;
   } catch {
-    throw Error(
-      template.kind === "postcard"
-        ? "明信片模板读取失败，请重试。"
-        : "邮折版面读取失败，请重试。",
-    );
+    throw Error(template.kind === "postcard"
+      ? "明信片模板读取失败，请重试。"
+      : "邮折版面读取失败，请重试。");
   }
+}
+
+export async function renderKeepsake(template, photo, transform, previewFrame) {
+  if (!photo?.data || !(photo.width > 0 && photo.height > 0))
+    throw Error("请先选取可用的照片。");
+  // SVGs decoded as images cannot load external template resources.
+  const frame = previewFrame || await loadKeepsakeFrame(template);
   const svg = keepsakeSVG(template, photo, transform, "export", frame);
   const blob = new Blob([svg], { type: "image/svg+xml" });
   const image = await decodePhotoBlob(blob);

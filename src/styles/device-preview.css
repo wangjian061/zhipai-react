@@ -8,7 +8,7 @@ html,body{background:#292b30}
 .device-entry>.phone>.screen{position:relative;width:var(--device-screen-width);height:var(--device-screen-height);border-radius:47px;overflow:hidden;box-shadow:0 0 0 5px #050607,0 0 0 6px #3f434a;--native-chrome-ink:#111318;transform:translateZ(0)}
 .app-viewport{position:absolute;inset:0;overflow:hidden;isolation:isolate;z-index:1}
 .native-status-bar{position:fixed;inset:0 0 auto;height:var(--device-status-height);background:transparent;color:var(--native-chrome-ink);z-index:1000;pointer-events:none;user-select:none}
-.native-clock{position:absolute;top:24px;left:32px;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;font-size:17px;font-weight:600;line-height:22px;letter-spacing:-.35px;font-variant-numeric:tabular-nums}
+.native-clock{position:absolute;top:24px;left:32px;font-family:system-ui,sans-serif;font-size:17px;font-weight:600;line-height:22px;letter-spacing:-.35px;font-variant-numeric:tabular-nums}
 .native-island{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:125px;height:36px;border-radius:24px;background:#050507;box-shadow:inset 0 0 0 1px #000}
 .native-island-camera{position:absolute;right:13px;top:11px;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 42% 38%,#26334c 0,#102039 25%,#040812 51%,#090a0e 74%);box-shadow:0 0 0 2px #101117}
 .native-status-indicators{position:absolute;right:28px;top:28px;display:flex;align-items:center;gap:6px;height:16px}
@@ -37,7 +37,7 @@ html,body{background:#292b30}
 /* Standard task pages keep controls below the OS area; their canvas reaches y=0. */
 .device-fit .page{padding-top:var(--device-status-height)}
 .device-fit :is(.home-page,.album-page[data-view="library"],.collection-page:is([data-view="home"],[data-view="records"],[data-view="services"],[data-view="project"],[data-view="projects"],[data-view="notifications"]),.tool-page[data-view="home"],.print-page[data-view="preview"],.camera-page[data-step="capture"]){padding-top:0}
-.device-fit :is(.tool-navigation,.account-nav,.collection-nav,.album-header,.page-header,.camera-stage-header){background:transparent}
+.device-fit :is(.collection-nav,.album-header,.page-header){background:transparent}
 
 /* System chrome sits on the poster's authored quiet top; no extra page spacer. */
 .device-fit .home-page{--home-hero-status-height:var(--device-status-height)}
@@ -57,9 +57,8 @@ html,body{background:#292b30}
 .device-fit :is(.print-footer,.tool-footer,.camera-stage-actions,.album-actions){padding-bottom:var(--device-nav-bottom)}
 .device-fit .collection-page>.collection-action-footer{padding-bottom:var(--device-nav-bottom)}
 .device-fit .capture-toolbar{padding-bottom:var(--device-nav-bottom)}
-.device-fit :is(.account-drawer-body,.collection-drawer-body,.camera-dialog,.tool-sheet-body,.print-dialog,.my-sheet,.photo-choice-sheet){padding-bottom:var(--device-nav-bottom)}
+.device-fit :is(.account-drawer-body,.collection-drawer-body,.tool-sheet-body){padding-bottom:var(--device-nav-bottom)}
 .device-fit .my-overlay{inset:0}
-.device-fit .my-sheet{max-height:calc(100% - var(--device-status-height))}
 .device-fit .album-overlay{padding-top:calc(var(--device-status-height) + 16px);padding-bottom:var(--device-home-height)}
 .device-fit :is(.share-content,.collection-scan-scroll){padding-bottom:var(--device-home-height)}
 .device-fit .share-page .page-header{top:var(--device-status-height)}

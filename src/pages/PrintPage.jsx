@@ -1,12 +1,11 @@
+import { SheetFrame, SheetHeader } from "../components/SharedSheet.jsx";
 import PrintLayoutViewer from "../components/PrintLayoutViewer.jsx";
 import ShippingAddressFields from "../components/ShippingAddressFields.jsx";
 import React from "react";
 import ToolNavigation from "../components/ToolNavigation.jsx";
 import PrintWorkspace from "../components/PrintWorkspace.jsx";
+import PrintPreviewSheet from "../components/PrintPreviewSheet.jsx";
 import ToolPhotoSelection from "../components/ToolPhotoSelection.jsx";
-import PhotoSelectionEmpty from "../components/PhotoSelectionEmpty.jsx";
-import PhotoSelectionPreview from "../components/PhotoSelectionPreview.jsx";
-import PhotoSelectionActions from "../components/PhotoSelectionActions.jsx";
 import FixedPhotoCrop from "../components/FixedPhotoCrop.jsx";
 import PriceText from "../components/PriceText.jsx";
 import { PaymentChoices, PaymentRecovery } from "../components/PaymentHandoff.jsx";
@@ -18,7 +17,7 @@ export default function PrintPage({ scope: s }) {
       as="section"
       scope={s}
       scopeRoot
-      className="page print-page"
+      className={s.view === "preview" ? "page print-page" : "page print-page ui-task-page"}
       id="print-page"
       data-view={s.view}
       inert={s.$store.printUi.opened}
@@ -27,6 +26,7 @@ export default function PrintPage({ scope: s }) {
     >
       <ToolNavigation
         title={s.title}
+        appearance={s.view === "preview" ? "overlay" : "task"}
         disabled={s.processing || s.store.busy}
         onBack={() => s.back()}
       />
@@ -76,7 +76,7 @@ export default function PrintPage({ scope: s }) {
         role="alert"
       ></View>
 
-      {s.view === "crop" && s.draft.photo && (
+      {s.view === "crop" && s.cropSource && (
         <div className="print-screen print-crop-screen">
           <div className="print-body print-crop-body">
             <div className="print-crop-heading">
@@ -85,11 +85,11 @@ export default function PrintPage({ scope: s }) {
               <span>一寸比例 · 5∶7</span>
             </div>
             <FixedPhotoCrop
-              key={s.draft.photo.id}
-              photo={s.draft.photo}
-              src={s.photoURL}
+              key={s.cropSource.id}
+              photo={s.cropSource}
+              src={s.cropSourceURL}
               value={s.crop}
-              processing={s.processing}
+              processing={!!s.cropJob}
               disabled={s.disabled}
               onChange={(value) => s.setCrop(value)}
             />
@@ -110,7 +110,7 @@ export default function PrintPage({ scope: s }) {
               disabled={s.disabled}
               onClick={() => s.applyCrop()}
             >
-              {s.processing ? "正在裁剪…" : "确认裁剪并继续"}
+              {s.cropJob ? "正在裁剪…" : "确认裁剪并继续"}
             </button>
           </footer>
         </div>
@@ -568,19 +568,13 @@ export default function PrintPage({ scope: s }) {
             <ShippingAddressFields
               className="print-card"
               fields={s.addressFields}
+              error={s.addressError}
               disabled={s.disabled}
               onChange={(key, value) => {
                 s.addressFields[key] = value;
               }}
             />
-            <View
-              as="p"
-              scope={s}
-              className="print-form-error"
-              show={s.addressError}
-              text={s.addressError}
-              role="alert"
-            ></View>
+
           </View>
           <View as="footer" scope={s} className="print-footer">
             <View
@@ -605,91 +599,14 @@ export default function PrintPage({ scope: s }) {
       </View>
       <Portal target="#print-modal-layer">
         <PrintLayoutViewer scope={s} />
-        {s.modal !== "layoutPreview" && (
-          <View
-            as="div"
-            scope={s}
-            className="print-overlay"
-            show={s.$store.printUi.opened}
-            events={[
-              {
-                type: "click",
-                prevent: false,
-                stop: false,
-                self: true,
-                passive: false,
-                run: function (scope, $event, $el) {
-                  scope.closeModal();
-                },
-              },
-              {
-                type: "keydown",
-                prevent: false,
-                stop: false,
-                self: false,
-                passive: false,
-                run: function (scope, $event, $el) {
-                  scope.trap($event);
-                },
-              },
-            ]}
-            transition={{
-              opacity: true,
-              duration: 180,
-            }}
-          >
-            <View
-              as="section"
-              scope={s}
-              className="print-dialog ui-sheet"
-              show={s.$store.printUi.opened}
-              dynamicClass={{
-                "print-photo-drawer": s.modal === "album",
-                "photo-selection-sheet": s.modal === "album",
-              }}
-              refName="printDialog"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="print-dialog-title"
-              transition={{
-                enter: "print-sheet-enter",
-                start: "print-sheet-start",
-                end: "print-sheet-end",
-              }}
-            >
-              {s.modal !== "album" && (
-                <View as="header" scope={s} className="ui-sheet-header">
-                  <View
-                    as="h2"
-                    scope={s}
-                    id="print-dialog-title"
-                    text={s.modalTitle}
-                  ></View>
-                  <View
-                    as="button"
-                    scope={s}
-                    className="print-dialog-close"
-                    disabled={s.processing}
-                    aria-label="关闭"
-                    events={[
-                      {
-                        type: "click",
-                        prevent: false,
-                        stop: false,
-                        self: false,
-                        passive: false,
-                        run: function (scope, $event, $el) {
-                          scope.closeModal();
-                        },
-                      },
-                    ]}
-                  >
-                    <View as="svg" scope={s} aria-hidden="true">
-                      <View as="use" scope={s} href="#i-close"></View>
-                    </View>
-                  </View>
-                </View>
-              )}
+        <PrintPreviewSheet studio={s} />
+        {!["layoutPreview", "printPreview"].includes(s.modal) && (
+          <SheetFrame opened={s.$store.printUi.opened} target={null} id="print-dialog-title"
+            className={s.modal === "album" ? "print-dialog print-photo-drawer photo-selection-sheet" : "print-dialog"}
+            busy={s.processing} onClose={() => s.closeModal()}
+            dialogRef={(node) => { s.$refs.printDialog = node; }}>
+            {s.modal !== "album" && <SheetHeader id="print-dialog-title" title={s.modalTitle}
+              busy={s.processing} onClose={() => s.closeModal()} />}
               {s.modal === "album" ? (
                 <ToolPhotoSelection
                   library={s.library}
@@ -795,7 +712,7 @@ export default function PrintPage({ scope: s }) {
                     {"付款结果未确认时，先查询同一订单，避免重复付款。"}
                   </View>
                   <View as="label" scope={s} className="print-query-choice">
-                    {"付款状态"}
+                    {"原型查款结果"}
                     <View
                       as="select"
                       scope={s}
@@ -914,8 +831,7 @@ export default function PrintPage({ scope: s }) {
                 text={s.error}
                 role="alert"
               ></View>
-            </View>
-          </View>
+          </SheetFrame>
         )}
       </Portal>
     </View>

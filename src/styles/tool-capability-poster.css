@@ -1,10 +1,8 @@
 /* Use the same content width for tool posters. */
-.print-direct-workspace,
 .tool-page[data-tool] .tool-work-scroll:has(> .tool-capability-poster) {
   padding-inline: 16px;
 }
 @media (max-width: 360px) {
-  .print-direct-workspace,
   .tool-page[data-tool] .tool-work-scroll:has(> .tool-capability-poster) {
     padding-inline: 14px;
   }

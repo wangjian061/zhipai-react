@@ -10,14 +10,13 @@
 
 | 从上到下 | 确定内容 | 点击及状态 |
 | --- | --- | --- |
-| 系统区与导航 | 全幅蓝白照片规格主题图延伸至屏幕顶部，图内上方安静区域承托系统栏；44px白色圆底返回，20px深蓝左箭头；标题「照片规格」17px居中 | 返回入口来源；无有效来源返回首页。规格页没有底部主导航 |
-| 主题图 | 浅蓝弥散背景，三张不同大小的白边 3D 人像样片。图内无文字，上方留白承托系统区与导航 | 装饰图。规格与底色由下方宫格选择 |
-| 规格区 | 标题「常用规格」；三列三行、同一连贯宫格；轻蓝灰图形、名称及独立数字尺寸行；有物理预设的显示毫米，四六级考试显示144×192px，中国护照显示600×800px；用途说明保留在抽屉及可访问描述 | 整格点击打开选色抽屉；不含自定义、宽高输入或方形照入口 |
-| 列表底部 | 不显示额外操作说明 | 规格列表独立纵向滚动，保留返回前的滚动位置 |
+| 系统区与导航 | 220px 无字头图承托系统安全区与 52px 透明导航。返回为 44px 白圆底触区 | 返回入口来源。制作前返回原确认页，保留原图与已有参数 |
+| 规格区 | 「常用尺寸」与「考试与证件」两组白卡，左侧名称及用途，右侧等宽尺寸及箭头 | 点击规格行打开公共选色抽屉 |
+| 底部 | 规格正文独立滚动，二级页隐藏主导航 | 关闭选色恢复规格行焦点及滚动位置 |
 
 ## 初始规格目录
 
-所有数字顺序均为宽×高。宫格始终显示数字尺寸：物理预设取毫米，四六级考试及中国护照取实际输出像素；「报名电子照／全程网办电子照」保留在抽屉与可访问描述中。数字像素和纸质尺寸是不同字段，不能互相冒充；普通寸照沿用当前产品预设，未因此宣称为所有机构统一标准。
+所有数字顺序均为宽×高。分组列表显示实际数字尺寸，物理预设取毫米，四六级考试及中国护照取实际输出像素；「报名电子照／全程网办电子照」作为用途在列表中展示。数字像素和纸质尺寸是不同字段，不能互相冒充；普通寸照沿用当前产品预设，未因此宣称为所有机构统一标准。
 
 | 名称／稳定标识 | 输出像素 | 毫米／用途说明 | 本地示例底色配置 |
 | --- | --- | --- | --- |
@@ -72,9 +71,9 @@
 
 ## 视觉与三端交付
 
-- React源：[SpecificationsPage.jsx](../../src/pages/SpecificationsPage.jsx)、[SpecificationIcon.jsx](../../src/components/SpecificationIcon.jsx)、[specifications.css](../../src/styles/specifications.css)；首页和规格页共享[utility-grid.css](../../src/styles/utility-grid.css)；目录与参数校验：[photo-specifications.js](../../src/domain/photo-specifications.js)；选色、历史与交接：[specifications.js](../../src/domain/specifications.js)；制作沿用[camera.js](../../src/domain/camera.js)。
-- 402×874预览中，顶部沉浸图220px，导航位于62px系统区下方；内容左右16px、标题16px；网格复用首页`utility-grid.css`：三列三行、间距0、1px极淡线`#F1F4F8`、12px网格外圆角。一个20px圆角白卡内四周16px留白，单格无独立圆角或阴影；13px名称、12px数字尺寸，24px图标置于32px容器。名称使用独立的至少40px高区域、20px行高，可自然换行；数字尺寸为独立块、最小18px高，名称与尺寸均不收缩，不设最大高度或行数截断。格子随内容自然增高，首页名称不套用该两行空间，不另造网格风格。保持自然滚动，不为一屏强行压字。
+- React源：[SpecificationsPage.jsx](../../src/pages/SpecificationsPage.jsx)、[SpecificationIcon.jsx](../../src/components/SpecificationIcon.jsx)、[specifications.css](../../src/styles/specifications.css)；目录与参数校验：[photo-specifications.js](../../src/domain/photo-specifications.js)；选色、历史与交接：[specifications.js](../../src/domain/specifications.js)；制作沿用[camera.js](../../src/domain/camera.js)。
+- 两张 16px 白卡采用公共卡片阴影。组标题及用途小字为正文蓝灰 `#53637B`。行高至少 56px，物理规格使用毫米，电子用途显示像素。
 - 原生端按实际安全区、原生相机和相册生命周期实现，不能把62／29px直接当所有机型系统值。没有付费字体或新字体文件。
-- 2026-11-17 更新为 1644×957px 的无字 WebP 头图，大小 50,800 字节。使用 `cover` 展示，画面在容器内下移 8px，实际手机裁切待验收。[当前头图](../../public/assets/specifications-hero-series-20261117.webp) · [2026-10-20 头图历史记录](../assets/specifications-hero-20261020.md)
+- 当前头图复用 2026-11-17 出品的 1644×957px 无字 WebP，使用 `cover` 展示，画面在容器内下移 8px，实际手机裁切待验收。[头图](../../public/assets/specifications-hero-series-20261117.webp) · [2026-10-20 头图历史记录](../assets/specifications-hero-20261020.md)
 - 已执行检查与构建见[实施记录](../reviews/photo-specifications-20261020/review.md)，独立结果见[收尾结论](../reviews/photo-specifications-20261020/finish-review.md)，仅覆盖源码与出货资产；全局与模块文档闭合见[文档收尾](../reviews/photo-specifications-20261020/documentation.md)。2026-10-22底色联动的代码、文档与验证范围见[本轮记录](../reviews/spec-background-20261022/review.md)。
 - 当前证据为源码、静态渲染、模拟状态与构建；未自动操作浏览器、截图或运行自动UI测试。真实视觉、滚动、相机权限、触摸、读屏和三端原生交接仍需用户及端上验收。

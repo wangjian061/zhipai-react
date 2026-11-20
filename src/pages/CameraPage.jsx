@@ -1,5 +1,8 @@
+import ToolNavigation from "../components/ToolNavigation.jsx";
 import React from "react";
 import { FeedbackToast } from "../components/Feedback.jsx";
+import PriceText from "../components/PriceText.jsx";
+import SharedSheet from "../components/SharedSheet.jsx";
 import { PaymentChoices, PaymentRecovery } from "../components/PaymentHandoff.jsx";
 import { checkoutLabel } from "../domain/payment-handoff.js";
 import {
@@ -7,7 +10,7 @@ import {
   CameraResultPage,
   CameraWorkflowModal,
 } from "../components/CameraWorkflow.jsx";
-import CameraSizeOptions from "../components/CameraSizeOptions.jsx";
+import { CameraSpecificationDirectory } from "./SpecificationsPage.jsx";
 import CameraTaskSheet from "../components/CameraTaskSheet.jsx";
 import CameraVersionComparison from "../components/CameraVersionComparison.jsx";
 import { Controller, View, Portal } from "../runtime/components.jsx";
@@ -19,7 +22,7 @@ export default function CameraPage({ scope, args = [] }) {
           as="section"
           scope={s}
           scopeRoot
-          className="page camera-page"
+          className={["confirm", "editor", "saved"].includes(s.step) && !s.collectionCapture ? "page camera-page ui-task-page" : "page camera-page"}
           id="camera-page"
           show={s.page === "camera"}
           data-step={s.step}
@@ -289,33 +292,7 @@ export default function CameraPage({ scope, args = [] }) {
               className="camera-saved"
               show={s.step === "saved"}
             >
-              <View as="header" scope={s} className="camera-stage-header">
-                <View
-                  as="button"
-                  scope={s}
-                  aria-label="返回"
-                  events={[
-                    {
-                      type: "click",
-                      prevent: false,
-                      stop: false,
-                      self: false,
-                      passive: false,
-                      run: function (scope, $event, $el) {
-                        scope.finish();
-                      },
-                    },
-                  ]}
-                >
-                  <View as="svg" scope={s} aria-hidden="true">
-                    <View as="use" scope={s} href="#i-chevron"></View>
-                  </View>
-                </View>
-                <View as="h1" scope={s}>
-                  {"保存照片"}
-                </View>
-                <View as="span" scope={s}></View>
-              </View>
+              <ToolNavigation title="保存照片" appearance={s.collectionCapture ? "overlay" : "task"} onBack={() => s.finish()} />
               <View as="div" scope={s} className="camera-stage-scroll">
                 <View as="div" scope={s} className="camera-saved-status">
                   <View as="svg" scope={s} aria-hidden="true">
@@ -415,208 +392,56 @@ export default function CameraPage({ scope, args = [] }) {
             </View>
           </View>
           <FeedbackToast message={s.page === "camera" && !s.panel && s.notice} />
+          {s.page === "camera" && s.panel === "spec" && <CameraSpecificationDirectory scope={s} />}
           <Portal target="#camera-modal-layer">
             <CameraWorkflowModal scope={s} />
             <CameraTaskSheet scope={s} />
             <CameraVersionComparison scope={s} />
-            <View
-              as="div"
-              scope={s}
-              className="camera-overlay"
-              show={
-                s.page === "camera" &&
-                !!s.panel &&
-                s.panel !== "compare" &&
-                !s.workflowModal &&
-                !s.taskSheet
-              }
-              events={[
-                {
-                  type: "click",
-                  prevent: false,
-                  stop: false,
-                  self: true,
-                  passive: false,
-                  run: function (scope, $event, $el) {
-                    scope.closePanel();
-                  },
-                },
-                {
-                  type: "keydown",
-                  prevent: false,
-                  stop: false,
-                  self: false,
-                  passive: false,
-                  run: function (scope, $event, $el) {
-                    scope.trapFocus($event);
-                  },
-                },
-              ]}
-              transition={{
-                opacity: true,
-                duration: 150,
-              }}
-            >
-              <View
-                as="section"
-                scope={s}
-                className="camera-dialog ui-sheet"
-                dynamicClass={{
-                  "camera-size-drawer": s.panel === "spec",
-                  "camera-size-picker":
-                    s.panel === "spec" && s.step === "confirm",
-                }}
-                refName="cameraDialog"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="camera-drawer-title"
-              >
-                <View
-                  as="span"
-                  scope={s}
-                  className="sheet-handle"
-                  aria-hidden="true"
-                ></View>
-                <View as="header" scope={s} className="ui-sheet-header">
-                  <View
-                    as="h2"
-                    scope={s}
-                    id="camera-drawer-title"
-                    text={
-                      {
-                        payment: "解锁电子照片",
-                        spec: "选择规格",
-                      }[s.panel]
-                    }
-                  ></View>
-                  <View
-                    as="button"
-                    scope={s}
-                    disabled={s.paying || s.saving}
-                    aria-label="关闭弹窗"
-                    events={[
-                      {
-                        type: "click",
-                        prevent: false,
-                        stop: false,
-                        self: false,
-                        passive: false,
-                        run: function (scope, $event, $el) {
-                          scope.closePanel();
-                        },
-                      },
-                    ]}
+            {s.page === "camera" && s.panel === "payment" && !s.workflowModal && !s.taskSheet && (
+              <SharedSheet
+                opened
+                target={null}
+                id="camera-drawer-title"
+                title="解锁电子照片"
+                closeLabel="关闭弹窗"
+                dialogRef={(node) => { s.$refs.cameraDialog = node; }}
+                busy={s.paying || s.saving}
+                onClose={() => s.closePanel()}
+                footer={
+                  <button
+                    type="button"
+                    className="primary-button camera-pay-button"
+                    disabled={s.paying}
+                    onClick={() => s.draft?.order?.status === "verifying"
+                      ? s.queryPayment()
+                      : s.pay({ handoff: true })}
                   >
-                    <View as="svg" scope={s} aria-hidden="true">
-                      <View as="use" scope={s} href="#i-close"></View>
-                    </View>
-                  </View>
-                </View>
-
-                <View
-                  as="div"
-                  scope={s}
-                  show={s.panel === "spec"}
-                  className="ui-sheet-panel"
-                >
-                  <div className="ui-sheet-body">
-                    <CameraSizeOptions
-                      specs={s.specs}
-                      fields={s.fields}
-                      onSelect={(id) => s.setPanelSpec(id)}
-                    />
-                    {s.sizePanelError && (
-                      <p className="camera-error" role="alert">
-                        {s.sizePanelError}
-                      </p>
-                    )}
+                    {s.paying ? "正在确认…" : checkoutLabel("electronic", s.paymentMethod, s.draft?.order)}
+                  </button>
+                }
+              >
+                <div className="camera-payment-summary">
+                  <img src={s.previewURL || undefined} alt="本次电子照片" />
+                  <div>
+                    <strong>{s.purchasedVersionName}</strong>
+                    <span>{s.spec.name + " · " + s.spec.mm}</span>
                   </div>
-                  <footer className="ui-sheet-footer">
-                    <button
-                      type="button"
-                      className="primary-button"
-                      disabled={s.busy || !!s.sizePanelError}
-                      onClick={() => s.applyPanel()}
-                    >
-                      使用此规格
-                    </button>
-                  </footer>
-                </View>
-
-                <View
-                  as="div"
-                  scope={s}
-                  show={s.panel === "payment"}
-                  className="ui-sheet-panel"
-                >
-                  <View as="div" scope={s} className="ui-sheet-body">
-                    <View as="div" scope={s} className="camera-payment-summary">
-                      <View
-                        as="img"
-                        scope={s}
-                        src={s.previewURL || undefined}
-                        alt="本次电子照片"
-                      ></View>
-                      <View as="div" scope={s}>
-                        <View as="strong" scope={s}>
-                          {s.purchasedVersionName}
-                        </View>
-                        <View
-                          as="span"
-                          scope={s}
-                          text={s.spec.name + " · " + s.spec.mm}
-                        ></View>
-                      </View>
-                      <View as="b" scope={s}>
-                        <span className="ui-price">¥{s.electronicPrice}</span>
-                      </View>
-                    </View>
-                    {s.draft?.order?.status === "verifying" ? (
-                      <PaymentRecovery order={s.draft.order} busy={s.paying}
-                        resolution={s.checkoutResolution} setResolution={(value) => { s.checkoutResolution = value; }}
-                      />
-                    ) : (
-                      <PaymentChoices kind="electronic" method={s.paymentMethod}
-                        setMethod={(value) => { s.paymentMethod = value; }}
-                        outcome={s.paymentOutcome} setOutcome={(value) => { s.paymentOutcome = value; }}
-                        disabled={s.paying}
-                      />
-                    )}
-                    <View
-                      as="p"
-                      scope={s}
-                      className="camera-error"
-                      show={s.error}
-                      text={s.error}
-                      role="alert"
-                    ></View>
-                  </View>
-                  <View as="footer" scope={s} className="ui-sheet-footer">
-                    <View
-                      as="button"
-                      scope={s}
-                      className="primary-button camera-pay-button"
-                      disabled={s.paying}
-                      text={s.paying ? "正在确认…" : checkoutLabel("electronic", s.paymentMethod, s.draft?.order)}
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.draft?.order?.status === "verifying"
-                              ? scope.queryPayment()
-                              : scope.pay({ handoff: true });
-                          },
-                        },
-                      ]}
-                    ></View>
-                  </View>
-                </View>
-              </View>
-            </View>
+                  <PriceText value={"¥" + s.electronicPrice} />
+                </div>
+                {s.draft?.order?.status === "verifying" ? (
+                  <PaymentRecovery order={s.draft.order} busy={s.paying}
+                    resolution={s.checkoutResolution} setResolution={(value) => { s.checkoutResolution = value; }}
+                  />
+                ) : (
+                  <PaymentChoices kind="electronic" method={s.paymentMethod}
+                    setMethod={(value) => { s.paymentMethod = value; }}
+                    outcome={s.paymentOutcome} setOutcome={(value) => { s.paymentOutcome = value; }}
+                    disabled={s.paying}
+                  />
+                )}
+                {s.error && <p className="camera-error" role="alert">{s.error}</p>}
+              </SharedSheet>
+            )}
           </Portal>
         </View>
       )}

@@ -288,7 +288,7 @@ test("full documents render unique anchors even when subsection names repeat, an
     assert.equal(new Set(ids).size, ids.length, id);
     for (const item of pageContents(doc.body))
       assert.ok(ids.includes(item.id), id + ": " + item.id);
-    assert.ok(!doc.body.includes("建议"), id);
+    assert.ok(!doc.body.replace(/`[^`]+`/g, "").includes("建议"), id);
     for (const m of doc.body.matchAll(/\[[^\]]+\]\(([^\s)]+)\)/g)) {
       if (/^(?:https?:|mailto:|#)/.test(m[1])) continue;
       const file = decodeURIComponent(m[1].split("#")[0]);

@@ -22,7 +22,7 @@ const server = await createServer({
   appType: "custom",
 });
 after(() => server.close());
-const { SpecificationGrid, default: SpecificationsPage } =
+const { CameraSpecificationDirectory, SpecificationColorSheet, SpecificationList, default: SpecificationsPage } =
   await server.ssrLoadModule("/src/pages/SpecificationsPage.jsx");
 
 function environment(url = "/?page=specifications&back=%2F%3Fpage%3Dhome") {
@@ -185,20 +185,20 @@ test("picker clears invalid multiple choice, auto-selects a sole color and block
   s.destroy();
 });
 
-test("grid exposes readable size or use-case scope, with complete pixels deferred to the drawer", () => {
+test("grouped directory exposes readable size and use case, with complete pixels in the drawer", () => {
   const html = renderToStaticMarkup(
-    React.createElement(SpecificationGrid, {
+    React.createElement(SpecificationList, {
       specifications: PHOTO_SPECIFICATIONS,
       onChoose() {},
     }),
   );
   assert.equal((html.match(/aria-haspopup="dialog"/g) || []).length, 9);
   assert.ok(html.includes("26 × 32 mm") && html.includes("全程网办电子照"));
-  assert.ok(html.includes("求职招聘") && html.includes("utility-grid"));
+  assert.ok(html.includes("求职招聘") && html.includes("常用尺寸") && html.includes("考试与证件"));
   for (const spec of PHOTO_SPECIFICATIONS) {
     assert.ok(html.includes(`>${specificationDimensions(spec)}</small>`));
   }
-  assert.ok(html.includes('class="utility-grid-item-label"'));
+  assert.ok(html.includes('class="specification-row-label"'));
   assert.ok(!html.includes("自定义"));
   const root = SpecificationsPage({});
   const view = root.props.children({
@@ -207,14 +207,42 @@ test("grid exposes readable size or use-case scope, with complete pixels deferre
     specifications: PHOTO_SPECIFICATIONS,
   });
   const page = renderToStaticMarkup(view);
-  assert.ok(page.includes("specifications-hero-series-20261117.webp"));
+  assert.match(page, /class="specifications-hero"><img[^>]+alt=""[^>]*>/);
+  assert.match(page, /specifications-hero-series-20261117\.webp/);
+  assert.doesNotMatch(page, /utility-grid/);
+  assert.match(page, /data-appearance="overlay"/);
   assert.equal((page.match(/aria-haspopup="dialog"/g) || []).length, 9);
   assert.ok(page.includes("#i-chevron-left"));
   assert.ok(!page.includes("选择规格后设置底色"));
-  assert.ok(
-    fs.statSync("public/assets/specifications-hero-series-20261117.webp").size <
-      250000,
-  );
+
+  const cameraDirectory = renderToStaticMarkup(React.createElement(CameraSpecificationDirectory, {
+    scope: { specs: PHOTO_SPECIFICATIONS, colors: PHOTO_BACKGROUNDS, fields: {} },
+  }));
+  assert.match(cameraDirectory, /data-appearance="overlay"/);
+  assert.match(cameraDirectory, /specifications-hero-series-20261117\.webp/);
+  assert.equal((cameraDirectory.match(/aria-haspopup="dialog"/g) || []).length, 9);
+});
+
+test("shared color sheet reserves outlined swatches for white, very light gray and transparent", () => {
+  const colors = [
+    { id: "white", name: "白色", value: "#ffffff" },
+    { id: "gray", name: "灰色", value: "#d5d9e0" },
+    { id: "very-pale", name: "极浅灰", value: "#e4e8ef" },
+    { id: "light-blue", name: "浅蓝", value: "#65c5ff" },
+    { id: "transparent", name: "透明", value: "transparent" },
+    { id: "blue", name: "蓝色", value: "#438bc6" },
+  ];
+  const html = renderToStaticMarkup(React.createElement(SpecificationColorSheet, {
+    spec: PHOTO_SPECIFICATIONS[0],
+    background: { colors, backgroundId: "white" },
+    label: "使用此规格",
+  }));
+  assert.equal((html.match(/data-pale="true"/g) || []).length, 3);
+  assert.match(html, /data-pale="true" style="background-color:#e4e8ef"/);
+  assert.match(html, /<span aria-hidden="true" style="background-color:#65c5ff"/);
+  assert.match(html, /<span aria-hidden="true" style="background-color:#d5d9e0"/);
+  assert.match(html, /aria-pressed="true"><span aria-hidden="true" data-pale="true" style="background-color:#ffffff"/);
+  assert.ok(html.includes("使用此规格"));
 });
 
 test("closing or browser Back closes color drawer, preserves selection and does not navigate to camera", () => {
@@ -311,13 +339,13 @@ test("reload and Forward clear stale drawer history; the next close works once",
   reload.destroy();
 });
 
-test("home and specification grids share one visual rule source; task canvas fills the screen", () => {
+test("home keeps the utility grid and specifications uses a grouped task directory", () => {
   const home = fs.readFileSync("src/pages/HomePage.jsx", "utf8");
   const specs = fs.readFileSync("src/pages/SpecificationsPage.jsx", "utf8");
   const shared = fs.readFileSync("src/styles/utility-grid.css", "utf8");
   const local = fs.readFileSync("src/styles/specifications.css", "utf8");
   assert.ok(home.includes('className="tools-grid utility-grid"'));
-  assert.ok(specs.includes('className="specification-grid utility-grid"'));
+  assert.ok(specs.includes('className="specification-group-card"'));
   assert.match(shared, /--utility-divider:\s*#f1f4f8/);
   assert.match(
     local,

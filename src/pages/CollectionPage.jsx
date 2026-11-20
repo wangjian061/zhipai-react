@@ -1,3 +1,4 @@
+import SharedSheet from "../components/SharedSheet.jsx";
 import CollectionShootingGuide from "../components/CollectionShootingGuide.jsx";
 import CollectionAnnouncement from "../components/CollectionAnnouncement.jsx";
 import CollectionSupportDrawer from "../components/CollectionSupportDrawer.jsx";
@@ -29,7 +30,7 @@ export default function CollectionPage({ scope, args = [] }) {
           as="section"
           scope={s}
           scopeRoot
-          className="page collection-page"
+          className={s.view === "announcement" || s.isProjectSearch ? "page collection-page ui-task-page" : "page collection-page"}
           id="collection-page"
           data-view={s.view}
           data-record-category={s.recordCategory || undefined}
@@ -268,7 +269,7 @@ export default function CollectionPage({ scope, args = [] }) {
                   self: false,
                   passive: false,
                   run: function (scope, $event, $el) {
-                    scope.trap($event);
+                    if (!$event.defaultPrevented) scope.trap($event);
                   },
                 },
               ]}
@@ -279,67 +280,10 @@ export default function CollectionPage({ scope, args = [] }) {
               <CollectionTaskDrawer scope={s} />
               <CollectionSupportDrawer scope={s} />
               {!s.isAuthPanel && !s.isTaskPanel && !["payment","captureMethod","shootingGuide"].includes(s.panel) && (
-                <View
-                  as="section"
-                  scope={s}
-                  className="collection-drawer"
-                  data-panel={s.panel}
-                  refName="collectionDialog"
-                  role="dialog"
-                  aria-modal="true"
-                  aria-labelledby="collection-drawer-title"
-                >
-                  <View as="header" scope={s}>
-                    <View
-                      as="span"
-                      scope={s}
-                      className="collection-drawer-symbol"
-                      aria-hidden="true"
-                    >
-                      <View as="svg" scope={s}>
-                        <View
-                          as="use"
-                          scope={s}
-                          href={
-                            s.panel === "email"
-                              ? "#i-nav-service"
-                              : s.panel === "requirements"
-                                ? "#i-document"
-                                : "#i-collection-id"
-                          }
-                        ></View>
-                      </View>
-                    </View>
-                    <View
-                      as="h2"
-                      scope={s}
-                      id="collection-drawer-title"
-                      text={s.panelTitle}
-                    ></View>
-                    <View
-                      as="button"
-                      scope={s}
-                      disabled={s.busy}
-                      aria-label="关闭"
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.closePanel();
-                          },
-                        },
-                      ]}
-                    >
-                      <View as="svg" scope={s} aria-hidden="true">
-                        <View as="use" scope={s} href="#i-close"></View>
-                      </View>
-                    </View>
-                  </View>
-                  <View as="div" scope={s} className="collection-drawer-body">
+                <SharedSheet embedded opened id="collection-drawer-title" className="collection-drawer"
+                  title={s.panelTitle} busy={s.busy} onClose={() => s.closePanel()}
+                  dialogRef={(node) => { s.$refs.collectionDialog = node; }}
+                  sectionProps={{ "data-panel": s.panel }}>
                     {s.panel === "requirements" && (
                       <section className="collection-requirements-sheet">
                         <p className="collection-requirements-project">
@@ -427,8 +371,7 @@ export default function CollectionPage({ scope, args = [] }) {
                       text={s.error}
                       role="alert"
                     ></View>
-                  </View>
-                </View>
+                </SharedSheet>
               )}
             </View>
           </Portal>

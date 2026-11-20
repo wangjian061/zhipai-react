@@ -1,3 +1,4 @@
+import ToolNavigation from "../components/ToolNavigation.jsx";
 import SupportSearch from "../components/SupportSearch.jsx";
 import React from "react";
 import { FeedbackToast } from "../components/Feedback.jsx";
@@ -10,7 +11,7 @@ export default function SupportPage({ scope, args = [] }) {
           as="section"
           scope={s}
           scopeRoot
-          className="page support-page"
+          className="page support-page ui-task-page"
           id="support-page"
           show={s.page === "support"}
           aria-label="客服中心"
@@ -21,34 +22,8 @@ export default function SupportPage({ scope, args = [] }) {
           }}
         >
           {s.searching ? <SupportSearch key={s.searchEpoch} s={s}/> : <>
+          <ToolNavigation title="客服中心" backLabel="返回首页" onBack={() => s.go("home")} />
           <View as="div" scope={s} className="support-scroll" refName="supportScroll">
-            <View as="header" scope={s} className="page-header">
-              <View
-                as="button"
-                scope={s}
-                className="back"
-                aria-label="返回首页"
-                events={[
-                  {
-                    type: "click",
-                    prevent: false,
-                    stop: false,
-                    self: false,
-                    passive: false,
-                    run: function (scope, $event, $el) {
-                      scope.go("home");
-                    },
-                  },
-                ]}
-              >
-                <View as="svg" scope={s}>
-                  <View as="use" scope={s} href="#i-chevron"></View>
-                </View>
-              </View>
-              <View as="h1" scope={s}>
-                {"客服中心"}
-              </View>
-            </View>
             <View as="div" scope={s} className="support-intro">
               <View as="h2" scope={s}>
                 {"遇到问题了？"}

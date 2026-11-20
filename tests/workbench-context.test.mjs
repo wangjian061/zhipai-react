@@ -182,7 +182,7 @@ test("new physical-template pages and personal photo sheets resolve complete own
       assert.equal(c.source, "personal-business-upgrade-20261104.md");
     }
   const crop = resolve("?page=keepsake&kind=stamp&view=work", { keepsakeStudio: { kind: "stamp", view: "work", panel: "keepsakeCrop" } });
-  assert.equal(crop.section, "调整构图");
+  assert.equal(crop.section, "定制预览");
   assert.equal(crop.guide, "keepsake.stamp.work");
   const sheet = resolve("?page=my&photoAction=private-photo-id");
   assert.equal(sheet.guide, "my");
@@ -205,7 +205,12 @@ test("print layout preview keeps its page document and points to the preview sec
   });
   assert.equal(c.guide, "print.layouts");
   assert.equal(c.state, "排版预览");
-  assert.equal(c.section, "排版示例与独立预览");
+  assert.equal(c.section, "商品展示、多图画廊与内嵌版式选择（与明信片样式一致）");
+  const crop = resolve("?page=print&print=layouts", {
+    printStudio: { view: "layouts", modal: "printPreview", previewTab: "crop" },
+  });
+  assert.equal(crop.guide, "print.layouts");
+  assert.equal(crop.section, "冲印预览");
 });
 
 test("archive form routing exposes the page guide without member or document IDs",()=>{
@@ -222,6 +227,8 @@ test("archive management sheets show their own operation and stay in the library
     ["family", "edit-member", "private-member", "编辑家人相册", "家人照片"],
     ["family", "delete-member", "private-member", "删除家人相册", "家人照片"],
     ["documents", "manage", "", "管理家人相册", "家人照片"],
+    ["family", "manage-photos", "private-member", "管理家人照片", "管理与删除"],
+    ["family", "delete-photos", "private-member", "删除家人照片", "管理与删除"],
   ]) {
     const c = resolve("?page=album&space=" + space + "&sheet=" + sheet + (member ? "&member=" + member : ""));
     assert.equal(c.guide, "album.library");
@@ -237,16 +244,16 @@ test("archive lists, document operations and family details open the matching do
   assert.equal(documents.state, "证件列表");
   assert.equal(documents.section, "证件照片");
   const groupPath = "?page=album&space=documents&member=private-holder&group=private-group&item=private-photo";
-  const download = resolve(groupPath + "&sheet=download-group");
-  assert.equal(download.guide, "album.library");
-  assert.equal(download.state, "下载证件照片");
-  assert.equal(download.section, "下载证件照片");
-  assert.ok(!download.address.includes("private-"));
-  for (const [sheet, state] of [["group-photo-actions", "照片操作"], ["rename-group-photo", "照片操作"], ["rename-group", "修改证件名称"], ["delete-group-photo", "删除证件照片"]]) {
+  for (const [sheet, state, section] of [
+    ["view-document", "查看证件照片", "沉浸查看与保存证件照片"],
+    ["replace-document", "替换查看中的照片", "沉浸查看与保存证件照片"],
+    ["edit-document", "编辑证件", "单层编辑与删除证件"],
+    ["confirm-document-delete", "删除证件", "单层编辑与删除证件"],
+  ]) {
     const context = resolve(groupPath + "&sheet=" + sheet);
     assert.equal(context.guide, "album.library");
     assert.equal(context.state, state);
-    assert.equal(context.section, "证件操作");
+    assert.equal(context.section, section);
     assert.ok(!context.address.includes("private-"));
   }
   const listPath = "?page=album&space=family&member=private-member";
@@ -257,8 +264,9 @@ test("archive lists, document operations and family details open the matching do
   const detail = resolve(listPath + "&item=private-photo");
   assert.equal(detail.guide, "album.detail");
   assert.equal(detail.section, "照片信息");
-  const deletion = resolve(listPath + "&item=private-photo&sheet=delete-photo");
-  assert.equal(deletion.guide, "album.detail");
-  assert.equal(deletion.section, "删除照片");
-  assert.ok(!deletion.address.includes("private-"));
+  const legacyDeletion = resolve(listPath + "&item=private-photo&sheet=delete-photo");
+  assert.equal(legacyDeletion.guide, "album.detail");
+  assert.equal(legacyDeletion.state, "家人照片详情");
+  assert.equal(legacyDeletion.section, "照片信息");
+  assert.ok(!legacyDeletion.address.includes("private-"));
 });

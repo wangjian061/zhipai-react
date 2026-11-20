@@ -1,6 +1,8 @@
+import SharedSheet from "../components/SharedSheet.jsx";
+import ToolNavigation from "../components/ToolNavigation.jsx";
 import React from "react";
 import AccountLoginFlow from "../components/AccountLoginFlow.jsx";
-import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
+import { Controller, View, Repeat } from "../runtime/components.jsx";
 export default function AccountPage({ scope, args = [] }) {
   return (
     <Controller name="accountFlow" args={args}>
@@ -9,7 +11,7 @@ export default function AccountPage({ scope, args = [] }) {
           as="section"
           scope={s}
           scopeRoot
-          className="page account-page"
+          className="page account-page ui-task-page"
           id="account-page"
           data-view={s.view}
           show={s.page === "account"}
@@ -19,36 +21,12 @@ export default function AccountPage({ scope, args = [] }) {
           }}
           aria-label="知拍账号"
         >
-          <View as="header" scope={s} className="account-nav" inert={!!s.panel}>
-            <View
-              as="button"
-              scope={s}
-              disabled={s.busy}
-              aria-label="返回"
-              events={[
-                {
-                  type: "click",
-                  prevent: false,
-                  stop: false,
-                  self: false,
-                  passive: false,
-                  run: function (scope, $event, $el) {
-                    scope.back();
-                  },
-                },
-              ]}
-            >
-              <View as="svg" scope={s} aria-hidden="true">
-                <View as="use" scope={s} href="#i-chevron-left"></View>
-              </View>
-            </View>
-            <View
-              as="h1"
-              scope={s}
-              show={["privacy", "security"].includes(s.view)}
-              text={s.title}
-            ></View>
-          </View>
+          <ToolNavigation
+            title={["privacy", "security"].includes(s.view) ? s.title : undefined}
+            disabled={s.busy}
+            inert={!!s.panel}
+            onBack={() => s.back()}
+          />
           <View as="div" scope={s} className="account-scroll" inert={!!s.panel}>
             <AccountLoginFlow scope={s} />
             <View
@@ -494,86 +472,32 @@ export default function AccountPage({ scope, args = [] }) {
               role="alert"
             ></View>
           </View>
-          <Portal target="#account-modal-layer">
-            <View
-              as="div"
-              scope={s}
-              className="account-overlay"
-              show={s.page === "account" && s.panel}
-              events={[
-                {
-                  type: "click",
-                  prevent: false,
-                  stop: false,
-                  self: true,
-                  passive: false,
-                  run: function (scope, $event, $el) {
-                    scope.closePanel();
-                  },
-                },
-                {
-                  type: "keydown",
-                  prevent: false,
-                  stop: false,
-                  self: false,
-                  passive: false,
-                  run: function (scope, $event, $el) {
-                    scope.trap($event);
-                  },
-                },
-              ]}
-            >
-              <View
-                as="section"
-                scope={s}
-                className="account-drawer"
-                refName="accountDialog"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="account-drawer-title"
-              >
-                <View as="header" scope={s}>
-                  <View
-                    as="h2"
-                    scope={s}
-                    id="account-drawer-title"
-                    text={
-                      {
-                        oauth: "授权流程示意",
-                        policy:
-                          s.policy === "privacy"
-                            ? "隐私政策阅读示意"
-                            : "用户协议阅读示意",
-                        unbind: "验证账号",
-                        logout: "退出登录？",
-                        delete: "注销账号",
-                      }[s.panel]
-                    }
-                  ></View>
-                  <View
-                    as="button"
-                    scope={s}
-                    disabled={s.busy}
-                    aria-label="关闭"
-                    events={[
-                      {
-                        type: "click",
-                        prevent: false,
-                        stop: false,
-                        self: false,
-                        passive: false,
-                        run: function (scope, $event, $el) {
-                          scope.closePanel();
-                        },
-                      },
-                    ]}
-                  >
-                    <View as="svg" scope={s} aria-hidden="true">
-                      <View as="use" scope={s} href="#i-close"></View>
-                    </View>
-                  </View>
-                </View>
-                <View as="div" scope={s} className="account-drawer-body">
+          <SharedSheet opened={s.page === "account" && !!s.panel} target="#account-modal-layer"
+            className="account-drawer" id="account-drawer-title" busy={s.busy} onClose={() => s.closePanel()}
+            dialogRef={(node) => { s.$refs.accountDialog = node; }}
+            title={{
+              oauth: "授权流程示意",
+              policy: s.policy === "privacy" ? "隐私政策阅读示意" : "用户协议阅读示意",
+              unbind: "验证账号",
+              logout: "退出登录？",
+              delete: "注销账号",
+            }[s.panel]}
+            footer={
+              <>
+                {["oauth", "logout"].includes(s.panel) && <button type="button" className="ui-button-secondary"
+                  disabled={s.busy} onClick={() => s.closePanel()}>取消</button>}
+                {s.panel === "oauth" && <button type="button" className="account-primary"
+                  disabled={s.busy} onClick={() => s.confirmProvider()}>同意并继续</button>}
+                {s.panel === "logout" && <button type="button" className="account-primary"
+                  disabled={s.busy} onClick={() => s.logout()}>确认退出</button>}
+                {s.panel === "unbind" && <button type="button" className="account-primary"
+                  disabled={s.busy || s.code.length !== 6} onClick={() => s.unbind()}>验证并解绑</button>}
+                {s.panel === "delete" && <button type="button" className="account-primary"
+                  disabled={s.busy || s.code.length !== 6} onClick={() => s.deleteAccount()}>验证并注销</button>}
+                {s.panel === "policy" && <button type="button" className="account-primary"
+                  disabled={s.busy} onClick={() => s.closePanel()}>返回</button>}
+              </>
+            }>
                   <View as="div" scope={s} show={s.panel === "oauth"}>
                     <View
                       as="p"
@@ -588,45 +512,6 @@ export default function AccountPage({ scope, args = [] }) {
                         "账号授权，随后绑定手机号完成登录。"
                       }
                     ></View>
-                    <View
-                      as="button"
-                      scope={s}
-                      className="account-primary"
-                      disabled={s.busy}
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.confirmProvider();
-                          },
-                        },
-                      ]}
-                    >
-                      {"同意并继续"}
-                    </View>
-                    <View
-                      as="button"
-                      scope={s}
-                      className="account-text"
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.closePanel();
-                          },
-                        },
-                      ]}
-                    >
-                      {"取消"}
-                    </View>
                   </View>
                   <View as="div" scope={s} show={s.panel === "unbind"}>
                     <View as="p" scope={s}>
@@ -667,68 +552,10 @@ export default function AccountPage({ scope, args = [] }) {
                     <View as="p" scope={s} className="account-help">
                       {"本次验证码：123456 · 有效期5分钟"}
                     </View>
-                    <View
-                      as="button"
-                      scope={s}
-                      className="account-primary"
-                      disabled={s.busy || s.code.length !== 6}
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.unbind();
-                          },
-                        },
-                      ]}
-                    >
-                      {"验证并解绑"}
-                    </View>
                   </View>
                   <View as="div" scope={s} show={s.panel === "logout"}>
                     <View as="p" scope={s}>
                       {"退出后，当前浏览器中的照片和采集记录会保留。"}
-                    </View>
-                    <View
-                      as="button"
-                      scope={s}
-                      className="account-primary"
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.logout();
-                          },
-                        },
-                      ]}
-                    >
-                      {"确认退出"}
-                    </View>
-                    <View
-                      as="button"
-                      scope={s}
-                      className="account-text"
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.closePanel();
-                          },
-                        },
-                      ]}
-                    >
-                      {"取消"}
                     </View>
                   </View>
                   <View as="div" scope={s} show={s.panel === "delete"}>
@@ -766,26 +593,6 @@ export default function AccountPage({ scope, args = [] }) {
                     <View as="p" scope={s} className="account-help">
                       {"本次验证码：123456"}
                     </View>
-                    <View
-                      as="button"
-                      scope={s}
-                      className="account-primary"
-                      disabled={s.code.length !== 6 || s.busy}
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.deleteAccount();
-                          },
-                        },
-                      ]}
-                    >
-                      {"验证并注销"}
-                    </View>
                   </View>
                   <View
                     as="article"
@@ -813,25 +620,6 @@ export default function AccountPage({ scope, args = [] }) {
                     <View as="p" scope={s}>
                       {"可在账号安全中管理登录密码、第三方账号绑定和退出登录。"}
                     </View>
-                    <View
-                      as="button"
-                      scope={s}
-                      className="account-primary"
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.closePanel();
-                          },
-                        },
-                      ]}
-                    >
-                      {"返回"}
-                    </View>
                   </View>
                   <View
                     as="p"
@@ -841,10 +629,7 @@ export default function AccountPage({ scope, args = [] }) {
                     text={s.error}
                     role="alert"
                   ></View>
-                </View>
-              </View>
-            </View>
-          </Portal>
+          </SharedSheet>
         </View>
       )}
     </Controller>

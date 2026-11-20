@@ -4,7 +4,7 @@ import { decodePhotoBlob } from "../domain/photo-readability.js";
 import { downloadAlbumBlob } from "../domain/album.js";
 
 // Family photos use the established photo/detail/service/download layout too.
-export default function FamilyPhotoDetail({ photo, scope, onClose, onDelete, busy, returnFocusRef }) {
+export default function FamilyPhotoDetail({ photo, scope, onClose, returnFocusRef }) {
   const [image, setImage] = useState(null);
   const [attempt, setAttempt] = useState(0);
   const [notice, setNotice] = useState("");
@@ -23,14 +23,14 @@ export default function FamilyPhotoDetail({ photo, scope, onClose, onDelete, bus
   }, [blob, attempt]);
   const current = image?.blob === blob ? image : null;
   const state = {
-    photo, opened: true, downloading, working: busy, notice,
+    photo, opened: true, downloading, notice,
     photoReadable: current?.status === "ready",
     photoReadStatus: current?.status || (blob ? "checking" : "failed"),
     photoRenderKey: attempt,
     url: () => current?.url || "",
     checkPhotoReadability: () => setAttempt(value => value + 1),
     failPhotoReadability: () => setImage(value => value?.status === "failed" ? value : { ...value, status: "failed" }),
-    close: onClose, requestDelete: onDelete,
+    close: onClose,
     download() {
       if (downloading || current?.status !== "ready") return;
       setDownloading(true);

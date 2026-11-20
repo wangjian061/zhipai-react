@@ -25,18 +25,23 @@ export default function StampProduct({ s }) {
           ))}
         </figcaption>
       </figure>
-      <section className="tool-settings keepsake-product-spec">
-        <h2>产品介绍</h2>
-        <p>「致青春」学生纪念邮折。一张照片可定制中央大图和四角小图。</p>
-        <h3>产品参数</h3>
+      <section className="tool-settings keepsake-product-spec stamp-product-spec">
+        <header>
+          <h2>致青春 · 学生纪念邮折</h2>
+          <strong>
+            <span className="ui-price">¥{((s.order?.price ?? s.product.price) / 100).toFixed(2)}</span>
+            <small> / 套</small>
+          </strong>
+        </header>
+        <p>一张照片可定制中央大图与四角小图</p>
         <dl>
           <div>
             <dt>套装</dt>
-            <dd>一套一册，含封套和邮票内页</dd>
+            <dd>一套一册（含封套与邮票内页）</dd>
           </div>
           <div>
             <dt>版式</dt>
-            <dd>5 个定制照片位，8 枚固定图案</dd>
+            <dd>5 个定制位 · 8 枚固定图案</dd>
           </div>
           <div>
             <dt>购买条件</dt>

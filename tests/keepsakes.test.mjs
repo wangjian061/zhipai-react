@@ -2,6 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { resolveObjectURL } from "node:buffer";
 import { Resvg } from "@resvg/resvg-js";
 import { PNG } from "pngjs";
 import {
@@ -86,18 +87,32 @@ function fixture() {
     await mutate(next);
     library.addresses = next.addresses;
   };
+  const entries = [{ url: location.href, state: null }];
+  let cursor = 0;
+  function navigate(entry) {
+    globalThis.location = new URL(entry.url, location.origin);
+    parent.page = location.searchParams.get("page");
+  }
   globalThis.history = {
-    pushState(_s, _t, value) {
-      globalThis.location = new URL(value, location.origin);
-      parent.page = location.searchParams.get("page");
+    get state() { return entries[cursor].state; },
+    set state(value) { entries[cursor].state = value; },
+    pushState(state, _title, url) {
+      entries.splice(cursor + 1, entries.length, { url, state });
+      navigate(entries[++cursor]);
     },
-    replaceState(_s, _t, value) {
-      globalThis.location = new URL(value, location.origin);
-      parent.page = location.searchParams.get("page");
+    replaceState(state, _title, url) {
+      entries[cursor] = { url, state };
+      navigate(entries[cursor]);
+    },
+    back() {
+      if (!cursor) return;
+      navigate(entries[--cursor]);
+      window.dispatchEvent(new Event("popstate"));
     },
   };
   s.photo = photo;
   s.image = { data: "data:image/png;base64,AAAA", width: 2, height: 2 };
+  s.previewFrame = { data: "data:image/png;base64,AAAA", templateId: s.templateId };
   s.output = new Blob(["finished"], { type: "image/png" });
   s.outputURL = URL.createObjectURL(s.output);
   s.addressId = "address";
@@ -199,7 +214,7 @@ test("catalogue shows the six approved postcards and the frontal stamp; samples 
     s.view = "work";
     s.editComposition();
     s.setTransform({ scale: 1.5, offsetX: 20 });
-    s.applyCrop();
+    s.close();
     const input = s.photo;
     s.chooseTemplate("postcard-together");
     assert.equal(s.template.name, "相聚留影");
@@ -220,7 +235,11 @@ function mockPhotoReading() {
   const originals = {
     Image: globalThis.Image,
     FileReader: globalThis.FileReader,
+    fetch: globalThis.fetch,
   };
+  globalThis.fetch = async (url) => new Response(fs.readFileSync("public" + url), {
+    headers: { "Content-Type": url.endsWith(".png") ? "image/png" : "image/jpeg" },
+  });
   globalThis.Image = class {
     naturalWidth = 2;
     naturalHeight = 2;
@@ -257,39 +276,43 @@ for (const kind of ["postcard", "stamp"]) {
         s.selectCandidate(photo.id);
         assert.equal(s.photo, null, "a thumbnail only highlights a candidate");
         await s.useCandidate();
-        assert.equal(s.panel, null);
+        assert.equal(s.panel, "keepsakeCrop");
         assert.equal(s.photo.blob, photo.blob);
         assert.equal(s.image.width, 2);
-        s.editComposition();
+        assert.equal(s.previewReady, true);
         s.setTransform({ scale: 1.6, offsetX: 20 });
-        s.applyCrop();
-        const transform = { ...s.transform };
+        const originalCrop = { ...s.activeTransform };
         s.pick();
         s.close();
-        assert.deepEqual({ ...s.transform }, transform);
+        assert.equal(s.panel, "keepsakeCrop");
+        assert.deepEqual({ ...s.activeTransform }, originalCrop);
+        s.pick();
+        history.back();
+        assert.equal(s.panel, "keepsakeCrop");
+        assert.deepEqual({ ...s.activeTransform }, originalCrop);
         s.pick();
         await s.useCandidate();
-        assert.deepEqual(
-          { ...s.transform },
-          transform,
-          "reconfirming the current photo preserves its crop",
-        );
+        assert.equal(s.panel, "keepsakeCrop");
+        assert.deepEqual({ ...s.activeTransform }, originalCrop);
         s.pick();
         await s.usePhoneFile(undefined);
         assert.equal(s.panel, "album");
         await s.usePhoneFile(
           new File(["invalid"], "test.txt", { type: "text/plain" }),
         );
-        assert.ok(s.error);
+        assert.equal(s.panel, "keepsakeCrop");
+        assert.match(s.previewError, /JPG/);
+        assert.equal(s.canContinue, false);
         assert.equal(s.photo.blob, photo.blob);
-        assert.deepEqual({ ...s.transform }, transform);
+        assert.deepEqual({ ...s.activeTransform }, originalCrop);
         const file = new File(["replacement"], "picked.png", {
           type: "image/png",
         });
+        s.pick();
         await s.usePhoneFile(file);
         assert.equal(s.photo.blob, file);
-        assert.equal(s.panel, null);
-        assert.equal(s.transform.scale, 1);
+        assert.equal(s.panel, "keepsakeCrop");
+        assert.equal(s.activeTransform.scale, 1);
         assert.equal(s.output, null);
         assert.equal(f.orders.items.length, 0);
         assert.equal(location.href, originalRoute);
@@ -341,7 +364,7 @@ for (const [kind, templateId] of [
         const source = location.href;
         s.editComposition();
         s.setTransform({ scale: 1.7, offsetX: 22 });
-        s.applyCrop();
+        s.close();
         s.pick();
         s.makePhoto();
         assert.equal(opens, 1);
@@ -367,7 +390,7 @@ for (const [kind, templateId] of [
         assert.equal(location.href, source);
         assert.equal(s.templateId, templateId);
         assert.equal(s.photo.id, fresh.id);
-        assert.equal(s.panel, null);
+        assert.equal(s.panel, "keepsakeCrop");
         assert.equal(s.output, null);
         assert.equal(opens, 2);
         assert.equal(s.studentProof, proof);
@@ -380,6 +403,153 @@ for (const [kind, templateId] of [
     },
   );
 }
+
+test("preview loading and frame retry lead to checkout, whose previous step restores the same preview", async () => {
+  const f = fixture(), { s } = f;
+  const restore = mockPhotoReading();
+  const originalDocument = globalThis.document;
+  const loadFrame = globalThis.fetch;
+  let failFrame = true;
+  globalThis.fetch = (url) => failFrame
+    ? Promise.resolve(new Response(null, { status: 503 }))
+    : loadFrame(url);
+  globalThis.document = {
+    createElement() {
+      return {
+        getContext: () => ({ drawImage() {} }),
+        toBlob: (done) => done(new Blob(["finished"], { type: "image/png" })),
+      };
+    },
+  };
+  try {
+    await s.enter({ kind: "postcard", returnTo: "/?page=home" });
+    s.view = "templates";
+    s.pick();
+    assert.equal(s.panel, "album");
+    const pending = s.usePhoneFile(new File(["test photo"], "test.png", { type: "image/png" }));
+    assert.equal(s.panel, "keepsakeCrop");
+    assert.equal(s.previewLoading, true);
+    assert.equal(s.canContinue, false);
+    await pending;
+    assert.match(s.previewError, /模板读取失败/);
+    assert.equal(s.photo, null);
+    failFrame = false;
+    assert.equal(await s.loadPreview(), true);
+    assert.equal(s.canContinue, true);
+    s.chooseTemplate("postcard-together");
+    assert.equal(s.previewLoading, true);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(s.previewFrame.templateId, "postcard-together");
+    s.setTransform({ scale: 2, offsetX: 15 });
+    await s.confirm();
+    assert.equal(s.view, "confirm");
+    assert.equal(s.panel, null);
+    await s.back();
+    assert.equal(s.view, "work");
+    assert.equal(s.panel, "keepsakeCrop");
+    assert.equal(s.templateId, "postcard-together");
+    assert.equal(s.activeTransform.offsetX, 15);
+    assert.equal(s.activeTransform.scale, 2);
+  } finally {
+    globalThis.document = originalDocument;
+    restore();
+    f.close();
+  }
+});
+
+test("template switches retain the previous frame and reuse ready and in-flight frame loads", async () => {
+  const f = fixture(), { s } = f;
+  const restore = mockPhotoReading();
+  const originalFetch = globalThis.fetch;
+  const fetchCounts = new Map();
+  const second = KEEPSAKE_TEMPLATES.find((template) => template.id === "postcard-birthday");
+  let finishSecond;
+  globalThis.fetch = (url) => {
+    fetchCounts.set(url, (fetchCounts.get(url) || 0) + 1);
+    if (url === frameArt(second)) return new Promise((resolve) => { finishSecond = () => resolve(originalFetch(url)); });
+    return originalFetch(url);
+  };
+  try {
+    await s.enter({ kind: "postcard", returnTo: "/?page=home" });
+    const first = s.template;
+    await s.startPhotoPreview(photo, "phone");
+    const frame = s.previewFrame.data;
+    s.chooseTemplate(second.id);
+    assert.equal(s.previewLoading, true);
+    assert.equal(s.previewReady, false);
+    assert.equal(s.previewFrame.templateId, first.id);
+    assert.equal(s.previewFrame.data, frame);
+    const secondLoad = s.loadPreviewFrame(second);
+    assert.equal(fetchCounts.get(frameArt(second)), 1);
+    finishSecond();
+    await secondLoad;
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(s.previewFrame.templateId, second.id);
+    assert.equal(s.previewReady, true);
+    s.chooseTemplate(first.id);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(s.previewFrame.templateId, first.id);
+    assert.equal(fetchCounts.get(frameArt(first)), 1);
+    assert.equal(fetchCounts.get(frameArt(second)), 1);
+  } finally { restore(); f.close(); }
+});
+
+test("closing the first preview during reading clears selection and ignores the late result", async () => {
+  const f = fixture(), { s } = f;
+  const restore = mockPhotoReading();
+  const originalFetch = globalThis.fetch;
+  let finishFrame;
+  globalThis.fetch = (url) => new Promise((resolve) => { finishFrame = () => resolve(originalFetch(url)); });
+  try {
+    await s.enter({ kind: "postcard", returnTo: "/?page=home" });
+    s.pick();
+    const pending = s.usePhoneFile(new File(["test photo"], "test.png", { type: "image/png" }));
+    assert.equal(s.panel, "keepsakeCrop");
+    assert.equal(s.previewLoading, true);
+    assert.equal(s.image, null);
+    s.close();
+    assert.equal(s.panel, null);
+    assert.equal(s.previewLoading, false);
+    assert.equal(s.previewRequest, null);
+    finishFrame();
+    await pending;
+    assert.equal(s.photo, null);
+    assert.equal(s.previewFrame, null);
+    assert.equal(s.canContinue, false);
+  } finally { restore(); f.close(); }
+});
+
+test("pinch-anchored zoom keeps the source point stable within the photo window and clamps the bounds", () => {
+  const f = fixture(), { s } = f;
+  try {
+    s.route("work", true);
+    s.image = { width: 1800, height: 1200 };
+    s.editComposition();
+    const [slot] = templateGeometry(s.template).slots;
+    const rect = { left: 0, top: 0, width: 1800, height: 1200 };
+    const point = { x: slot.x + slot.w * 0.65, y: slot.y + slot.h * 0.4 };
+    const geometry = s.cropGeometry(point, rect);
+    const { slot: target } = geometry;
+    s.zoomCrop(point, rect, { factor: 2 });
+    assert.equal(s.activeTransform.scale, 2);
+    const sourceAt = (settings) => {
+      const w = Math.min(1800, 1200 * target.w / target.h) / settings.scale;
+      const h = w * target.h / target.w;
+      return [
+        (1800 - w) * (1 + settings.offsetX / 100) / 2 + w * 0.65,
+        (1200 - h) * (1 + settings.offsetY / 100) / 2 + h * 0.4,
+      ];
+    };
+    const before = sourceAt({ scale: 1, offsetX: 0, offsetY: 0 });
+    const after = sourceAt(s.activeTransform);
+    assert.ok(Math.hypot(before[0] - after[0], before[1] - after[1]) < 0.01);
+    s.zoomCrop(point, rect, { factor: 100 });
+    assert.equal(s.activeTransform.scale, 3);
+    s.zoomCrop(point, rect, { toggle: true });
+    assert.equal(s.activeTransform.scale, 1);
+    assert.equal(s.activeTransform.offsetX, 0);
+  } finally { f.close(); }
+});
 
 test("personal strip uses only the six most recent real files and does not invent metadata", () => {
   const source = Array.from({ length: 9 }, (_, i) => ({
@@ -646,6 +816,7 @@ test("late generation cannot reopen confirmation after system Back within the sa
     originalDocument = globalThis.document,
     originalFetch = globalThis.fetch,
     restoreReading = mockPhotoReading();
+  f.s.previewFrame = { templateId: f.s.templateId, data: embeddedFrame(f.s.template) };
   let rendered = false;
   globalThis.document = {
     createElement() {
@@ -740,7 +911,7 @@ test("paid business history returns to its frozen result, while a new entry star
     assert.equal(s.token, token, "paid snapshots never start another render");
     s.chooseTemplate("postcard-city");
     s.setTransform({ scale: 2 });
-    await s.accept({ ...photo, id: "new" }, "phone");
+    await s.startPhotoPreview({ ...photo, id: "new" }, "phone");
     s.open("addressEdit");
     assert.equal(s.panel, null);
     assert.equal(s.orderId, paid.id);
@@ -759,28 +930,93 @@ test("paid business history returns to its frozen result, while a new entry star
   }
 });
 
-test("stamp: independent center and corner compositions, proof gates payment, rejection cancels and refunds the same order", async () => {
+test("stamp: independent rotations reach the order, proof gates payment and rejection refunds the same order", async () => {
   const f = fixture();
+  const restore = mockPhotoReading();
+  const originalDocument = globalThis.document;
+  globalThis.document = {
+    createElement() {
+      return {
+        getContext: () => ({ drawImage() {} }),
+        toBlob: (done) => done(new Blob(["finished stamp"], { type: "image/png" })),
+      };
+    },
+  };
   try {
     const { s, orders } = f;
     s.kind = "stamp";
     s.templateId = "stamp-youth";
     assert.equal(s.canPay, false);
     s.route("work", true);
+    s.previewFrame = { templateId: s.templateId, data: embeddedFrame(s.template) };
+    assert.equal(s.canContinue, true);
+    const proof = new Blob(["sample ID"], { type: "image/jpeg" });
+    await s.acceptProof(proof);
+    assert.equal(s.studentProof, null);
     s.editComposition();
-    s.activeSlot = "corners";
+    s.turnPhoto(false);
+    assert.equal(s.activeTransform.rotation, 270);
+    assert.equal(s.cropDraft.corners.rotation, undefined);
+    s.selectCropSlot("corners");
     s.setTransform({ scale: 2, offsetX: 24, offsetY: -4 });
-    s.applyCrop();
+    s.turnPhoto(true);
+    assert.equal(s.activeTransform.rotation, 90);
+    assert.equal(s.cropDraft.center.rotation, 270);
+    s.resetTransform();
+    assert.equal(s.activeTransform.rotation, undefined);
+    assert.equal(s.cropDraft.center.rotation, 270);
+    s.setTransform({ scale: 2, offsetX: 24, offsetY: -4 });
+    s.turnPhoto(true);
+    s.close();
     assert.equal(s.composition.center.scale, 1);
     assert.equal(s.composition.corners.scale, 2);
-    s.output = new Blob(["print"]);
-    s.studentProof = new Blob(["sample ID"], { type: "image/jpeg" });
-    s.route("confirm", true);
+    s.editComposition();
+    assert.equal(s.activeTransform.rotation, 270);
+    s.selectCropSlot("corners");
+    assert.equal(s.activeTransform.rotation, 90);
+    await s.confirm();
+    assert.equal(s.view, "confirm");
+    assert.equal(s.canPay, false);
+    await s.acceptProof(proof);
     assert.equal(s.canPay, true);
+    const firstURL = s.studentProofURL;
+    assert.equal(resolveObjectURL(firstURL)?.size, proof.size);
+
+    await s.back();
+    assert.equal(s.view, "work");
+    assert.equal(s.panel, "keepsakeCrop");
+    assert.equal(s.studentProofURL, firstURL);
+    assert.equal(s.composition.corners.rotation, 90);
+    await s.confirm();
+    assert.equal(s.view, "confirm");
+    assert.equal(s.canPay, true);
+
+    s.open("payment");
+    await s.pay("cancel");
+    const orderId = s.orderId;
+    const replacement = new Blob(["replacement ID"], { type: "image/png" });
+    await s.acceptProof(new Blob(["invalid"], { type: "text/plain" }));
+    assert.match(s.proofError, /JPG/);
+    assert.equal(s.studentProof, proof);
+    assert.equal(s.studentProofURL, firstURL);
+    await s.acceptProof(replacement);
+    const replacementURL = s.studentProofURL;
+    assert.equal(s.orderId, orderId);
+    assert.equal(s.order.studentProof, replacement);
+    assert.equal(s.proofError, "");
+    assert.equal(resolveObjectURL(firstURL), undefined);
+    assert.equal(resolveObjectURL(replacementURL)?.size, replacement.size);
+
     s.open("payment");
     await s.pay("unknown");
+    assert.equal(s.orderId, orderId);
+    await s.acceptProof(proof);
+    assert.equal(s.studentProof, replacement);
+    assert.equal(s.canPay, true, "the locked order can still be queried");
     s.resolution = "paid";
     await s.resolvePayment();
+    assert.equal(s.order.transform.rotation, 270);
+    assert.equal(s.order.cornerTransform.rotation, 90);
     assert.equal(s.order.price, 5900);
     assert.equal(s.order.shipping, 1000);
     assert.equal(s.order.total, 6900);
@@ -798,6 +1034,8 @@ test("stamp: independent center and corner compositions, proof gates payment, re
     assert.equal(refund.method, "original");
     assert.ok(s.order.cancelledAt);
     assert.equal(s.order.studentProof, undefined);
+    assert.equal(s.studentProofURL, "");
+    assert.equal(resolveObjectURL(replacementURL), undefined);
     await s.demoReview("approved");
     assert.deepEqual({ ...s.order.refund }, refund);
     s.order.refund.demoDueAt = Date.now() - 1;
@@ -807,9 +1045,106 @@ test("stamp: independent center and corner compositions, proof gates payment, re
     assert.equal(s.order.refund.status, "refunded");
     assert.equal(orders.items.length, 1);
   } finally {
+    globalThis.document = originalDocument;
+    restore();
     f.close();
   }
 });
+test("direct payment entry points still require address and proof on a new stamp order", async () => {
+  const f = fixture(), { s, orders } = f;
+  try {
+    s.kind = "stamp";
+    s.templateId = "stamp-youth";
+    s.route("confirm", true);
+    s.addressId = null;
+    assert.equal(s.canPay, false);
+    await s.requestPayment({ handoff: true });
+    await s.pay("success", { handoff: true });
+    assert.equal(orders.items.length, 0);
+    assert.equal(s.panel, null);
+
+    s.addressId = "address";
+    assert.equal(s.canPay, false);
+    await s.requestPayment({ handoff: true });
+    await s.pay("success", { handoff: true });
+    assert.equal(orders.items.length, 0);
+    assert.equal(s.panel, null);
+
+    s.setStudentProof(new Blob(["sample proof"], { type: "image/jpeg" }));
+    assert.equal(s.canPay, true);
+  } finally {
+    f.close();
+  }
+});
+
+test("student proof URLs are scoped to the current account and released on destroy", async () => {
+  const f = fixture(), { s } = f;
+  const restore = mockPhotoReading();
+  try {
+    s.kind = "stamp";
+    s.templateId = "stamp-youth";
+    s.route("confirm", true);
+    const proof = new Blob(["sample ID"], { type: "image/jpeg" });
+    await s.acceptProof(proof);
+    const firstURL = s.studentProofURL;
+    assert.ok(resolveObjectURL(firstURL));
+    getStore("account").session = { phone: "13900008000" };
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(s.studentProof, null);
+    assert.equal(s.studentProofURL, "");
+    assert.equal(resolveObjectURL(firstURL), undefined);
+
+    s.setStudentProof(proof);
+    const secondURL = s.studentProofURL;
+    s.destroy();
+    assert.equal(resolveObjectURL(secondURL), undefined);
+  } finally {
+    restore();
+    f.close();
+  }
+});
+
+test("an in-flight proof read cannot overwrite another stamp order's proof", async () => {
+  const f = fixture(), { s, orders } = f;
+  const restore = mockPhotoReading();
+  let finishRead;
+  const reading = new Promise((resolve) => { finishRead = resolve; });
+  globalThis.Image = class extends globalThis.Image {
+    decode() { return reading; }
+  };
+  try {
+    s.kind = "stamp";
+    s.templateId = "stamp-youth";
+    s.route("confirm", true);
+    const upload = s.acceptProof(new Blob(["first checkout"], { type: "image/jpeg" }));
+    assert.equal(s.proofReading, true);
+    const savedProof = new Blob(["stored checkout"], { type: "image/png" });
+    orders.items = [{
+      id: "other-stamp",
+      kind: "stamp",
+      owner,
+      status: "pending",
+      templateId: "stamp-youth",
+      studentProof: savedProof,
+      photo,
+      output: new Blob(["stored stamp"], { type: "image/png" }),
+    }];
+    history.pushState({}, "", "/?page=keepsake&kind=stamp&view=confirm&order=other-stamp");
+    window.dispatchEvent(new Event("popstate"));
+    assert.equal(s.orderId, "other-stamp");
+    assert.equal(s.studentProof, savedProof);
+    finishRead();
+    await upload;
+    assert.equal(s.studentProof, savedProof);
+    assert.equal(resolveObjectURL(s.studentProofURL)?.size, savedProof.size);
+    assert.equal(s.proofReading, false);
+  } finally {
+    finishRead();
+    restore();
+    f.close();
+  }
+});
+
 test("approved stamp advances to production only after payment and approval", async () => {
   const f = fixture();
   try {
@@ -881,10 +1216,27 @@ test("physical stamp retains its fixed designs and crops center independently of
       s.group === "center" ? [240, 32, 50, 255] : [20, 54, 225, 255],
     );
   assert.deepEqual(pixel(out, 501, 200), pixel(baseline, 501, 200));
+
+  const rotatedComposition = { center: { rotation: 90 }, corners: { rotation: 270 } };
+  const rotatedPrint = raster(keepsakeSVG(template, source, rotatedComposition, "rotated-print", frame));
+  const rotatedPreview = raster(keepsakeSVG(template, source, rotatedComposition, "rotated-editor", frame, STAMP_PANE));
+  for (const slot of geo.slots) {
+    const x = Math.floor(slot.x + slot.w / 2);
+    const upper = Math.floor(slot.y + slot.h * 0.2);
+    const lower = Math.floor(slot.y + slot.h * 0.8);
+    const red = [240, 32, 50, 255];
+    const blue = [20, 54, 225, 255];
+    const [upperColor, lowerColor] = slot.group === "center" ? [red, blue] : [blue, red];
+    for (const [y, expected] of [[upper, upperColor], [lower, lowerColor]]) {
+      assert.deepEqual(pixel(rotatedPrint, x, y), expected);
+      assert.deepEqual(pixel(rotatedPreview, x - STAMP_PANE.x, y - STAMP_PANE.y), expected);
+    }
+  }
+  assert.deepEqual(pixel(rotatedPrint, 501, 200), pixel(baseline, 501, 200));
   assert.equal(pixel(out, 501, 200)[3], 255);
 });
 
-test("stamp edits are drafts until Done; browser Back discards and dragging targets the cropped pane", () => {
+test("stamp browser Back retains edits and dragging targets the cropped pane", () => {
   const f = fixture();
   try {
     const { s } = f;
@@ -913,7 +1265,7 @@ test("stamp edits are drafts until Done; browser Back discards and dragging targ
     assert.equal(location.href, product);
     assert.equal(s.panel, null);
     assert.equal(s.cropDraft, null);
-    assert.equal(s.transform.scale, 1);
+    assert.equal(s.transform.scale, 2);
     s.editComposition();
     const target = {
       getBoundingClientRect: () => ({
@@ -938,7 +1290,7 @@ test("stamp edits are drafts until Done; browser Back discards and dragging targ
     s.setTransform({ scale: 1.4, offsetX: 10 });
     s.resetTransform();
     assert.equal(s.cropDraft.corners.scale, 2);
-    s.applyCrop();
+    s.close();
     assert.equal(s.panel, null);
     assert.equal(s.cornerTransform.offsetX, -25);
     assert.equal(s.transform.scale, 1);
@@ -947,7 +1299,7 @@ test("stamp edits are drafts until Done; browser Back discards and dragging targ
     s.editComposition();
     s.setTransform({ scale: 2.5 });
     s.close();
-    assert.equal(s.transform.scale, 1);
+    assert.equal(s.transform.scale, 2.5);
     assert.equal(s.cornerTransform.offsetX, -25);
     assert.equal(location.href, product);
   } finally {
@@ -995,12 +1347,11 @@ test("editing a returned unpaid stamp keeps its old quote until the user commits
       window.dispatchEvent(new Event("popstate"));
     };
     s.editComposition();
-    s.setTransform({ scale: 2 });
     s.close();
     assert.equal(s.total, 3980);
     s.editComposition();
     s.setTransform({ scale: 2 });
-    s.applyCrop();
+    s.close();
     assert.equal(s.transform.scale, 2);
     assert.equal(location.searchParams.has("order"), false);
     assert.equal(s.orderId, null);
@@ -1012,58 +1363,47 @@ test("editing a returned unpaid stamp keeps its old quote until the user commits
   }
 });
 
-test("postcard composition is editable only in its sheet; cancel restores the product and Done commits", () => {
-  const f=fixture();
+test("postcard keeps composition when leaving the preview and restores it on reopening", () => {
+  const f = fixture();
   try {
-    const s=f.s;
-    s.route("work",true);
+    const s = f.s;
+    s.route("work", true);
     s.editComposition();
-    const copy={scale:1.8,offsetX:12,offsetY:18};
+    const copy = { scale: 1.8, offsetX: 12, offsetY: 18 };
     s.setTransform(copy);
-    assert.equal(s.transform.scale,1);
-    assert.equal(s.cropDraft.center.scale,1.8);
+    assert.equal(s.transform.scale, 1);
+    assert.equal(s.cropDraft.center.scale, 1.8);
     s.back();
-    assert.equal(s.panel,null);
-    assert.equal(s.transform.scale,1);
+    assert.equal(s.panel, null);
+    assert.deepEqual({ ...s.transform }, copy);
     s.editComposition();
-    s.setTransform(copy);
-    s.applyCrop();
-    assert.deepEqual({...s.transform},copy);
-    assert.equal(s.panel,null);
-    assert.equal(s.output,null);
-    s.editComposition();
+    assert.deepEqual({ ...s.activeTransform }, copy);
     s.resetTransform();
     s.close();
-    assert.deepEqual({...s.transform},copy);
-  } finally {f.close();}
+    assert.equal(s.transform.scale, 1);
+    assert.equal(s.output, null);
+  } finally { f.close(); }
 });
 
-test("postcard rotation is committed only by Done and replacing orientation alone invalidates the previous output", () => {
-  const f=fixture(), {s}=f;
+test("postcard rotation survives closing and invalidates the previous output", () => {
+  const f = fixture(), { s } = f;
   try {
-    s.route("work",true);
+    s.route("work", true);
     s.editComposition();
-    s.turnPostcard(false);
-    assert.equal(s.activeTransform.rotation,270);
+    s.turnPhoto(false);
+    assert.equal(s.activeTransform.rotation, 270);
     s.close();
-    assert.equal(s.transform.rotation||0,0);
-    assert.ok(s.output);
+    assert.equal(s.transform.rotation, 270);
+    assert.equal(s.output, null);
     s.editComposition();
-    s.turnPostcard(true);
-    s.applyCrop();
-    assert.equal(s.transform.rotation,90);
-    assert.equal(s.output,null);
-    s.editComposition();
-    s.turnPostcard(true);
-    s.turnPostcard(true);
-    s.turnPostcard(true);
-    assert.equal(s.activeTransform.rotation||0,0);
+    s.turnPhoto(true);
     s.close();
-    assert.equal(s.transform.rotation,90);
+    assert.equal(s.transform.rotation || 0, 0);
     s.editComposition();
+    s.turnPhoto(true);
     s.resetTransform();
-    s.applyCrop();
-    assert.equal(s.transform.rotation||0,0);
+    s.close();
+    assert.equal(s.transform.rotation || 0, 0);
   } finally { f.close(); }
 });
 

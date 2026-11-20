@@ -1,5 +1,5 @@
 import React, { useCallback, useLayoutEffect, useRef } from "react";
-import { CollectionIcon } from "./CollectionHome.jsx";
+import SharedSheet from "./SharedSheet.jsx";
 
 function InformationRows({ rows }) {
   return (
@@ -48,34 +48,17 @@ export default function CollectionTaskDrawer({
     return null;
   const confirm = s.panel === "confirm";
   return (
-    <section
+    <SharedSheet opened embedded modal={modal} id={`${idPrefix}-drawer-title`}
       className="collection-drawer collection-auth-drawer collection-task-drawer"
-      data-panel={s.panel}
-      ref={attach}
-      role="dialog"
-      aria-modal={modal}
-      aria-labelledby={`${idPrefix}-drawer-title`}
-    >
-      <header className="collection-auth-header">
-        <span className="collection-drawer-symbol">
-          <CollectionIcon name={confirm ? "check" : "document"} />
-        </span>
-        <div>
-          <h2 id={`${idPrefix}-drawer-title`}>{s.panelTitle}</h2>
-          <p>
-            {confirm ? "核对照片及本人信息后提交审核" : s.failureReasonHint}
-          </p>
-        </div>
-        <button
-          type="button"
-          disabled={s.busy}
-          onClick={() => s.closePanel()}
-          aria-label="关闭"
-        >
-          <CollectionIcon name="close" />
+      sectionProps={{ "data-panel": s.panel }} dialogRef={attach} bodyRef={body}
+      title={s.panelTitle} subtitle={confirm ? "核对照片及本人信息后提交审核" : s.failureReasonHint}
+      busy={s.busy} onClose={() => s.closePanel()} footer={confirm && (
+        <button type="button" className="collection-primary"
+          disabled={s.disabled || !s.canCollect || s.statusKey !== "draft"}
+          onClick={() => s.confirmSubmit()}>
+          {s.busy || s.recordsStore.busy ? "正在处理…" : "确认提交审核"}
         </button>
-      </header>
-      <div className="collection-auth-body" ref={body}>
+      )}>
         {(s.error || s.recordsStore.error) && (
           <p className="collection-auth-error" role="alert">
             {s.error || s.recordsStore.error}
@@ -102,19 +85,6 @@ export default function CollectionTaskDrawer({
             />
           </section>
         )}
-      </div>
-      {confirm && (
-        <footer className="collection-auth-footer">
-          <button
-            type="button"
-            className="collection-primary"
-            disabled={s.disabled || !s.canCollect || s.statusKey !== "draft"}
-            onClick={() => s.confirmSubmit()}
-          >
-            {s.busy || s.recordsStore.busy ? "正在处理…" : "确认提交审核"}
-          </button>
-        </footer>
-      )}
-    </section>
+    </SharedSheet>
   );
 }

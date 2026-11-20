@@ -12,6 +12,8 @@
   --device-status-height: 62px;
   --device-nav-bottom: 29px;
   --ease: ease-out;
+  --surface: #fff;
+  --brand-tint: #edf2ff;
 }
 * {
   box-sizing: border-box;
@@ -89,7 +91,7 @@ a:focus-visible {
   overflow: hidden;
   border: 1px solid #d2dbe9;
   border-radius: 36px;
-  background: #f5f7fb;
+  background: var(--ui-canvas);
   isolation: isolate;
 }
 .preview-device > .orders-page {
@@ -99,7 +101,7 @@ a:focus-visible {
 }
 .preview-status {
   position: absolute;
-  z-index: 2;
+  z-index: calc(var(--ui-layer-fixed) + 1);
   top: 0;
   left: 0;
   width: 100%;
@@ -113,6 +115,12 @@ a:focus-visible {
 }
 .preview-status b {
   font-size: 15px;
+}
+.preview-device:has(.orders-page[data-order-view="list"]) .preview-status {
+  color: #0f172a;
+}
+.preview-device:has(.orders-page[data-order-view="list"]) .preview-status b {
+  font-weight: 600;
 }
 .preview-status i {
   position: absolute;

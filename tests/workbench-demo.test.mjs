@@ -81,12 +81,12 @@ test("full page documents are independently loaded and complete sources remain a
   assert.equal(home.title, "首页");
   assert.deepEqual(
     home.contents.slice(0, 7).map((item) => item.label),
-    ["品牌头部与通知", "专项采集卡片", "常用工具", "明信片制作", "邮票制作", "底部导航"],
+    ["品牌头部与通知", "专项采集卡片", "常用工具", "照片纪念品", "底部导航"],
   );
   assert.match(home.body, /照片换装/);
   assert.match(home.body, /照片精修/);
-  assert.match(home.body, /明信片制作/);
-  assert.match(home.body, /邮票制作/);
+  assert.match(home.body, /\[明信片\]\(keepsake\.postcard\.work\.md\)/);
+  assert.match(home.body, /\[邮票\]\(keepsake\.stamp\.work\.md\)/);
   await assert.rejects(loadPage("unmapped-page"));
   const source = "docs/product/common-tools-1.4.6.md";
   assert.equal(await loadSource(source), fs.readFileSync(source, "utf8"));

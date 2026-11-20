@@ -5,7 +5,6 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  padding-top: var(--device-status-height, env(safe-area-inset-top, 0px));
   background: var(--ui-canvas);
   color: var(--ui-heading);
 }
@@ -15,22 +14,8 @@
   flex: none;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px 12px 12px;
-}
-
-.collection-project-search-back {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: #fff;
-}
-
-.collection-project-search-back svg {
-  width: 20px;
-  height: 20px;
+  --task-nav-top-gap: 4px;
+  padding: 4px 12px;
 }
 
 .collection-project-search-form {
@@ -42,7 +27,7 @@
   min-height: 44px;
   padding-left: 12px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--ui-input-fill);
 }
 
 .collection-project-search-form > svg {
@@ -64,7 +49,7 @@
   color: var(--ui-heading);
   caret-color: var(--brand-blue);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--ui-input-font);
   line-height: 1.5;
   appearance: none;
 }
@@ -130,7 +115,7 @@
 
 .collection-project-search-heading h2 {
   font-size: 16px;
-  font-weight: 650;
+  font-weight: 600;
   line-height: 1.5;
 }
 

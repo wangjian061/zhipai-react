@@ -15,7 +15,7 @@
 .portrait-check-status strong {
   font-size: 13px;
   line-height: 1.5;
-  font-weight: 650;
+  font-weight: 600;
 }
 .portrait-check-status p {
   margin: 3px 0 0;
@@ -57,8 +57,8 @@
   background: #d7ece2;
 }
 .portrait-check-status.rejected {
-  background: #fff1ef;
-  color: #ad514b;
+  background: var(--ui-danger-fill);
+  color: var(--ui-danger-ink);
 }
 .portrait-check-status.rejected .portrait-check-mark {
   background: #f7deda;
@@ -67,7 +67,7 @@
   margin: 4px 0 10px;
   color: #293e60;
   font-size: 16px;
-  font-weight: 650;
+  font-weight: 600;
   line-height: 1.5;
 }
 .portrait-check-panel p,

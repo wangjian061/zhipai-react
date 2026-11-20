@@ -417,7 +417,9 @@ export default function AlbumPage({ scope, args = [] }) {
           {s.page==="album" && s.view==="detail" && <PhotoActionSheet scope={s} album={s}/>}
           {s.page === "album" && s.modal === "delete" && <PhotoDeleteDialog
             title={s.selected.length === 1 ? "删除这张照片？" : "删除 " + s.selected.length + " 张照片？"}
-            description="删除后无法恢复，个人中心也将不再显示这些照片。"
+            description={s.selected.length === 1
+              ? "删除后无法恢复，个人中心也将不再显示这张照片。"
+              : "删除后无法恢复，个人中心也将不再显示这些照片。"}
             busy={s.working || s.store.busy} unavailable={s.disabled || !s.selected.length}
             error={s.message} onClose={() => s.closeModal()} onDelete={() => s.confirmDelete()} />}
           <Portal target="#album-modal-layer">
@@ -490,12 +492,7 @@ export default function AlbumPage({ scope, args = [] }) {
                   as="h2"
                   scope={s}
                   id="album-dialog-title"
-                  text={
-                    {
-                      delete: "删除 " + s.selected.length + " 张照片？",
-                      info: "照片信息",
-                    }[s.modal]
-                  }
+                  text="照片信息"
                 ></View>
                 <View
                   as="div"
@@ -544,26 +541,6 @@ export default function AlbumPage({ scope, args = [] }) {
                     ]}
                   >
                     {"下载原始文件"}
-                  </View>
-                  <View
-                    as="button"
-                    scope={s}
-                    className="text-button album-info-delete"
-                    disabled={s.disabled || s.downloading}
-                    events={[
-                      {
-                        type: "click",
-                        prevent: false,
-                        stop: false,
-                        self: false,
-                        passive: false,
-                        run: function (scope, $event, $el) {
-                          scope.deleteCurrent();
-                        },
-                      },
-                    ]}
-                  >
-                    {"删除此照片"}
                   </View>
                 </View>
                 <View

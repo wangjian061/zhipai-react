@@ -38,9 +38,15 @@ const View = await compile("src/runtime/components.jsx", "View", {
   useState: React.useState,
   useSyncExternalStore: React.useSyncExternalStore,
 });
+const ToolNavigation = await compile("src/components/ToolNavigation.jsx", "ToolNavigation", {});
+const SharedSheet = await compile("src/components/SharedSheet.jsx", "SharedSheet", {
+  useEffect: React.useEffect, useRef: React.useRef, Portal: ({ children }) => children, FeedbackToast: () => null,
+});
 let currentState;
 const ScanPage = await compile("src/pages/ScanPage.jsx", "ScanPage", {
   guideContent: collectionCodeHelp,
+  ToolNavigation,
+  SharedSheet,
   View,
   Controller: ({ children }) => children(currentState),
   FeedbackToast: () => null,
@@ -81,8 +87,8 @@ test("help retains institution copy and opens the shared CHSI tutorial instead o
     assert.equal((html.match(/role="dialog"/g) || []).length, 1);
     assert.ok(html.includes('aria-modal="true"'));
     assert.ok(html.includes('inert=""'));
-    assert.ok(html.includes("scan-sheet-body"));
-    assert.ok(html.includes("<footer>"));
+    assert.ok(html.includes("ui-sheet-body"));
+    assert.ok(html.includes('<footer class="ui-sheet-footer'));
     assert.ok(!html.includes("iframe"));
     if (guidePage === "institution")
       assert.ok(html.includes("联系知拍客服协助核实"));

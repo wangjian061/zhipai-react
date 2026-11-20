@@ -26,6 +26,14 @@ Object.defineProperty(globalThis, "navigator", {
   value: {},
   configurable: true,
 });
+const messageStorage = new Map();
+Object.defineProperty(globalThis, "localStorage", {
+  configurable: true,
+  value: {
+    getItem: key => messageStorage.get(key) ?? null,
+    setItem: (key, value) => messageStorage.set(key, value),
+  },
+});
 await import("../src/domain/index.js");
 const settle = () => new Promise((r) => setTimeout(r, 5));
 function setup() {
@@ -34,6 +42,8 @@ function setup() {
   replaces = 0;
   const account = getStore("account");
   account.session = { phone: "13800008000" };
+  messageStorage.clear();
+  getStore("collectionMessages").sync("", [], []);
   const records = getStore("collectionRecords");
   records.ready = true;
   records.busy = false;
@@ -154,25 +164,25 @@ test("continuation, badges and notifications use actual records belonging to the
   assert.equal(s.records.length, 3);
   assert.equal(s.actionableRecords.length, 2);
   assert.equal(s.continueTask.id, "rejected");
-  assert.equal(s.collectionNotifications.length, 3);
-  const message = s.collectionNotifications.find((n) => n.id === "rejected");
-  assert.equal(message.text, "请露出双耳");
-  s.openRecord(message.record);
+  assert.equal(s.collectionNotifications.length, 2, "only terminal results create notifications");
+  const message = s.collectionNotifications.find((n) => n.recordId === "rejected");
+  assert.equal(message.title, "审核未通过");
+  assert.match(message.text, /最新进度/);
+  s.openNotifications(true);
+  s.openNotification(message);
   assert.equal(s.view, "detail");
   assert.equal(s.recordId, "rejected");
   s.back();
-  assert.equal(s.view, "records");
-  s.openRecord(s.records.find((r) => r.id === "complete"));
+  assert.equal(s.view, "notifications");
+  s.openNotification(s.collectionNotifications.find((n) => n.recordId === "complete"));
   assert.equal(s.view, "complete");
   s.back();
-  assert.equal(s.recordFilter, "all");
-  assert.equal(s.view, "records");
+  assert.equal(s.view, "notifications");
   account.session = null;
   assert.equal(s.records.length, 0);
   assert.equal(s.actionableRecords.length, 0);
   assert.equal(s.continueTask, null);
-  assert.equal(s.collectionNotifications.length, 0);
-  assert.equal(s.notifications.length, 2);
+  assert.deepEqual(s.notifications, [], "signed-out accounts never see persisted notifications");
   instance.stop();
 });
 test("login returns to the requesting section; task pages retain back and cannot exit through section controls", () => {
@@ -229,11 +239,9 @@ test("collection menu, asset and section boundaries match the authorized design"
   const home = fs.readFileSync("src/components/CollectionHome.jsx", "utf8");
   for (const label of ["专项列表", "采集记录", "服务中心", "扫码"])
     assert.ok(nav.includes(label));
-  assert.ok(
-    /!s\.isSection\s*&&\s*!\["projects", "notifications", "detail", "complete"\]\.includes\(/.test(
-      page,
-    ),
-  );
+  const fallbackHeader = page.slice(page.indexOf('className="collection-nav"'), page.indexOf("<CollectionTaskHeader"));
+  for (const special of ["projects", "records", "notifications", "announcement", "detail", "complete"])
+    assert.ok(fallbackHeader.includes(`"${special}"`), `no duplicate header for ${special}`);
   assert.ok(page.includes("<CollectionTaskHeader scope={s} />"));
   assert.ok(!page.includes("collection-nav-records"));
   assert.ok(nav.includes("s.isSection && !s.panel"));
@@ -254,30 +262,28 @@ test("collection menu, asset and section boundaries match the authorized design"
 test("notification center has independent filters and returns to its source section", async () => {
   const { s, instance } = setup();
   await settle();
-  s.switchSection("records");
-  s.$refs.collectionRecordList.scrollTop = 110;
-  s.openNotifications();
+  s.openNotifications(true);
   assert.equal(s.view, "notifications");
-  assert.equal(current.searchParams.get("section"), "records");
+  assert.equal(current.searchParams.get("section"), "app-home");
   assert.equal(s.isSection, false);
-  assert.equal(s.latestCollectionNotification.id, "complete");
-  assert.equal(s.notifications.length, 5);
+  assert.equal(s.latestCollectionNotification.recordId, "complete");
   s.notificationFilter = "collection";
-  assert.equal(s.notificationsShown.length, 3);
+  assert.equal(s.notificationsShown.length, 2);
   s.openNotification(s.notificationsShown[0]);
   assert.equal(s.view, "complete");
   s.back();
   assert.equal(s.view, "notifications");
   s.back();
-  assert.equal(s.view, "records");
-  await settle();
-  assert.equal(s.$refs.collectionRecordList.scrollTop, 110);
-  s.switchSection("services");
+  assert.equal(current.searchParams.get("page"), "home");
+  current = new URL("http://127.0.0.1:4180/?page=collection&view=services");
+  s.sync();
   s.openNotifications();
   assert.equal(s.notificationFrom, "services");
   s.notificationFilter = "project";
+  assert.ok(s.notificationsShown.length > 0);
+  assert.ok(s.notificationsShown.every((n) => n.type === "project"));
   s.openNotification(s.notificationsShown[0]);
-  assert.equal(s.view, "project");
+  assert.equal(s.view, "announcement");
   s.back();
   assert.equal(s.view, "notifications");
   s.back();
@@ -306,7 +312,7 @@ test("sample projects have unique identities, complete category rules and resolv
     3,
     "extra projects do not create fake personal records or notifications",
   );
-  assert.equal(s.collectionNotifications.length, 3);
+  assert.equal(s.collectionNotifications.length, 2);
   instance.stop();
 });
 
@@ -438,7 +444,6 @@ test("service-center email contact requires confirmation, cancellation stays in 
       },
     }),
   };
-  assert.equal(s.emailLink, undefined);
   assert.equal(s.confirmEmailContact(), false);
   s.switchSection("services");
   getStore("collectionRecords").ready = false;
@@ -452,16 +457,19 @@ test("service-center email contact requires confirmation, cancellation stays in 
   assert.match(s.emailLink, /^mailto:zpai_service@163\.com\?subject=/);
   s.closePanel();
   assert.equal(s.panel, null);
-  assert.equal(s.emailLink, undefined);
+  assert.equal(s.confirmEmailContact(), false);
   assert.equal(s.view, "services");
   assert.equal(s.confirmEmailContact(), false);
   s.openEmailContact();
   assert.equal(s.confirmEmailContact(), true);
-  assert.equal(s.panel, null);
+  assert.equal(s.panel, "email");
+  assert.match(s.contactNotice, /复制邮箱/);
+  s.closePanel();
   assert.equal(s.confirmEmailContact(), false);
   await settle();
   assert.ok(focuses > 0);
-  s.switchSection("home");
+  s.openCategory("graduate");
+  assert.equal(s.view, "projects");
   s.openEmailContact();
   assert.equal(s.panel, null);
   instance.stop();
@@ -502,7 +510,9 @@ test("collection artwork and scroll source use the approved institutional hierar
   assert.ok(notifications.includes("collection-icon-notification.webp"));
   assert.ok(header.includes("project.bannerImage || project.image"));
   assert.ok(!services.includes("mailto:"));
-  assert.ok(page.includes("s.confirmEmailContact()"));
+  const contact = fs.readFileSync("src/components/CollectionSupportDrawer.jsx", "utf8");
+  assert.ok(page.includes("<CollectionSupportDrawer"));
+  assert.match(contact, /if \(!s\.confirmEmailContact\(\)\) e\.preventDefault\(\)/);
   assert.match(css, /collection-home-inner\{[^}]*padding:18px 16px 0/);
   assert.match(
     css,
@@ -834,22 +844,22 @@ test("record customer support stays in the photo flow and requires explicit conf
   assert.equal(s.panel, "taskSupport");
   assert.equal(s.isTaskPanel, true);
   assert.equal(s.panelTitle, "客服支持");
-  assert.equal(s.emailLink, undefined);
-  assert.equal(s.confirmEmailContact(), false);
+  assert.equal(s.contactNotice, "", "opening support does not open an email app");
   s.openEmailContact();
   assert.equal(s.panel, "email");
   assert.equal(s.isTaskPanel, true);
   assert.equal(s.previousFocus.id, "task-support-entry");
   assert.match(s.emailLink, /^mailto:zpai_service@163\.com\?subject=/);
   s.closePanel();
-  assert.equal(s.emailLink, undefined);
+  assert.equal(s.confirmEmailContact(), false);
   assert.equal(s.current, record);
   assert.equal(s.view, "complete");
   assert.equal(current.href, url);
   s.openTaskSupport();
   s.openEmailContact();
   assert.equal(s.confirmEmailContact(), true);
-  assert.equal(s.panel, null);
+  assert.equal(s.panel, "email");
+  s.closePanel();
   s.view = "project";
   s.openTaskSupport();
   assert.equal(s.panel, null);
@@ -858,7 +868,9 @@ test("record customer support stays in the photo flow and requires explicit conf
   s.openTaskSupport();
   s.openEmailContact();
   assert.equal(s.panel, null);
+  s.panel = "email"; // Simulate an already-rendered action before the account watcher clears it.
   assert.equal(s.confirmEmailContact(), false);
+  s.panel = null;
   await settle();
   assert.ok(restores > 0);
   globalThis.document.activeElement = null;
@@ -890,6 +902,8 @@ test("backend collection statuses are grouped for display without overwriting th
   s.view = "detail";
   s.recordId = "backend-task";
   for (const [raw, key, label, tone] of cases) {
+    messageStorage.clear();
+    getStore("collectionMessages").sync("", [], []);
     records.items = [
       {
         id: "backend-task",
@@ -903,7 +917,9 @@ test("backend collection statuses are grouped for display without overwriting th
     assert.equal(s.status.label, label);
     assert.equal(s.status.tone, tone);
     assert.equal(s.current.status, raw);
-    assert.equal(s.collectionNotifications[0].title, label);
+    window.dispatchEvent(new Event("zhipai-collection-records"));
+    const pushesResult = ["processing_failed", "rejected", "complete", "uploaded", "upload_failed"].includes(key);
+    assert.deepEqual(s.collectionNotifications.map(n => n.title), pushesResult ? [label] : []);
     assert.equal(s.statusFor(raw).label, label);
   }
   instance.stop();

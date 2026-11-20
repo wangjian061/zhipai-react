@@ -7,7 +7,7 @@
 ## 阅读与维护
 
 - [根设计规范](../../DESIGN.md)：标准八节、机器可读令牌、已确认的模块细则与原章节锚点。
-- [Impeccable面板文件](../../.impeccable/design.json)：schemaVersion 2，色带元信息、阴影、动效、局部断点、10个独立HTML/CSS组件与同源叙述。
+- [Impeccable面板文件](../../.impeccable/design.json)：schemaVersion 2，色带元信息、阴影、动效、局部断点、独立HTML/CSS组件与同源叙述。
 - [产品上下文](../../PRODUCT.md)与[三端还原入口](../../HANDOFF.md)：功能边界、模拟能力、还原与验收契约。
 
 根文档的设计语言来自已确认的浅蓝白、清楚对齐、照片完整展示和少打扰要求；「清晰、克制的证件照工作台」是对既有方向的归纳，不是新品牌提案。不新增字体、配色、图形风格或业务步骤。
@@ -28,19 +28,22 @@
 
 | 提取对象 | 源码 |
 | --- | --- |
-| 通用颜色、按钮、卡片及抽屉基础值 | [src/styles/ui-foundations.css](../../src/styles/ui-foundations.css#L2) |
+| 通用令牌及主、次、轻危险、轻文字按钮 | [ui-foundations.css](../../src/styles/ui-foundations.css) |
+| 相册管理底栏轻危险入口及确认框强危险动作 | [ui-foundations.css](../../src/styles/ui-foundations.css) · [feedback.css](../../src/styles/feedback.css) |
 | 字体栈、品牌蓝、全局按钮、主导航阴影与首页后置覆盖 | [src/styles/styles.css](../../src/styles/styles.css#L1) |
-| 导航52px／返回44px／标题17px | [src/styles/tool-navigation.css](../../src/styles/tool-navigation.css#L1) |
-| 步骤圆24px、连接线与下方12px文字 | [src/styles/tool-stepper.css](../../src/styles/tool-stepper.css#L1) |
+| 常规任务导航：系统安全区加52px白底、44px透明返回触区（按压灰圆）、16px标题（常规二级任务页） | [ToolNavigation.jsx](../../src/components/ToolNavigation.jsx) · [tool-navigation.css](../../src/styles/tool-navigation.css#L74) |
+| 历史步骤条（已不在当前面板中） | [src/styles/tool-stepper.css](../../src/styles/tool-stepper.css#L1) |
+| 订单详情及双版本结果金额字阶、统一金额红 | [ui-foundations.css](../../src/styles/ui-foundations.css#L6) · [PriceText.jsx](../../src/components/PriceText.jsx) |
 | 公共抽屉固定头尾、独立滚动正文、安全区 | [src/styles/ui-sheets.css](../../src/styles/ui-sheets.css#L2) |
 | 宫格20px外卡／16px内距／极淡连线及长名称 | [src/styles/utility-grid.css](../../src/styles/utility-grid.css#L2) |
 | 精修底色单选、禁用与焦点样式 | [src/styles/tools.css](../../src/styles/tools.css#L28)；[src/components/RepairBackgroundOptions.jsx](../../src/components/RepairBackgroundOptions.jsx#L3) |
 | 实际精修照片底色配置 | [src/domain/tools.js](../../src/domain/tools.js#L412) |
 | 认证抽屉输入44px／16px字 | [src/styles/collection-auth.css](../../src/styles/collection-auth.css#L40) |
 | 普通16px卡的实际实例 | [src/styles/my.css](../../src/styles/my.css#L13) |
-| 订单磨砂、类型Tab、状态胶囊与票据 | [src/styles/orders.css](../../src/styles/orders.css#L38)；[src/styles/orders.css](../../src/styles/orders.css#L227) |
+| 订单白底固定头、两行筛选、状态胶囊与票据 | [src/styles/orders.css](../../src/styles/orders.css#L38)；[src/styles/orders.css](../../src/styles/orders.css#L227) |
 | 照片完整展示与订单缩略图后置覆盖 | [src/styles/photo-previews.css](../../src/styles/photo-previews.css#L3)；[src/styles/photo-previews.css](../../src/styles/photo-previews.css#L147) |
 | 首页八项真实SVG图形 | [src/components/HomeToolIcon.jsx](../../src/components/HomeToolIcon.jsx#L4) |
+| 提示、确认框、支付恢复与遮罩层级 | [feedback.css](../../src/styles/feedback.css) · [Feedback.jsx](../../src/components/Feedback.jsx) · [PaymentHandoff.jsx](../../src/components/PaymentHandoff.jsx) |
 | 无照片占位图与只读照片语义 | [src/components/OrderThumbnail.jsx](../../src/components/OrderThumbnail.jsx#L4) |
 
 样式入口以[main.jsx](../../src/main.jsx)和组件内导入共同决定。入口当前导入顺序：

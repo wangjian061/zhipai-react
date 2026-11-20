@@ -32,7 +32,7 @@ function studio(){const tool=factories.toolStudio();tool.$store=stores;tool.page
  const library=stores.photoLibrary;await library.load();await stores.toolOrders.load();
  const photo={id:'original',name:'original.jpg',width:295,height:413,type:'image/jpeg',size:8,spec:'一寸 · 25 × 35 mm',blob:new Blob(['original'],{type:'image/jpeg'})};
  await library.commit({finished:[photo],archivedOriginals:[]});
- const tool=studio();await tool.accept({photo,kind:'finished',context:{action:'background'}});assert.equal(tool.step,0);assert.equal(tool.portraitCheck.status,'idle');await tool.primary();await tool.choosePortraitOutcome('passed');
+ const tool=studio();await tool.accept({photo,kind:'finished',context:{action:'background'}});assert.equal(tool.step,1);assert.equal(tool.portraitCheck.status,'awaiting');await tool.choosePortraitOutcome('passed');
  assert.equal(tool.step,1);assert.equal(tool.primaryLabel,'保存到设备');
  const output=tool.output,task=tool.task,writesBefore=albumWrites;
  failWrite=true;failDownload=true;await tool.primary();assert.equal(tool.view,'work');assert.equal(library.finished.length,1);assert.match(tool.error,/保存未完成/);assert.equal(tool.primaryLabel,'重试保存');assert.equal(tool.output,output);
@@ -45,6 +45,6 @@ function studio(){const tool=factories.toolStudio();tool.$store=stores;tool.page
  const original=library.finished.find(p=>p.id===photo.id);
  assert.equal(await downloads[0].text(),'changed-background');assert.equal(await original.blob.text(),'original');assert.equal(tool.outputWidth,295);assert.equal(tool.outputHeight,413);
  await tool.save();assert.equal(downloads.length,1);tool.previousStep();assert.equal(tool.view,'saved');
- await tool.start();assert.equal(tool.step,0);assert.equal(tool.photo,null);assert.equal(tool.output,null);assert.equal(library.finished.length,1);assert.equal(tool.view,'work');assert.equal(new URL(context.location.href).searchParams.get('view'),'work');tool.destroy();
+ await tool.start();assert.equal(tool.step,1);assert.equal(tool.photo,null);assert.equal(tool.output,null);assert.equal(library.finished.length,1);assert.equal(tool.view,'work');assert.equal(new URL(context.location.href).searchParams.get('view'),'work');tool.destroy();
  console.log('PASS: background device delivery with real routing and album store; failed download retries the same output, no album write/payment, original preservation, completion and restart.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

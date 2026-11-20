@@ -3,7 +3,8 @@
   inset: 0;
   display: flex;
   align-items: flex-end;
-  background: #14213b50;
+  background: var(--ui-overlay-scrim);
+  z-index: var(--ui-layer-drawer);
   pointer-events: auto;
 }
 .camera-task-sheet.ui-sheet {
@@ -86,7 +87,7 @@
   color: #23764f;
 }
 .camera-check-items [data-status="failed"] .camera-check-status {
-  color: #b42332;
+  color: var(--ui-danger-ink);
 }
 .camera-task-reasons {
   margin-top: 24px;
@@ -108,8 +109,8 @@
   margin-top: 12px;
 }
 .camera-task-sheet[data-failure="true"] {
-  --camera-failure-ink: #b42332;
-  --camera-failure-surface: #fff1f2;
+  --camera-failure-ink: var(--ui-danger-ink);
+  --camera-failure-surface: var(--ui-danger-fill);
 }
 .camera-task-sheet[data-failure="true"] > .ui-sheet-header {
   gap: 10px;
@@ -199,20 +200,7 @@
 .camera-task-sheet .camera-task-actions {
   border-top: 0;
 }
-.camera-task-actions > button {
-  min-height: 48px;
-  border-radius: 14px;
-  font-size: 15px;
-  font-weight: 600;
-}
-.camera-task-sheet .camera-task-actions > .primary-button {
-  background: var(--brand-blue);
-  color: #fff;
-}
-.camera-task-secondary {
-  background: #f0f3f7;
-  color: #53637b;
-}
+
 .camera-task-sheet button:focus-visible {
   outline: 2px solid var(--brand-blue);
   outline-offset: -4px;

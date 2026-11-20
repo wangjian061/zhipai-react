@@ -1,8 +1,9 @@
+import { SheetFrame, SheetHeader } from "../components/SharedSheet.jsx";
 import React from "react";
 import MySupportSheet from "../components/MySupportSheet.jsx";
 import SharePage from "../components/SharePage.jsx";
 import MyOverview from "../components/MyOverview.jsx";
-import { Controller, View, Repeat, Portal } from "../runtime/components.jsx";
+import { Controller, View, Repeat } from "../runtime/components.jsx";
 export default function MyPage({ scope, args = [] }) {
   return (
     <Controller name="myCenter" args={args}>
@@ -31,87 +32,10 @@ export default function MyPage({ scope, args = [] }) {
         >
           <MyOverview scope={s} />
           <SharePage scope={s} />
-          <Portal target="#my-modal-layer">
-            <View
-              as="div"
-              scope={s}
-              className="my-overlay"
-              show={s.$store.myUi.opened}
-              events={[
-                {
-                  type: "click",
-                  prevent: false,
-                  stop: false,
-                  self: true,
-                  passive: false,
-                  run: function (scope, $event, $el) {
-                    scope.closePanel();
-                  },
-                },
-                {
-                  type: "keydown",
-                  prevent: false,
-                  stop: false,
-                  self: false,
-                  passive: false,
-                  run: function (scope, $event, $el) {
-                    scope.dialogKeys($event);
-                  },
-                },
-              ]}
-              transition={{
-                opacity: true,
-                duration: 150,
-              }}
-            >
-              <View
-                as="section"
-                scope={s}
-                className="my-sheet ui-sheet"
-                dynamicClass={{
-                  "feedback-sheet": s.panel === "feedback",
-                }}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="my-dialog-title"
-                refName="dialog"
-              >
-                <View
-                  as="span"
-                  scope={s}
-                  className="sheet-handle"
-                  aria-hidden="true"
-                ></View>
-                <View as="header" scope={s} className="ui-sheet-header">
-                  <View
-                    as="h2"
-                    scope={s}
-                    id="my-dialog-title"
-                    text={s.panelTitle}
-                  ></View>
-                  <View
-                    as="button"
-                    scope={s}
-                    className="my-close"
-                    aria-label="关闭"
-                    events={[
-                      {
-                        type: "click",
-                        prevent: false,
-                        stop: false,
-                        self: false,
-                        passive: false,
-                        run: function (scope, $event, $el) {
-                          scope.closePanel();
-                        },
-                      },
-                    ]}
-                  >
-                    <View as="svg" scope={s}>
-                      <View as="use" scope={s} href="#i-close"></View>
-                    </View>
-                  </View>
-                </View>
+            <SheetFrame opened={s.$store.myUi.opened} target="#my-modal-layer"
+              id="my-dialog-title" className={s.panel === "feedback" ? "my-sheet feedback-sheet" : "my-sheet"}
+              onClose={() => s.closePanel()} dialogRef={(node) => { s.$refs.dialog = node; }}>
+              <SheetHeader id="my-dialog-title" closeClassName="my-close" title={s.panelTitle} onClose={() => s.closePanel()} />
                 <MySupportSheet scope={s} />
                 <View
                   as="div"
@@ -239,6 +163,7 @@ export default function MyPage({ scope, args = [] }) {
                         as="textarea"
                         scope={s}
                         id="feedback-message"
+                        className="ui-form-control"
                         maxLength="600"
                         placeholder="描述遇到的问题、操作步骤，或写下你的建议"
                         required={true}
@@ -764,9 +689,7 @@ export default function MyPage({ scope, args = [] }) {
                   text={s.panelNotice}
                   role="status"
                 ></View>
-              </View>
-            </View>
-          </Portal>
+            </SheetFrame>
         </View>
       )}
     </Controller>

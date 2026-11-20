@@ -3,15 +3,55 @@
   --ui-heading:#203858;
   --ui-body:#53637b;
   --ui-muted:#73849a;
-  --ui-price-ink:#b42332;
-  --ui-canvas:#f5f7fb;
+  --ui-price-ink:#e11d48;
+  --ui-danger-ink:#dc2626;
+  --ui-danger-fill:#fef2f2;
+  --ui-success-ink:#059669;
+  --ui-success-fill:#ecfdf5;
+  --ui-warning-ink:#d97706;
+  --ui-warning-fill:#fffbeb;
+  --ui-info-ink:#1677ff;
+  --ui-info-fill:#eff6ff;
+  --ui-canvas:#f3f5fc;
+  --ui-nav-back-fill:#f1f5f9;
+  --ui-row-press-fill:#f5f7fb;
+  --ui-nav-height:52px;
+  --ui-nav-title:16px;
+  --ui-display-price:20px;
+  --ui-list-price:16px;
+  --ui-currency-size:12px;
+  --ui-currency-weight:600;
+  --ui-divider:#edf1f7;
+  --ui-border-subtle:#dce3ee;
+  --ui-swatch-light-border:#d0dae8;
+  --ui-selection-border:#b8ccff;
   --brand-canvas:#f1f5fd;
   --ui-card-radius:16px;
   --ui-button-height:48px;
   --ui-button-radius:14px;
   --ui-button-font:15px;
+  --ui-button-weight:600;
+  --ui-secondary-button-font:14px;
+  --ui-secondary-button-weight:500;
   --ui-sheet-radius:24px;
-  --ui-sheet-title:18px;
+  --ui-input-fill:#f3f6fb;
+  --ui-input-radius:12px;
+  --ui-secondary-fill:#eef2fa;
+  --ui-secondary-ink:#334d78;
+  --ui-disabled-fill:#e3e8f1;
+  --ui-disabled-ink:#58677e;
+  --ui-input-font:16px;
+  --ui-page-title:18px;
+  --ui-section-title:15px;
+  --ui-sheet-title:16px;
+  --ui-layer-fixed:5;
+  --ui-layer-navigation:20;
+  --ui-layer-drawer:40;
+  --ui-layer-viewer:50;
+  --ui-layer-confirmation:60;
+  --ui-layer-processing:70;
+  --ui-layer-toast:80;
+  --ui-overlay-scrim:rgb(18 28 45 / 48%);
   --ui-touch-min:44px;
   --ui-toast-fill:#26364a;
   --ui-toast-radius:12px;
@@ -23,8 +63,113 @@
   --card-shadow:var(--ui-card-shadow);
 }
 
+/* Standard actions. Existing class names still identify each slot and its layout. */
+:is(.ui-button-primary, .primary-button, .tool-primary, .print-primary,
+    .my-primary, .feedback-submit, .scan-primary, .account-primary,
+    .collection-primary, .orders-primary, .share-save, .specifications-primary,
+    :where(.album-create-footer) > button,
+    :where(.confirmation-dialog .delete-confirm-actions) > .is-primary) {
+  min-height: var(--ui-button-height);
+  border: 0;
+  border-radius: var(--ui-button-radius);
+  background: var(--brand-blue);
+  color: #fff;
+  font-size: var(--ui-button-font);
+  font-weight: var(--ui-button-weight);
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+:is(.ui-button-secondary, .tool-secondary, .tool-repick, .print-secondary,
+    .print-previous, .my-secondary, .scan-secondary, .orders-secondary,
+    .collection-secondary, .camera-secondary, .camera-outline-button, .camera-task-secondary, .print-photo,
+    :where(.manage-actions) > button:where(:not(.delete-action)),
+    :where(.delete-confirm-actions) > button:where(:not(.danger, .is-primary))) {
+  min-height: var(--ui-button-height);
+  border: 0;
+  border-radius: var(--ui-button-radius);
+  background: var(--ui-secondary-fill);
+  color: var(--ui-secondary-ink);
+  font-size: var(--ui-secondary-button-font);
+  font-weight: var(--ui-secondary-button-weight);
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+:is(.ui-button-danger-soft, .delete-action, .account-danger) {
+  width: 100%;
+  min-height: var(--ui-button-height);
+  border: 0;
+  border-radius: var(--ui-button-radius);
+  background: var(--ui-danger-fill);
+  color: var(--ui-danger-ink);
+  font-size: var(--ui-secondary-button-font);
+  font-weight: var(--ui-secondary-button-weight);
+  line-height: 1.4;
+  text-align: center;
+}
+
+:is(.ui-button-text, .ui-button-danger-text, .camera-text-action, .camera-version-retry,
+    .orders-text-action, .order-number-toggle, .account-text, .collection-auth-secondary,
+    .text-button, .archive-remove-member,
+    :where(.print-global-error, .print-quote-error, .album-error) > button,
+    :where(.archive-management-list) :where(button)) {
+  --ui-action-text-ink: var(--brand-blue);
+  --ui-action-text-pressed: var(--ui-nav-back-fill);
+  min-height: var(--ui-touch-min);
+  background: transparent;
+  color: var(--ui-action-text-ink);
+  font-size: var(--ui-secondary-button-font);
+  font-weight: var(--ui-secondary-button-weight);
+}
+
+:is(.ui-button-danger-text, .archive-remove-member) {
+  --ui-action-text-ink: var(--ui-danger-ink);
+  --ui-action-text-pressed: var(--ui-danger-fill);
+}
+
+:is(.ui-button-text, .ui-button-danger-text, .camera-text-action, .camera-version-retry,
+    .orders-text-action, .order-number-toggle, .account-text, .collection-auth-secondary,
+    .text-button, .archive-remove-member,
+    :where(.print-global-error, .print-quote-error, .album-error) > button,
+    :where(.archive-management-list) button):not(:disabled):active {
+  background: var(--ui-action-text-pressed);
+}
+
+button:is(.ui-button-primary, .primary-button, .tool-primary, .print-primary,
+    .my-primary, .feedback-submit, .scan-primary, .account-primary, .collection-primary,
+    .orders-primary, .share-save, .specifications-primary, .ui-button-secondary,
+    .tool-secondary, .tool-repick, .print-secondary, .print-previous, .my-secondary,
+    .scan-secondary, .orders-secondary, .collection-secondary, .camera-secondary,
+    .camera-outline-button, .camera-task-secondary, .print-photo, .ui-button-danger-soft,
+    .delete-action, .account-danger,
+    .album-create-footer > button, .manage-actions > button, .delete-confirm-actions > button):disabled {
+  background: var(--ui-disabled-fill);
+  color: var(--ui-disabled-ink);
+  opacity: 1;
+  cursor: default;
+  transform: none;
+}
+
+:is(.archive-remove-member, .ui-button-danger-text):disabled {
+  color: var(--ui-disabled-ink);
+  opacity: 1;
+}
+
+:is(.delete-action, .account-danger,
+    .archive-remove-member, .ui-button-danger-soft,
+    .ui-button-danger-text):focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+
 .ui-price {
   color: var(--ui-price-ink);
+}
+
+.ui-price-currency {
+  font-size: var(--ui-currency-size);
+  font-weight: var(--ui-currency-weight);
 }
 
 /* Order and sticky brand headers share the same glass and opaque fallback. */
@@ -116,3 +261,75 @@
   width: calc(100% * var(--brand-info-mascot-scale));
   margin-inline: auto;
 }
+
+.ui-segmented-control {
+  position:relative;
+  display:inline-flex;
+  flex:none;
+  padding-inline:3px;
+  border-radius:10px;
+  isolation:isolate;
+}
+.ui-segmented-control::before {
+  position:absolute;
+  inset:4px 0;
+  z-index:-1;
+  border:1px solid var(--ui-border-subtle);
+  border-radius:inherit;
+  background:var(--surface);
+  box-shadow:0 1px 2px rgb(32 56 88 / 4%);
+  content:"";
+}
+.ui-segmented-control label {
+  position:relative;
+  display:grid;
+  align-items:center;
+  min-height:var(--ui-touch-min);
+}
+.ui-segmented-control input {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  margin:0;
+  opacity:0;
+  cursor:pointer;
+}
+.ui-segmented-control span {
+  display:grid;
+  place-items:center;
+  min-width:var(--ui-touch-min);
+  min-height:28px;
+  padding:0 8px;
+  color:var(--ui-body);
+  border-radius:7px;
+  font-size:13px;
+  font-weight:500;
+  transition:background-color 140ms ease,color 140ms ease;
+}
+.ui-segmented-control input:checked + span {
+  color:var(--surface);
+  font-weight:600;
+  background:var(--ui-heading);
+  box-shadow:0 1px 3px rgb(32 56 88 / 18%);
+}
+.ui-segmented-control input:focus-visible + span { outline:2px solid var(--brand-blue); outline-offset:1px; }
+.ui-segmented-control input:disabled + span { color:var(--ui-disabled-ink); }
+.ui-segmented-control input:checked:disabled + span { background:var(--ui-disabled-fill); color:var(--ui-disabled-ink); box-shadow:none; }
+@media (prefers-reduced-motion:reduce) {
+  .ui-segmented-control span { transition:none; }
+}
+
+
+:is(.ui-form-control, .archive-form input) {
+  min-height:var(--ui-touch-min);
+  border:1.5px solid transparent;
+  border-radius:var(--ui-input-radius);
+  background:var(--ui-input-fill);
+  color:var(--ui-heading);
+  font-size:var(--ui-input-font);
+}
+:is(.ui-form-control, .archive-form input):focus-visible { outline:0; border-color:var(--brand-blue); }
+:is(.ui-form-control, .archive-form input)[aria-invalid="true"] { border-color:var(--ui-danger-ink); }
+:is(.account-input,.collection-auth-input):has(input[aria-invalid="true"]) { outline:1.5px solid var(--ui-danger-ink); }
+.ui-field-error { margin:4px 0 0; font-size:12px; color:var(--ui-danger-ink); }

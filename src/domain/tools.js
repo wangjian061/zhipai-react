@@ -24,13 +24,14 @@ import {
   createHandoff, finishHandoff, handoffStatus, lockPayment,
   paymentReturnBlocked, presentHandoff,
 } from "./payment-handoff.js";
+export const TOOL_SERVICE_PRICE = 200;
 const PHOTO_TOOLS = {
   repair: {
     title: "照片精修",
     subtitle: "让不清晰的照片，更清晰",
     infoTitle: "精修照片，改善清晰度",
     description:
-      "从知拍相册或手机相册选择人像证件照，通过照片检查后进行精修。支持滑杆对比精修前后效果，完成后自动保存至知拍相册。",
+      "支持清晰的单人正面人像，包括日常拍摄的照片。通过照片检查后可选择背景颜色并付款，精修完成后可拖动滑杆对比，成片自动保存至知拍相册。",
     headline: ["让好照片", "清晰一点"],
     icon: "repair",
     sources: ["finished", "phone"],
@@ -372,6 +373,7 @@ registerController("toolStudio", () => ({
   format: "jpeg",
   targetValue: 200,
   sizeUnit: "KB",
+  sizeTargets: { KB: 200, MB: 1 },
   background: "blue",
   repairBackgroundId: null,
   backgroundEditing: false,
@@ -599,7 +601,6 @@ registerController("toolStudio", () => ({
   get repairSettingsLocked() {
     return !!(
       this.busy ||
-      this.panel === "payment" ||
       this.flowCompleted ||
       this.serviceApplied ||
       this.paid ||
@@ -717,6 +718,8 @@ registerController("toolStudio", () => ({
     return !!this.config.service;
   },
   get primaryLabel() {
+    if (this.action === "repair" && ["processing", "standardizing"].includes(this.stage))
+      return "正在精修照片…";
     if (this.busy)
       return this.paying
         ? "正在确认…"
@@ -755,7 +758,7 @@ registerController("toolStudio", () => ({
     if (this.currentOrder?.status === "verifying") return true;
     if (this.choosingPhoto) return true;
     if (!this.portraitEligible && this.photo) return false;
-    if (this.action === "repair" && this.photo && !this.repairOptionsReady)
+    if (this.action === "repair" && this.paid && !this.repairOptionsReady)
       return false;
     if (this.action === "resize" && this.photo) {
       const kb = Number(this.targetValue) * (this.sizeUnit === "MB" ? 1024 : 1);
@@ -773,6 +776,13 @@ registerController("toolStudio", () => ({
       return Number.isFinite(kb) && kb >= 5 && kb <= 20480;
     }
     return this.canSave;
+  },
+  changeSizeUnit(unit) {
+    if (this.busy || unit === this.sizeUnit || !["KB", "MB"].includes(unit)) return;
+    this.sizeTargets = { ...this.sizeTargets, [this.sizeUnit]: this.targetValue };
+    this.targetValue = this.sizeTargets[unit];
+    this.sizeUnit = unit;
+    this.needsPreview = true;
   },
   size(bytes) {
     return bytes >= 1048576
@@ -841,6 +851,7 @@ registerController("toolStudio", () => ({
       format: "jpeg",
       targetValue: 200,
       sizeUnit: "KB",
+      sizeTargets: { KB: 200, MB: 1 },
       background: "blue",
       repairBackgroundId: null,
       backgroundEditing: false,
@@ -1038,7 +1049,7 @@ registerController("toolStudio", () => ({
     this.panel = name;
     this.$nextTick(() =>
       this.$refs.toolDialog
-        .querySelector("button:not([disabled]),input:not([disabled])")
+        ?.querySelector("button:not([disabled]),input:not([disabled])")
         ?.focus({
           preventScroll: true,
         }),
@@ -1323,13 +1334,18 @@ registerController("toolStudio", () => ({
       !["passed", "rejected", "error"].includes(outcome)
     )
       return;
-    const reasons = {
+    const reasons = this.action === "repair" ? {
+      not_id: "请选择一张单人、正面、面部清晰的照片。",
+      no_face: "未识别到清晰人脸，请重新选择照片。",
+      multiple_faces: "照片包含多人，请重新选择只有一人的照片。",
+    } : {
       not_id:
         "当前照片不是人像证件照，请上传背景简洁、人物居中的单人正面证件照。",
       no_face: "未识别到清晰人脸，请重新选择单人正面证件照。",
       multiple_faces: "照片包含多人，暂不支持当前操作，请重新选择单人证件照。",
       background: "照片背景较复杂，不符合证件照要求，请重新选择。",
     };
+    const failureReason = Object.hasOwn(reasons, reason) ? reason : "not_id";
     this.portraitCheck = {
       status: outcome,
       reasons:
@@ -1337,11 +1353,11 @@ registerController("toolStudio", () => ({
           ? []
           : [
               {
-                code: outcome === "error" ? "unavailable" : reason,
+                code: outcome === "error" ? "unavailable" : failureReason,
                 message:
                   outcome === "error"
                     ? "照片检查未完成，请重试。通过检查前无法继续当前操作。"
-                    : reasons[reason] || reasons.not_id,
+                    : reasons[failureReason],
               },
             ],
     };
@@ -1626,7 +1642,6 @@ registerController("toolStudio", () => ({
       return;
     }
     if (!this.photo || !this.portraitEligible || this.busy) return;
-    if (this.action === "repair" && !this.repairOptionsReady) return;
     if (!requireOrderAccount()) return;
     const token = this.task;
     await this.ordersStore.loading;
@@ -1754,7 +1769,7 @@ registerController("toolStudio", () => ({
           owner,
           action,
           status: "pending",
-          amount: 200,
+          amount: TOOL_SERVICE_PRICE,
           purchaseSnapshot: {
             specName: (photo.spec || "规格未记录").split(" · ")[0],
             specification: photo.spec || "规格未记录",
@@ -2053,7 +2068,7 @@ registerController("toolStudio", () => ({
       return;
     }
     if (this.config.requiresPortrait) {
-      if (this.paid && (order.output || order.handoff))
+      if ((action === "repair" && order.status === "pending") || (this.paid && (order.output || order.handoff)))
         this.portraitCheck = { status: "passed", reasons: [] };
       else {
         await this.validatePortraitPhoto();

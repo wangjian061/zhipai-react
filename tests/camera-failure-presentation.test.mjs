@@ -51,10 +51,11 @@ const { ConfirmationDialog } = await compile("src/components/ConfirmationDialog.
   useRef: React.useRef, useId: React.useId, useEffect: React.useEffect,
   Portal: ({ children }) => children,
 });
+const { ToolNavigation } = await compile("src/components/ToolNavigation.jsx", ["ToolNavigation"]);
 const components = await compile(
   "src/components/CameraWorkflow.jsx",
   ["CameraConfirmationPage", "CameraResultPage", "CameraWorkflowModal"],
-  { View, CameraConfirmationSettings, CameraResultVersions, ConfirmationDialog, FAMILY_PORTRAIT_DEMO_MESSAGE,
+  { View, ToolNavigation, CameraConfirmationSettings, CameraResultVersions, ConfirmationDialog, FAMILY_PORTRAIT_DEMO_MESSAGE,
     PaymentRecovery: () => null },
 );
 const sheetComponents = await compile(

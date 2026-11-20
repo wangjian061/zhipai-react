@@ -1,7 +1,9 @@
+import SharedSheet from "../components/SharedSheet.jsx";
+import ToolNavigation from "../components/ToolNavigation.jsx";
 import { collectionCodeHelp as guideContent } from "../domain/collection-code-help.js";
 import React from "react";
 import { FeedbackToast } from "../components/Feedback.jsx";
-import { Controller, View, Portal } from "../runtime/components.jsx";
+import { Controller, View } from "../runtime/components.jsx";
 import "../styles/scan.css";
 
 function Icon({ name, ...props }) {
@@ -14,41 +16,23 @@ function Icon({ name, ...props }) {
 function Guide({ s }) {
   const content = guideContent[s.guidePage];
   return (
-    <View
-      as="section"
-      scope={s}
-      refName="scanGuide"
-      className="scan-sheet scan-guide-sheet"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="scan-guide-title"
-    >
-      <span className="sheet-handle" aria-hidden="true" />
-      <header>
-        {content && (
-          <button
-            className="scan-sheet-back"
-            onClick={() => s.showDirectory()}
-            aria-label="返回帮助目录"
-          >
-            <Icon name="chevron-left" />
-          </button>
-        )}
-        <h2 id="scan-guide-title">{content?.title || "如何获取采集码"}</h2>
-        <button
-          className="scan-sheet-close"
-          onClick={() => s.closeGuide()}
-          aria-label="关闭帮助"
-        >
-          <Icon name="close" />
-        </button>
-      </header>
-      <View
-        as="div"
-        scope={s}
-        refName="scanGuideBody"
-        className="scan-sheet-body"
-      >
+    <SharedSheet opened target="#scan-modal-layer" id="scan-guide-title" className="scan-sheet scan-guide-sheet"
+      title={content?.title || "如何获取采集码"} closeLabel="关闭帮助" onClose={() => s.closeGuide()}
+      dialogRef={(node) => { s.$refs.scanGuide = node; }}
+      bodyRef={(node) => { s.$refs.scanGuideBody = node; }}
+      leading={content && <button type="button" className="scan-sheet-back"
+        onClick={() => s.showDirectory()} aria-label="返回帮助目录"><Icon name="chevron-left" /></button>}
+      footer={
+        <>
+          {s.guidePage === "chsi" && (
+            <a className="scan-primary" href={guideContent.chsi.url} target="_blank" rel="noopener noreferrer">
+              查看获取教程 <Icon name="arrow" />
+            </a>
+          )}
+          <button type="button" className={s.guidePage === "chsi" ? "scan-secondary" : "scan-primary"}
+            onClick={() => s.guideBack()}>{content ? "返回帮助目录" : "返回扫码"}</button>
+        </>
+      }>
         {!content ? (
           <>
             <p className="scan-help-intro">
@@ -91,58 +75,16 @@ function Guide({ s }) {
             <p className="scan-guide-note">{content.note}</p>
           </>
         )}
-      </View>
-      <footer>
-        {s.guidePage === "chsi" && (
-          <a
-            className="scan-primary"
-            href={guideContent.chsi.url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            查看获取教程
-            <Icon name="arrow" />
-          </a>
-        )}
-        <button
-          className={s.guidePage === "chsi" ? "scan-secondary" : "scan-primary"}
-          onClick={() => s.guideBack()}
-        >
-          {content ? "返回帮助目录" : "返回扫码"}
-        </button>
-      </footer>
-    </View>
+    </SharedSheet>
   );
 }
 function Failure({ s }) {
   return (
-    <View
-      as="section"
-      scope={s}
-      refName="scanResult"
-      className="scan-sheet scan-failure-sheet"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="scan-failure-title"
-      aria-describedby="scan-failure-message"
-    >
-      <span className="sheet-handle" aria-hidden="true" />
-      <header>
-        <h2 id="scan-failure-title">{s.failure.title}</h2>
-        <button
-          className="scan-sheet-close"
-          onClick={() => s.dismissFailure()}
-          aria-label="关闭识别结果"
-        >
-          <Icon name="close" />
-        </button>
-      </header>
-      <div className="scan-sheet-body">
-        <p id="scan-failure-message" role="alert">
-          {s.failure.message}
-        </p>
-      </div>
-      <footer>
+    <SharedSheet opened target="#scan-modal-layer" id="scan-failure-title" className="scan-sheet scan-failure-sheet"
+      title={s.failure.title} closeLabel="关闭识别结果" onClose={() => s.dismissFailure()}
+      dialogRef={(node) => { s.$refs.scanResult = node; }}
+      sectionProps={{ "aria-describedby": "scan-failure-message" }}
+      footer={<>
         {s.failure.projectId ? (
           <button
             className="scan-primary"
@@ -167,8 +109,9 @@ function Failure({ s }) {
         <button className="scan-secondary" onClick={() => s.dismissFailure()}>
           返回扫码
         </button>
-      </footer>
-    </View>
+      </>}>
+      <p id="scan-failure-message" role="alert">{s.failure.message}</p>
+    </SharedSheet>
   );
 }
 export default function ScanPage({ args = [] }) {
@@ -179,26 +122,16 @@ export default function ScanPage({ args = [] }) {
           as="section"
           scope={s}
           scopeRoot
-          className="page collection-scan-page"
+          className="page collection-scan-page ui-task-page"
           id="scan-page"
           show={s.page === "scan"}
           aria-label="扫码采集"
         >
+          <ToolNavigation title="扫码采集" inert={!!(s.result || s.guideOpen)} onBack={() => s.back()} />
           <div
             className="collection-scan-scroll"
             inert={s.result || s.guideOpen}
           >
-            <header className="collection-scan-header">
-              <button
-                className="scan-back"
-                onClick={() => s.back()}
-                aria-label="返回"
-              >
-                <Icon name="chevron-left" />
-              </button>
-              <h1>扫码采集</h1>
-              <span aria-hidden="true" />
-            </header>
             <p className="scan-supported">支持机构／院校码、学信网图像采集码</p>
             <div
               className="collection-scan-window"
@@ -293,20 +226,7 @@ export default function ScanPage({ args = [] }) {
               onCancel={() => s.cancelPick()}
             />
           </div>
-          <Portal target="#scan-modal-layer">
-            {(s.guideOpen || s.failure) && s.page === "scan" && (
-              <div
-                className="camera-overlay scan-overlay"
-                onClick={(event) => {
-                  if (event.target === event.currentTarget)
-                    s.guideOpen ? s.closeGuide() : s.dismissFailure();
-                }}
-                onKeyDown={(event) => s.trap(event)}
-              >
-                {s.guideOpen ? <Guide s={s} /> : <Failure s={s} />}
-              </div>
-            )}
-          </Portal>
+          {s.page === "scan" && (s.guideOpen ? <Guide s={s} /> : s.failure ? <Failure s={s} /> : null)}
           <FeedbackToast message={s.page === "scan" && !s.guideOpen && !s.failure && s.notice} />
         </View>
       )}

@@ -1,6 +1,6 @@
 /* Shared completion surface. Photographs remain the focus; actions never scroll. */
 .tool-page[data-view="saved"] {
-  background: #f5f7fb;
+  background: var(--ui-canvas);
   color: #203858;
 }
 .tool-result-scroll {
@@ -26,8 +26,8 @@
 }
 .tool-result-status h2 {
   margin: 0;
-  font-size: 17px;
-  font-weight: 650;
+  font-size: var(--ui-section-title);
+  font-weight: 600;
   line-height: 1.5;
 }
 .tool-result-status h2:focus-visible {

@@ -286,7 +286,7 @@ registerController("myCenter", () => ({
     this.panel = panel;
     this.panelNotice = "";
     this.$store.myUi.opened = true;
-    this.$nextTick(() => this.$refs.dialog.querySelector(".my-close")?.focus());
+    this.$nextTick(() => this.$refs.dialog?.querySelector(".my-close")?.focus());
   },
   closePanel(restore = true) {
     if (!this.$store.myUi.opened) return;
@@ -434,7 +434,8 @@ registerController("myCenter", () => ({
       attachmentCount: this.feedbackAttachments.length,
     };
     this.$nextTick(() => {
-      this.$refs.dialog.scrollTop = 0;
+      const result = this.$refs.dialog?.querySelector(".feedback-result > .ui-sheet-body");
+      if (result) result.scrollTop = 0;
     });
   },
   async savePoster() {

@@ -5,7 +5,10 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useArchiveZoom, ArchiveZoom } from "./ArchiveZoom.jsx";
+import ConfirmationDialog from "./ConfirmationDialog.jsx";
+import DocumentPhotoViewer from "./DocumentPhotoViewer.jsx";
+import ToolNavigation from "./ToolNavigation.jsx";
+import { FeedbackToast } from "./Feedback.jsx";
 import FamilyPhotoPicker from "./FamilyPhotoPicker.jsx";
 import FamilyPhotoDetail from "./FamilyPhotoDetail.jsx";
 import PhotoDeleteDialog from "./PhotoDeleteDialog.jsx";
@@ -18,21 +21,21 @@ import { assertDocumentPhotoCount, remainingDocumentPhotoSlots } from "../domain
 import {
   openFamilyAlbumCamera,
   DOCUMENT_NAME_LIMIT,
-  SELF_DOCUMENT_ALBUM,
   archivePath,
   backInArchive,
   navigateArchive,
+  replaceArchiveEntry,
+  legacyDocumentPath,
   readArchive,
   updateArchive,
   newMember,
   renameFamilyMember,
   deleteFamilyMember,
   appendFamilyPhotos,
-  deleteFamilyPhoto,
+  deleteFamilyPhotos,
   documentAlbums,
   addDocumentGroup,
-  appendDocumentGroupPhotos,
-  renameDocumentGroup,
+  saveDocumentGroupEdit,
   replaceDocumentPhoto,
   deleteDocumentPhotos,
 } from "../domain/album-spaces.js";
@@ -141,7 +144,7 @@ function ArchiveFolderGrid({ entries, onOpen, documentCover }) {
           key={entry.id}
           type="button"
           className="archive-folder-tile"
-          aria-haspopup="dialog"
+          aria-haspopup={documentCover ? undefined : "dialog"}
           onClick={(event) => onOpen(entry.id, event.currentTarget)}
         >
           <ArchiveFolderCover photos={entry.photos} documentCover={documentCover} />
@@ -156,12 +159,128 @@ function Empty({ children }) {
   return <p className="archive-empty">{children}</p>;
 }
 
+function FamilyMemberPhotos({
+  member, mode, busy, error, toast, bodyRef, addPhotoButton, overlayOpen,
+  onClose, onBrowse, onAdd, onOpenPhoto, onManage, onConfirm, onCancelConfirm, onDelete,
+  detailTrigger, lastOpenedPhoto,
+}) {
+  const [selection, setSelection] = useState([]);
+  const [pending, setPending] = useState(null);
+  const manageButton = useRef(null);
+  const selectAllButton = useRef(null);
+  const deleteButton = useRef(null);
+  const wasManaging = useRef(false);
+  const photos = member?.photos || [];
+  const ids = photos.map(({ id }) => id);
+  const selected = selection.filter((id) => ids.includes(id));
+  const confirming = mode === "delete-photos" && !!pending && !!member;
+  const managing = (photos.length > 0 && mode !== null) || confirming;
+  const allSelected = !!ids.length && selected.length === ids.length;
+  const changed = confirming && pending.some((id) => !ids.includes(id));
+
+  useEffect(() => {
+    if (mode === "delete-photos" && !confirming) onCancelConfirm();
+  }, [mode, confirming, onCancelConfirm]);
+
+  useLayoutEffect(() => {
+    if (mode === null) setSelection([]);
+    if (mode !== "delete-photos") setPending(null);
+    if (wasManaging.current === managing) return;
+    wasManaging.current = managing;
+    (managing ? selectAllButton.current : manageButton.current || addPhotoButton.current)
+      ?.focus({ preventScroll: true });
+  }, [mode, managing, addPhotoButton]);
+
+  return (
+    <>
+      <ArchiveHolderLayout
+        space="family"
+        title={managing ? `已选 ${selected.length} 张` : member ? member.name + "的照片" : "家人照片"}
+        onBack={onClose}
+        busy={busy}
+        scrollRef={bodyRef}
+        headingId="member-photos-title"
+        right={photos.length > 0 && (
+          <button type="button" className="ui-button-text archive-holder-control"
+            disabled={busy} ref={managing ? selectAllButton : manageButton}
+            onClick={managing ? () => setSelection(allSelected ? [] : ids) : onManage}>
+            {managing ? (allSelected ? "取消全选" : "全选") : "管理"}
+          </button>
+        )}
+        action={member && (managing ? (
+          <div className="family-photo-management-actions">
+            <button type="button" className="ui-button-secondary" disabled={busy} onClick={onBrowse}>取消</button>
+            <button type="button" className="ui-button-danger-soft" ref={deleteButton}
+              disabled={busy || !selected.length} onClick={() => {
+                setPending(selected);
+                onConfirm();
+              }}>
+              删除（已选 {selected.length} 张）
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="ui-button-primary" ref={addPhotoButton}
+            disabled={busy} onClick={onAdd}>添加照片</button>
+        ))}
+      >
+        {!member ? (
+          <Empty>这个家人相册已不存在。</Empty>
+        ) : !photos.length ? (
+          <Empty>还没有照片，添加一张照片留作纪念。</Empty>
+        ) : (
+          <div className="archive-photo-grid">
+            {photos.map((photo, index) => {
+              const checked = selected.includes(photo.id);
+              return (
+                <button type="button" key={photo.id}
+                  ref={photo.id === lastOpenedPhoto.current ? detailTrigger : undefined}
+                  className={managing && checked ? "selected" : undefined}
+                  aria-pressed={managing ? checked : undefined}
+                  aria-haspopup={managing ? undefined : "dialog"}
+                  aria-label={photo.name || "家人照片 " + (index + 1)}
+                  disabled={busy}
+                  onClick={(event) => {
+                    if (managing) setSelection(checked
+                      ? selected.filter((id) => id !== photo.id)
+                      : [...selected, photo.id]);
+                    else onOpenPhoto(photo.id, event.currentTarget);
+                  }}>
+                  <ArchiveImage photo={photo} alt={photo.name || "家人照片"} />
+                  <AlbumDate photo={photo} />
+                  {managing && (
+                    <span className="photo-check" aria-hidden="true">
+                      {checked && <svg><use href="#i-check" /></svg>}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {error && !confirming && <p role="alert" className="album-error">{error}</p>}
+      </ArchiveHolderLayout>
+      {toast && !managing && !overlayOpen && <FeedbackToast message={toast} />}
+      {confirming && (
+        <PhotoDeleteDialog
+          title={pending.length === 1 ? "删除这张照片？" : "删除 " + pending.length + " 张照片？"}
+          description="只删除这位家人相册中的照片，原照片和其他家人的照片不会删除。"
+          busy={busy}
+          error={error || (changed ? "家人相册已变化，请重新选择要删除的照片。" : "")}
+          unavailable={changed}
+          onClose={onCancelConfirm}
+          returnFocusRef={deleteButton}
+          onDelete={() => onDelete(pending)}
+        />
+      )}
+    </>
+  );
+}
+
 export default function AlbumSpaces({ owner, space, search, scope }) {
   const query = new URLSearchParams(search),
     memberId = query.get("member"),
     itemId = query.get("item");
-  const type = query.get("doctype"),
-    sheet = query.get("sheet");
+  const sheet = query.get("sheet");
   const family = space === "family";
   const [data, setData] = useState(null),
     [error, setError] = useState("");
@@ -197,8 +316,8 @@ export default function AlbumSpaces({ owner, space, search, scope }) {
 
   const member = data?.members.find((m) => m.id === memberId);
   const photo = member?.photos.find((p) => p.id === itemId);
-  const deletingPhoto = family && sheet === "delete-photo";
-  const memberListOpen = family && !!memberId && !itemId && !sheet;
+  const memberPhotoMode = ["manage-photos", "delete-photos"].includes(sheet) ? sheet : null;
+  const memberListOpen = family && !!memberId && !itemId && (sheet === null || memberPhotoMode);
   useEffect(() => {
     if (!memberListOpen && sheet !== "photos") setPhoneImportNotice(null);
   }, [memberListOpen, sheet]);
@@ -206,7 +325,6 @@ export default function AlbumSpaces({ owner, space, search, scope }) {
   const editingMember = sheet === "edit-member" && !itemId;
   const deletingMember = sheet === "delete-member" && !itemId;
   const addingMember = sheet === "member" && !memberId;
-  const deleteTrigger = useRef(null);
   const fields = { member: memberId, item: itemId };
   const base = archivePath(space, fields);
   const root = archivePath(space);
@@ -214,17 +332,17 @@ export default function AlbumSpaces({ owner, space, search, scope }) {
   const managementPath = archivePath(space, { sheet: "manage" });
   const detailTrigger = useRef(null);
   useEffect(() => {
-    if (family || !data || (!type && sheet !== "document")) return;
-    const legacy = data.documents.find((group) => group.id === itemId);
-    navigateArchive(archivePath(space, legacy ? {
-      member: legacy.holderId || SELF_DOCUMENT_ALBUM,
-    } : {}), true);
-  }, [family, data, type, itemId, sheet, space]);
+    if (family || !data) return;
+    const legacy = legacyDocumentPath(data, search);
+    if (legacy) replaceArchiveEntry(legacy);
+  }, [family, data, search]);
   useEffect(() => {
     if (!family) setError("");
   }, [family, search]);
   const memberManagement = managementOpen || addingMember || editingMember || deletingMember;
-  const dialogOpen = !!(data && owner && (memberManagement || memberId || (family && (itemId || sheet))));
+  const familyHolderOpen = family && !!memberId && !memberManagement;
+  const dialogOpen = !!(data && owner && (memberManagement ||
+    (family ? itemId || (sheet && sheet !== "manage-photos") : memberId && sheet)));
   useEffect(() => {
     if (!dialogOpen) return;
     const ui = getStore("albumSpacesUi");
@@ -234,8 +352,9 @@ export default function AlbumSpaces({ owner, space, search, scope }) {
     };
   }, [dialogOpen]);
   const memberTrigger = useRef(null);
-  const memberScroll = useRef(new Map());
   const lastOpenedPhoto = useRef(null);
+  const memberScroll = useRef(new Map());
+  const folderScroll = useRef(0);
   const memberBody = useCallback((body) => {
     if (!body) return;
     body.scrollTop = memberScroll.current.get(memberId) || 0;
@@ -245,6 +364,28 @@ export default function AlbumSpaces({ owner, space, search, scope }) {
   }, [memberId]);
   const panelRef = useRef(null);
   const addPhotoButton = useRef(null);
+  const wasFamilyHolder = useRef(false);
+  useEffect(() => {
+    const wasOpen = wasFamilyHolder.current;
+    wasFamilyHolder.current = familyHolderOpen;
+    if (!wasOpen || familyHolderOpen || !family) return;
+    const frame = requestAnimationFrame(() => {
+      if (panelRef.current) panelRef.current.scrollTop = folderScroll.current;
+      memberTrigger.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [family, familyHolderOpen]);
+  useEffect(() => {
+    if (!memberListOpen || memberPhotoMode || !data) return;
+    const frame = requestAnimationFrame(() => {
+      const page = document.querySelector(".family-holder-page");
+      if (page?.contains(document.activeElement)) return;
+      const trigger = detailTrigger.current;
+      (trigger?.isConnected ? trigger : page?.querySelector(".tool-navigation-back"))
+        ?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [memberListOpen, memberPhotoMode, !!data]);
   const scrollPositions = useRef(new Map());
   useLayoutEffect(() => {
     const panel = panelRef.current;
@@ -299,15 +440,6 @@ export default function AlbumSpaces({ owner, space, search, scope }) {
       backInArchive(fromManagement ? parent : managementPath);
     } else closeSheet();
   };
-  const requestDelete = (side, event) => {
-    deleteTrigger.current = event.currentTarget;
-    const fromList = history.state?.albumSpaceParent === listPath;
-    openSheet("delete-" + side);
-    history.replaceState(
-      { ...history.state, albumDeleteFromList: fromList },
-      "",
-    );
-  };
   const returnFromItem = () =>
     backInArchive(listPath);
   const save = async (prepare, after, failureMessage) => {
@@ -357,67 +489,58 @@ export default function AlbumSpaces({ owner, space, search, scope }) {
     </p>
   );
   const title = family ? "家人相册" : "证件照片";
-  if (!owner || !data)
-    return (
-      <AlbumLibraryCard title={title}>
-        <div className="album-library-content archive-panel">
-          {!owner ? (
-            <>
-              <Empty>登录后查看{family ? "家人照片" : "证件照片"}</Empty>
-              <button className="tool-primary" onClick={() => accountRoute("welcome", base)}>
-                登录 / 注册
-              </button>
-            </>
-          ) : error ? (
-            <>
-              {err}
-              <button className="account-text" onClick={load}>重新读取</button>
-            </>
-          ) : (
-            <p className="archive-empty" role="status">正在读取相册…</p>
-          )}
-        </div>
-      </AlbumLibraryCard>
-    );
+  if (!owner || !data) {
+    const content = !owner ? (
+      <>
+        <Empty>登录后查看{family ? "家人照片" : "证件照片"}</Empty>
+        <button className="tool-primary" onClick={() => accountRoute("welcome", base)}>登录 / 注册</button>
+      </>
+    ) : error ? (
+      <>
+        {err}
+        <button className="ui-button-text" onClick={load}>重新读取</button>
+      </>
+    ) : <p className="archive-empty" role="status">正在读取相册…</p>;
+    if (memberId && !memberManagement)
+      return <ArchiveHolderLayout space={space} title={family ? "家人照片" : "证件照片"}
+        onBack={() => backInArchive(root)}>{content}</ArchiveHolderLayout>;
+    return <AlbumLibraryCard title={title}><div className="album-library-content archive-panel">
+      {content}
+    </div></AlbumLibraryCard>;
+  }
+
+  const renderLibrary = (folders) => (
+    <AlbumLibraryCard title={title} actions={
+      <button type="button" ref={managementTrigger} aria-haspopup="dialog" disabled={busy}
+        onClick={() => {
+          managementReturn.current = null;
+          openSheet("manage");
+        }}>
+        管理
+      </button>
+    }>
+      <div className="album-library-content archive-panel" ref={panelRef}>
+        {folders}
+        {!dialogOpen && err}
+      </div>
+    </AlbumLibraryCard>
+  );
 
   return (
     <>
-      <AlbumLibraryCard
-        title={title}
-        actions={
-          <button
-            type="button"
-            ref={managementTrigger}
-            aria-haspopup="dialog"
-            disabled={busy}
-            onClick={() => {
-              managementReturn.current = null;
-              openSheet("manage");
-            }}
-          >
-            管理
-          </button>
-        }
-      >
-        <div className="album-library-content archive-panel" ref={panelRef}>
-          {family ? (
-            data.members.length ? (
-              <ArchiveFolderGrid entries={data.members} onOpen={(id, trigger) => {
-                memberTrigger.current = trigger;
-                go({ member: id });
-              }} />
-            ) : (
-              <Empty>点「管理」添加家人，为对方建立照片相册。</Empty>
-            )
-          ) : (
-            <DocumentAlbums owner={owner} data={data} search={search}
-              managementOpen={memberManagement} busy={busy} error={error} save={save}
-              clearError={() => setError("")}
-            />
-          )}
-          {!dialogOpen && err}
-        </div>
-      </AlbumLibraryCard>
+      {family ? renderLibrary(data.members.length ? (
+        <ArchiveFolderGrid entries={data.members} onOpen={(id, trigger) => {
+          memberTrigger.current = trigger;
+          folderScroll.current = panelRef.current?.scrollTop || 0;
+          detailTrigger.current = null;
+          lastOpenedPhoto.current = null;
+          go({ member: id });
+        }} />
+      ) : <Empty>点「管理」添加家人，为对方建立照片相册。</Empty>) : (
+        <DocumentAlbums owner={owner} data={data} search={search}
+          managementOpen={memberManagement} busy={busy} error={error} save={save}
+          clearError={() => setError("")} renderLibrary={renderLibrary} />
+      )}
       {managementOpen && (
         <SharedSheet
           opened
@@ -488,92 +611,47 @@ export default function AlbumSpaces({ owner, space, search, scope }) {
           }
         />
       )}
-      {memberListOpen && (
-        <SharedSheet
-          opened
-          id="member-photos-title"
-          title={member?.name || "家人相册"}
+      {familyHolderOpen && (
+        <FamilyMemberPhotos
+          key={memberId}
+          member={member}
+          mode={memberPhotoMode}
+          overlayOpen={dialogOpen}
           busy={busy}
-          bodyRef={memberBody}
-          returnFocusRef={memberTrigger}
-          onClose={() => backInArchive(root)}
+          error={error}
           toast={phoneImportNotice === memberId ? "证件照校验通过（演示），已添加" : ""}
-          footer={
-            member && (
-              <button
-                type="button"
-                className="tool-primary"
-                ref={addPhotoButton}
-                disabled={busy}
-                onClick={() => openSheet("photos")}
-              >
-                添加照片
-              </button>
-            )
-          }
-        >
-          {!member ? (
-            <Empty>这个家人相册已不存在。</Empty>
-          ) : !member.photos.length ? (
-            <Empty>还没有照片，添加一张照片留作纪念。</Empty>
-          ) : (
-            <div className="archive-photo-grid">
-              {member.photos.map((p) => (
-                <button
-                  type="button"
-                  key={p.id}
-                  ref={(node) => {
-                    if (node && lastOpenedPhoto.current === p.id)
-                      detailTrigger.current = node;
-                  }}
-                  onClick={(event) => {
-                    lastOpenedPhoto.current = p.id;
-                    detailTrigger.current = event.currentTarget;
-                    go({ member: member.id, item: p.id });
-                  }}
-                >
-                  <ArchiveImage photo={p} alt={p.name || "家人照片"} />
-                  <AlbumDate photo={p} />
-                </button>
-              ))}
-            </div>
+          bodyRef={memberBody}
+          addPhotoButton={addPhotoButton}
+          onClose={() => backInArchive(root)}
+          onBrowse={() => { setError(""); backInArchive(listPath); }}
+          onAdd={() => openSheet("photos")}
+          detailTrigger={detailTrigger}
+          lastOpenedPhoto={lastOpenedPhoto}
+          onOpenPhoto={(id, trigger) => {
+            lastOpenedPhoto.current = id;
+            detailTrigger.current = trigger;
+            go({ member: memberId, item: id });
+          }}
+          onManage={() => openSheet("manage-photos")}
+          onConfirm={() => openSheet("delete-photos")}
+          onCancelConfirm={() => {
+            setError("");
+            backInArchive(archivePath(space, { member: memberId, sheet: "manage-photos" }));
+          }}
+          onDelete={(ids) => save(
+            () => (state) => deleteFamilyPhotos(state, memberId, ids),
+            () => backInArchive(listPath),
+            "删除未完成，照片已保留，请重试。",
           )}
-          {err}
-        </SharedSheet>
+        />
       )}
-      {space === "family" && itemId && !deletingPhoto && (
+      {family && itemId && (
         <FamilyPhotoDetail
           key={itemId}
           photo={photo}
           scope={scope}
-          busy={busy}
           onClose={returnFromItem}
-          onDelete={(event) => requestDelete("photo", event)}
           returnFocusRef={detailTrigger}
-        />
-      )}
-      {deletingPhoto && (
-        <PhotoDeleteDialog
-          description="只删除这位家人相册中的照片，原照片和其他家人的照片不会删除。"
-          busy={busy}
-          error={error}
-          unavailable={!photo}
-          onClose={closeSheet}
-          returnFocusRef={deleteTrigger}
-          onDelete={() =>
-            save(
-              async () => (state) => deleteFamilyPhoto(state, memberId, itemId),
-              () => {
-                if (
-                  history.state?.albumDeleteFromList &&
-                  history.state?.albumSpaceParent === base &&
-                  history.length > 2
-                )
-                  history.go(-2);
-                else navigateArchive(listPath, true);
-              },
-            )
-          }
         />
       )}
       {space === "family" && sheet === "photos" && member && !itemId && (
@@ -680,281 +758,175 @@ function currentArchiveRoute() {
   return location.pathname + "?" + query;
 }
 
-function documentPreviewKey(groupId, photoId) {
-  return encodeURIComponent(groupId) + ":" + encodeURIComponent(photoId);
+function ArchiveHolderLayout({ space = "documents", title, onBack, action, children, pageRef, scrollRef, busy, right, headingId }) {
+  return (
+    <section className={`archive-holder-page ${space === "family" ? "family" : "document"}-holder-page`}
+      ref={pageRef} aria-label={title}>
+      <ToolNavigation title={title} onBack={onBack} disabled={busy} right={right}
+        renderTitle={headingId ? (props) => <h1 {...props} id={headingId}>{title}</h1> : undefined} />
+      <div className="archive-holder-scroll" ref={scrollRef}>{children}</div>
+      {action && <footer className={`archive-holder-actions ${space === "family" ? "" : "document-holder-actions"}`.trim()}>{action}</footer>}
+    </section>
+  );
 }
 
-function hasDocumentPhotoFile(photo) {
-  return photo?.blob instanceof Blob && photo.blob.size > 0;
-}
+const editorSheets = new Set([
+  "new-document", "edit-document", "pick-document-add",
+  "pick-document-replace", "confirm-document-delete",
+]);
 
-function DocumentAlbums({ owner, data, search, managementOpen, busy, error, save, clearError }) {
+function DocumentAlbums({ owner, data, search, managementOpen, busy, error, save, clearError, renderLibrary }) {
   const query = new URLSearchParams(search);
-  const memberId = query.get("member"), groupId = query.get("group");
-  const itemId = query.get("item"), requestedSheet = query.get("sheet");
-  const sheet = requestedSheet === "rename-group-photo" ? "group-photo-actions" : requestedSheet;
+  const member = query.get("member");
+  const groupId = query.get("group");
+  const item = query.get("item");
+  const sheet = query.get("sheet");
   const albums = documentAlbums(data);
-  const album = albums.find((entry) => entry.id === memberId);
+  const album = albums.find((entry) => entry.id === member);
   const group = album?.groups.find((entry) => entry.id === groupId);
-  const photoIndex = group?.photos.findIndex((entry) => entry.id === itemId) ?? -1;
-  const photo = group?.photos[photoIndex];
+  const page = Number(item);
+  const index = group?.photos.length && Number.isInteger(page)
+    ? Math.min(group.photos.length - 1, Math.max(0, page - 1))
+    : 0;
   const root = archivePath("documents");
-  const path = (fields) => archivePath("documents", { member: memberId, ...fields });
+  const path = (fields) => archivePath("documents", { member, ...fields });
   const listPath = path();
-  const groupMenu = path({ group: groupId, sheet: "group-actions" });
-  const photoMenu = path({ group: groupId, item: itemId, sheet: "group-photo-actions" });
-  const [downloadNotice, setDownloadNotice] = useState(null);
-  const folderTrigger = useRef(null);
-  const lastListAction = useRef(null);
-  const lastPhotoMenu = useRef(null);
-  const scrollPositions = useRef(new Map());
-  const listBody = useCallback((body) => {
-    if (!body) return;
-    body.scrollTop = scrollPositions.current.get(memberId) || 0;
-    const frame = requestAnimationFrame(() => {
-      Array.from(body.querySelectorAll("[data-document-list-action]"))
-        .find((button) => button.dataset.documentListAction === lastListAction.current)
-        ?.focus({ preventScroll: true });
-    });
-    return () => {
-      scrollPositions.current.set(memberId, body.scrollTop);
-      cancelAnimationFrame(frame);
-    };
-  }, [memberId]);
-  const groupMenuBody = useCallback((body) => {
-    if (!body) return;
-    body.scrollTop = scrollPositions.current.get(groupMenu) || 0;
-    const frame = requestAnimationFrame(() => {
-      Array.from(body.querySelectorAll("[data-document-photo-menu]"))
-        .find((button) => button.dataset.documentPhotoMenu === lastPhotoMenu.current)
-        ?.focus({ preventScroll: true });
-    });
-    return () => {
-      scrollPositions.current.set(groupMenu, body.scrollTop);
-      cancelAnimationFrame(frame);
-    };
-  }, [groupMenu]);
-  const viewing = !!memberId && !managementOpen && !sheet;
-  const zoom = useArchiveZoom(viewing ? owner + ":documents:" + memberId : "");
-  const [zoomGroup, zoomItem] = zoom.side.split(":");
-  const preview = viewing && zoom.side && album?.groups
-    .find((entry) => encodeURIComponent(entry.id) === zoomGroup)
-    ?.photos.find((entry) => encodeURIComponent(entry.id) === zoomItem);
-  const go = (fields) => {
+  const viewPath = (page = index) => path({ group: groupId, item: page + 1, sheet: "view-document" });
+  const go = (destination) => {
     clearError();
-    setDownloadNotice(null);
-    navigateArchive(path(fields));
+    navigateArchive(destination);
   };
   const back = (destination) => {
     clearError();
-    setDownloadNotice(null);
     backInArchive(destination);
   };
-  const download = (entry, index) => {
-    const image = entry.photos[index];
-    if (!hasDocumentPhotoFile(image) || getStore("account")?.session?.phone !== owner) return;
-    let message = "已发起照片下载。";
+
+  const folderTrigger = useRef(null);
+  const folderPanel = useRef(null);
+  const folderPosition = useRef(0);
+  const lastAction = useRef(null);
+  const pageRef = useRef(null);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    if (sheet || managementOpen) return;
+    const frame = requestAnimationFrame(() => {
+      if (!member) {
+        const folder = folderTrigger.current;
+        const panel = folderPanel.current;
+        if (panel) panel.scrollTop = folderPosition.current;
+        const target = folder?.isConnected ? folder : panel?.querySelector(".archive-folder-tile");
+        target?.focus({ preventScroll: true });
+        return;
+      }
+      const page = pageRef.current;
+      const actions = [...(page?.querySelectorAll("[data-document-action]") || [])];
+      const target = actions.find((button) => button.dataset.documentAction === lastAction.current)
+        || page?.querySelector(".tool-navigation-back");
+      target?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [member, sheet, managementOpen]);
+
+  function openFor(action, destination) {
+    lastAction.current = action;
+    go(destination);
+  }
+
+  function savePhoto(photo, page) {
+    if (!(photo?.blob instanceof Blob) || !photo.blob.size ||
+        getStore("account")?.session?.phone !== owner) return "下载未完成，请重试。";
     try {
-      const extension = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp" }[image.blob.type] || "";
-      const name = entry.name.replace(/[\\/:*?"<>|]/g, "_") + "-" + (index + 1);
-      downloadAlbumBlob(image.blob, name + extension);
+      const extension = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp" }[photo.blob.type] || "";
+      const name = group.name.replace(/[\\/:*?"<>|]/g, "_") + "-" + (page + 1);
+      downloadAlbumBlob(photo.blob, name + extension);
+      return "已发起照片下载";
     } catch {
-      message = "下载未完成，请重试。";
+      return "下载未完成，请重试。";
     }
-    setDownloadNotice({ id: entry.id, search, message });
-  };
-  const openDownload = (entry) => {
-    if (entry.photos.length === 1) {
-      download(entry, 0);
-      return;
-    }
-    lastListAction.current = "download:" + entry.id;
-    go({ group: entry.id, sheet: "download-group" });
-  };
-  const downloadStatus = (id) => (
-    <p className="document-group-notice" role="status">
-      {downloadNotice?.id === id && downloadNotice.search === search ? downloadNotice.message : ""}
-    </p>
-  );
-  const errorMessage = error && <p className="album-error" role="alert">{error}</p>;
-  const list = (
-    <SharedSheet opened id="document-groups-title" title={album?.name || "证件照片"}
-      className={album?.canCreate ? "" : "archive-management-sheet"}
-      busy={busy} onClose={() => back(root)} bodyRef={listBody} returnFocusRef={folderTrigger}
-      footer={album?.canCreate && (
-        <button type="button" className="tool-primary" disabled={busy}
-          onClick={() => {
-            lastListAction.current = null;
-            go({ sheet: "new-group" });
-          }}>
-          添加证件
-        </button>
-      )}>
-      {album?.groups.length ? album.groups.map((entry) => (
-        <section className="document-group" key={entry.id}>
-          <header>
-            <h3>{entry.name}</h3>
-            <div className="document-group-actions">
-              <button type="button" className="document-download-button" data-document-list-action={"download:" + entry.id}
-                aria-label={"下载「" + entry.name + "」的照片"}
-                aria-haspopup={entry.photos.length > 1 ? "dialog" : undefined}
-                disabled={busy || !entry.photos.some(hasDocumentPhotoFile)} onClick={() => openDownload(entry)}>
-                下载
-              </button>
-              <button type="button" data-document-list-action={"menu:" + entry.id} disabled={busy}
-                aria-label={entry.name + "的操作"}
-                onClick={() => {
-                  lastListAction.current = "menu:" + entry.id;
-                  lastPhotoMenu.current = null;
-                  go({ group: entry.id, sheet: "group-actions" });
-                }}>
-                <svg aria-hidden="true"><use href="#i-more" /></svg>
-              </button>
-            </div>
-          </header>
-          {entry.photos.length === 1 && downloadStatus(entry.id)}
-          <div className="archive-photo-grid">
-            {entry.photos.map((image, index) => {
-              const key = documentPreviewKey(entry.id, image.id);
-              return (
-                <button type="button" key={image.id} data-zoom-source={key}
-                  aria-label={"放大查看「" + entry.name + "」的第 " + (index + 1) + " 张照片"}
-                  disabled={!hasDocumentPhotoFile(image)}
-                  onClick={() => {
-                    lastListAction.current = null;
-                    zoom.open(key);
-                  }}>
-                  <DocumentThumbnail photo={image} />
-                </button>
-              );
-            })}
-          </div>
-          {!entry.photos.length && <Empty>这份证件还没有照片。</Empty>}
-        </section>
-      )) : <Empty>{album ? "还没有证件。" : "这个家人相册已不存在。"}</Empty>}
-      {errorMessage}
-    </SharedSheet>
+  }
+
+  const folders = renderLibrary(<ArchiveFolderGrid documentCover entries={albums.map((entry) => ({
+    ...entry,
+    photos: entry.groups.flatMap((record) => record.photos.slice(0, 3)).slice(0, 3),
+    caption: entry.groups.length + " 份",
+  }))} onOpen={(id, trigger) => {
+    folderTrigger.current = trigger;
+    folderPanel.current = trigger.closest(".archive-panel");
+    folderPosition.current = folderPanel.current?.scrollTop || 0;
+    lastAction.current = null;
+    go(archivePath("documents", { member: id }));
+  }} />);
+
+  if (!member || managementOpen) return folders;
+  const title = album ? album.name + "的证件" : "证件照片";
+  const action = album?.canCreate && (
+    <button type="button" className="ui-button-primary" data-document-action="add" disabled={busy}
+      onClick={() => openFor("add", path({ sheet: "new-document" }))}>
+      添加证件
+    </button>
   );
 
-  let panel = null;
-  if (memberId && !managementOpen) {
-    if (viewing && zoom.side) {
-      panel = <ArchiveZoom onClose={zoom.close}>
-        {preview?.blob?.size ? <ArchiveImage photo={preview} alt="证件照片" /> :
-          <p className="album-photo-viewer-error" role="status">照片暂时无法显示</p>}
-      </ArchiveZoom>;
-    } else if (viewing) panel = list;
-    else if (group && sheet === "download-group") {
-      panel = (
-        <DocumentDownloadSheet group={group} busy={busy} status={downloadStatus(group.id)}
-          onClose={() => back(listPath)} onDownload={(index) => download(group, index)} />
-      );
-    } else if (album && (group || (!groupId && album.canCreate)) &&
-        ["new-group", "append-group", "pick-group-photos"].includes(sheet)) {
-      const editing = path({ group: groupId, sheet: group ? "append-group" : "new-group" });
-      panel = (
-        <DocumentGroupComposer key={memberId + ":" + (groupId || "new")} album={album} group={group}
-          busy={busy} error={error} pickingMore={sheet === "pick-group-photos"}
-          onPickMore={() => go({ group: groupId, sheet: "pick-group-photos" })}
-          onReturnFromPicker={() => back(editing)} onClose={() => back(group ? groupMenu : listPath)}
-          onSave={(name, photos) => save(
-            () => (state) => group
-              ? appendDocumentGroupPhotos(state, group, photos)
-              : addDocumentGroup(state, album.holderId, name, photos),
-            () => {
-              if (!group) scrollPositions.current.set(memberId, 0);
-              back(listPath);
-            },
-          )} />
-      );
-    } else if (group && sheet === "group-actions") {
-      panel = (
-        <SharedSheet opened id="document-group-actions-title" title={group.name}
-          className="archive-management-sheet" onClose={() => back(listPath)} busy={busy} bodyRef={groupMenuBody}>
-          {remainingDocumentPhotoSlots(group.photos.length) > 0 && (
-            <DocumentAction onClick={() => go({ group: groupId, sheet: "append-group" })}>添加照片</DocumentAction>
-          )}
-          <DocumentAction onClick={() => go({ group: groupId, sheet: "rename-group" })}>修改证件名称</DocumentAction>
-          {group.photos.length > 0 && (
-            <section className="document-group-action-photos" aria-labelledby="group-photo-actions-heading">
-              <h3 id="group-photo-actions-heading">证件照片</h3>
-              {group.photos.map((image, index) => (
-                <DocumentAction key={image.id} photo={image}
-                  onClick={() => {
-                    lastPhotoMenu.current = image.id;
-                    go({ group: groupId, item: image.id, sheet: "group-photo-actions" });
-                  }}>
-                  第 {index + 1} 张
-                </DocumentAction>
-              ))}
-            </section>
-          )}
-          <DocumentAction danger onClick={() => go({ group: groupId, sheet: "delete-group" })}>
-            删除证件
-          </DocumentAction>
-          {errorMessage}
-        </SharedSheet>
-      );
-    } else if (photo && sheet === "group-photo-actions") {
-      const open = (action) => go({ group: groupId, item: itemId, sheet: action });
-      panel = (
-        <DocumentPhotoActions canDownload={hasDocumentPhotoFile(photo)} status={downloadStatus(group.id)}
-          onDownload={() => download(group, photoIndex)} onClose={() => back(groupMenu)}
-          onReplace={() => open("replace-group-photo")} onDelete={() => open("delete-group-photo")} />
-      );
-    } else if (group && sheet === "rename-group") {
-      panel = (
-        <DocumentNameSheet key={groupId} initialName={group.name}
-          busy={busy} error={errorMessage}
-          onClose={() => back(groupMenu)}
-          onSave={(name) => save(() => (state) => renameDocumentGroup(state, group, name), () => back(groupMenu))} />
-      );
-    } else if (photo && sheet === "replace-group-photo") {
-      panel = (
-        <FamilyPhotoPicker member={album} library={getStore("photoLibrary")} documentSlots={1}
-          busy={busy} error={error} onClose={() => back(photoMenu)}
-          onAdd={(prepare) => save(async () => {
-            const [image] = await prepare();
-            return (state) => replaceDocumentPhoto(state, group, itemId, image);
-          }, () => back(groupMenu))} />
-      );
-    } else if ((group && sheet === "delete-group") || (photo && sheet === "delete-group-photo")) {
-      const deletingPhoto = sheet === "delete-group-photo";
-      panel = (
-        <DocumentGroupDelete key={sheet + ":" + (itemId || groupId)}
-          group={group} photoId={deletingPhoto ? itemId : null}
-          busy={busy} error={error} onClose={() => back(deletingPhoto ? photoMenu : groupMenu)}
-          onDelete={(snapshot, photoId) => save(
-            () => (state) => deleteDocumentPhotos(state, snapshot, photoId),
-            (saved) => {
-              if (saved.documents.some((entry) => entry.id === groupId)) back(groupMenu);
-              else back(documentAlbums(saved).some((entry) => entry.id === memberId) ? listPath : root);
-            },
-            "删除未完成，照片已保留，请重试。",
-          )} />
-      );
-    } else {
-      panel = (
-        <SharedSheet opened id="document-group-unavailable-title" title="证件照片"
-          onClose={() => back(album ? listPath : root)}>
-          <Empty>这份证件暂不可用。</Empty>
-        </SharedSheet>
-      );
-    }
+  let overlay;
+  if (sheet === "view-document" && group?.photos[index]) {
+    overlay = <DocumentPhotoViewer group={group} index={index}
+      onPage={(page) => replaceArchiveEntry(viewPath(page))}
+      onClose={() => back(listPath)} onSave={savePhoto}
+      onReplace={() => go(path({ group: group.id, item: index + 1, sheet: "replace-document" }))} />;
+  } else if (sheet === "replace-document" && group?.photos[index]) {
+    overlay = <DocumentViewerReplacement key={groupId + ":" + index} group={group} index={index}
+      busy={busy} error={error} onClose={() => back(viewPath())} save={save} />;
+  } else if (album && editorSheets.has(sheet) && (groupId || album.canCreate)) {
+    overlay = <DocumentEditor key={member + ":" + (groupId || "new")} group={group} groupId={groupId} album={album}
+      sheet={sheet} item={item} busy={busy} error={error} save={save}
+      onOpen={(mode, photoId) => go(path({ group: groupId, item: photoId, sheet: mode }))}
+      onReturn={() => back(path({ group: groupId, sheet: groupId ? "edit-document" : "new-document" }))}
+      onClose={() => back(listPath)}
+      onSaved={(saved) => {
+        if (!groupId && scrollRef.current) scrollRef.current.scrollTop = 0;
+        back(documentAlbums(saved).some((entry) => entry.id === member) ? listPath : root);
+      }} />;
+  } else if (sheet) {
+    overlay = <SharedSheet opened id="document-unavailable-title" title="证件照片" onClose={() => back(listPath)}>
+      <Empty>这份证件暂不可用。</Empty>
+    </SharedSheet>;
   }
 
   return (
     <>
-      <ArchiveFolderGrid documentCover entries={albums.map((entry) => ({
-        ...entry,
-        photos: entry.groups.flatMap((group) => group.photos.slice(0, 3)).slice(0, 3),
-        caption: entry.groups.length + " 份",
-      }))} onOpen={(id, trigger) => {
-        folderTrigger.current = trigger;
-        lastListAction.current = null;
-        go({ member: id });
-      }} />
-      {panel}
+      {folders}
+      <ArchiveHolderLayout title={title} pageRef={pageRef} scrollRef={scrollRef} busy={busy}
+        onBack={() => back(root)} action={action}>
+        {!album ? <Empty>这个证件夹已不存在。</Empty> : !album.groups.length ?
+          <Empty>还没有证件</Empty> : album.groups.map((entry) => (
+            <section className="document-group" key={entry.id}>
+              <header>
+                <div className="document-group-title">
+                  <h2>{entry.name}</h2>
+                  <span>{entry.photos.length}张</span>
+                </div>
+                <button type="button" data-document-action={"edit:" + entry.id} aria-label={"编辑" + entry.name}
+                  aria-haspopup="dialog" disabled={busy}
+                  onClick={() => openFor("edit:" + entry.id,
+                    path({ group: entry.id, sheet: "edit-document" }))}>
+                  <svg aria-hidden="true"><use href="#i-more" /></svg>
+                </button>
+              </header>
+              <div className="document-photo-grid" data-columns={entry.photos.length <= 2 ? 2 : 3}>
+                {entry.photos.map((photo, page) => {
+                  const focusKey = "photo:" + entry.id + ":" + page;
+                  return <button key={photo.id} type="button" data-document-action={focusKey}
+                    aria-label={"查看" + entry.name + "第 " + (page + 1) + " 张照片"} aria-haspopup="dialog" disabled={busy}
+                    onClick={() => openFor(focusKey,
+                      path({ group: entry.id, item: page + 1, sheet: "view-document" }))}>
+                    <DocumentThumbnail photo={photo} />
+                  </button>;
+                })}
+              </div>
+            </section>
+          ))}
+      </ArchiveHolderLayout>
+      {overlay}
     </>
   );
 }
@@ -964,98 +936,46 @@ function DocumentThumbnail({ photo }) {
   return (
     <span className="document-group-thumb">
       <ArchiveImage photo={photo} loading="lazy" hideOnError
-        fallback={hasDocumentPhotoFile(photo) ? null : unavailable} errorFallback={unavailable} />
+        fallback={photo?.blob instanceof Blob && photo.blob.size ? null : unavailable} errorFallback={unavailable} />
     </span>
   );
 }
 
-function DocumentAction({ children, onClick, disabled, danger = false, photo }) {
-  return (
-    <button type="button" className={danger ? "archive-row document-group-danger" : "archive-row"}
-      disabled={disabled} onClick={onClick} data-document-photo-menu={photo?.id}>
-      {photo && <DocumentThumbnail photo={photo} />}
-      <span className="archive-row-text">{children}</span>
-    </button>
-  );
-}
-
-function DocumentDownloadSheet({ group, busy, status, onClose, onDownload }) {
-  return (
-    <SharedSheet opened id="document-download-title" title="下载证件照片"
-      className="archive-management-sheet" onClose={onClose} busy={busy}>
-      <h3 className="document-download-name">{group.name}</h3>
-      {status}
-      {group.photos.length ? (
-        <div className="archive-photo-grid document-download-grid">
-          {group.photos.map((photo, index) => (
-            <button type="button" key={photo.id} disabled={busy || !hasDocumentPhotoFile(photo)}
-              aria-label={"下载第 " + (index + 1) + " 张照片"} onClick={() => onDownload(index)}>
-              <DocumentThumbnail photo={photo} />
-              <span className="document-download-label">下载</span>
-            </button>
-          ))}
-        </div>
-      ) : <Empty>这份证件还没有照片。</Empty>}
-    </SharedSheet>
-  );
-}
-
-function DocumentPhotoActions({ canDownload, status, onClose, onDownload, onReplace, onDelete }) {
-  return (
-    <SharedSheet opened id="document-photo-actions-title" title="照片操作"
-      className="archive-management-sheet" onClose={onClose}>
-      <DocumentAction disabled={!canDownload} onClick={onDownload}>下载</DocumentAction>
-      <DocumentAction onClick={onReplace}>替换</DocumentAction>
-      <DocumentAction danger onClick={onDelete}>删除照片</DocumentAction>
-      {status}
-    </SharedSheet>
-  );
-}
-
-function DocumentNameSheet({ initialName, busy, error, onClose, onSave }) {
-  const [name, setName] = useState(initialName);
-  return (
-    <SharedSheet opened id="document-name-title" title="修改证件名称"
-      busy={busy} onClose={onClose} footer={
-        <button type="button" className="tool-primary" disabled={busy || !name.trim()}
-          onClick={() => onSave(name)}>{busy ? "正在保存…" : "保存"}</button>
-      }>
-      <fieldset className="archive-form" disabled={busy}>
-        <label>证件名称
-          <input value={name} maxLength={DOCUMENT_NAME_LIMIT} onChange={(event) => setName(event.target.value)} />
-        </label>
-      </fieldset>
-      {error}
-    </SharedSheet>
-  );
-}
-
-function DocumentGroupDelete({ group, photoId, busy, error, onClose, onDelete }) {
+function DocumentViewerReplacement({ group, index, busy, error, onClose, save }) {
   const [snapshot] = useState(group);
-  const last = photoId && snapshot.photos.length === 1;
-  const whole = !photoId || last;
-  const description = last
-    ? "这是「" + snapshot.name + "」的最后一张照片，删除后会一并移除这份证件。"
-    : whole
-      ? "「" + snapshot.name + "」及其中 " + snapshot.photos.length + " 张照片将被删除，无法恢复。"
-      : "这张照片将被删除，无法恢复。";
-  return (
-    <PhotoDeleteDialog title={whole ? "删除证件？" : "删除这张照片？"}
-      description={description} confirmLabel={whole ? "删除证件" : "删除照片"}
-      busy={busy} error={error} onClose={onClose} onDelete={() => onDelete(snapshot, photoId)} />
-  );
+  return <FamilyPhotoPicker library={getStore("photoLibrary")} documentSlots={1} title="替换照片"
+    busy={busy} error={error} onClose={onClose}
+    onAdd={(prepare) => save(async () => {
+      const [photo] = await prepare();
+      return (state) => replaceDocumentPhoto(state, snapshot, snapshot.photos[index].id, photo);
+    }, onClose)} />;
 }
 
-function DocumentGroupComposer({ album, group, busy, error, pickingMore, onPickMore, onReturnFromPicker, onClose, onSave }) {
-  const [photos, setPhotos] = useState([]);
-  const [name, setName] = useState("");
-  const [preparing, setPreparing] = useState(false), [readError, setReadError] = useState("");
-  const active = useRef(false), preparingRef = useRef(false);
-  const remaining = remainingDocumentPhotoSlots(group?.photos.length, photos.length);
+function DocumentEditor({ album, group, groupId, sheet, item, busy, error, save, onOpen, onClose, onReturn, onSaved }) {
+  const isNew = !groupId;
+  const [snapshot] = useState(group);
+  const [photos, setPhotos] = useState(() => snapshot?.photos || []);
+  const [name, setName] = useState(() => snapshot?.name || "");
+  const [preparing, setPreparing] = useState(false);
+  const [readError, setReadError] = useState("");
+  const active = useRef(false);
+  const preparingRef = useRef(false);
+  const deleteTrigger = useRef(null);
+  const index = photos.findIndex((photo) => photo.id === item);
+  const remaining = remainingDocumentPhotoSlots(photos.length);
+  const pickingReplacement = sheet === "pick-document-replace" && !!photos[index];
+  const pickingMore = sheet === "pick-document-add" && remaining > 0;
+  const pickingInitial = isNew && !photos.length;
+  const picking = pickingReplacement || pickingMore || pickingInitial;
+  const confirming = !isNew && sheet === "confirm-document-delete" && (!item || !!photos[index]);
+  const removingRecord = confirming && (!item || photos.length === 1);
+  const unchanged = name.trim() === snapshot?.name && photos === snapshot?.photos;
+
   useEffect(() => {
     active.current = true;
     return () => { active.current = false; };
   }, []);
+
   async function select(prepare) {
     if (preparingRef.current) return;
     preparingRef.current = true;
@@ -1065,9 +985,11 @@ function DocumentGroupComposer({ album, group, busy, error, pickingMore, onPickM
     try {
       const images = await prepare();
       if (!active.current || source !== currentArchiveRoute()) return;
-      assertDocumentPhotoCount(images.length, remaining);
-      setPhotos((current) => [...current, ...images]);
-      if (pickingMore) onReturnFromPicker();
+      assertDocumentPhotoCount(images.length, pickingReplacement ? 1 : remaining);
+      setPhotos((current) => pickingReplacement
+        ? current.map((photo, i) => i === index ? images[0] : photo)
+        : [...current, ...images]);
+      if (!pickingInitial) onReturn();
     } catch (failure) {
       if (active.current && source === currentArchiveRoute())
         setReadError(failure instanceof DOMException ? "图片未能读取，请重新选择。" : failure.message || "图片未能读取，请重新选择。");
@@ -1076,41 +998,95 @@ function DocumentGroupComposer({ album, group, busy, error, pickingMore, onPickM
       if (active.current) setPreparing(false);
     }
   }
-  if ((!photos.length || pickingMore) && remaining > 0)
-    return <FamilyPhotoPicker member={album} library={getStore("photoLibrary")}
-      documentSlots={remaining} busy={busy || preparing} error={readError || error} onAdd={select}
-      onClose={pickingMore ? onReturnFromPicker : onClose} />;
 
-  if (!photos.length)
-    return <SharedSheet opened id="document-group-composer-title" title="添加照片" onClose={onClose}>
-      <p className="member-camera-status">这份证件已达到 5 张照片的上限。</p>
+  if (!isNew && !snapshot)
+    return <SharedSheet opened id="document-edit-title" title="编辑证件" onClose={onClose}>
+      <Empty>这份证件暂不可用。</Empty>
     </SharedSheet>;
+  if (picking)
+    return <FamilyPhotoPicker library={getStore("photoLibrary")}
+      title={pickingReplacement ? "替换照片" : undefined}
+      documentSlots={pickingReplacement ? 1 : remaining} busy={busy || preparing}
+      error={readError || error} onAdd={select} onClose={pickingInitial ? onClose : onReturn} />;
+
+  function requestDelete(event, photoId) {
+    deleteTrigger.current = event.currentTarget;
+    onOpen("confirm-document-delete", photoId);
+  }
+
+  function removeRecord() {
+    return save(() => (state) => deleteDocumentPhotos(state, snapshot), onSaved,
+      "删除未完成，证件已保留，请重试。");
+  }
 
   return (
-    <SharedSheet opened id="document-group-composer-title" title={group ? "添加照片" : "添加证件"}
-      onClose={onClose} busy={busy} footer={
-        <button type="button" className="tool-primary" disabled={busy} onClick={() => onSave(name, photos)}>
-          {busy ? "正在保存…" : group ? "保存照片" : "保存"}
-        </button>
-      }>
-      <fieldset className="archive-form" disabled={busy}>
-        {!group && (
-          <label>证件名称（选填）
+    <>
+      <SharedSheet opened id="document-edit-title" title={isNew ? "添加证件" : "编辑证件"}
+        onClose={onClose} suspended={confirming} busy={busy} footer={
+          <button type="button" className="ui-button-primary"
+            disabled={busy || !photos.length || (!isNew && (!name.trim() || unchanged))}
+            onClick={() => save(
+              () => (state) => isNew
+                ? addDocumentGroup(state, album.holderId, name, photos)
+                : saveDocumentGroupEdit(state, snapshot, name, photos),
+              onSaved,
+              "保存未完成，原证件已保留，请重试。",
+            )}>
+            {busy ? "正在保存…" : "保存"}
+          </button>
+        }>
+        <fieldset className="archive-form document-editor-form" disabled={busy}>
+          <label>{isNew ? "证件名称（选填）" : "证件名称"}
             <input value={name} maxLength={DOCUMENT_NAME_LIMIT} placeholder="例如：身份证"
               onChange={(event) => setName(event.target.value)} />
           </label>
-        )}
-        <div className="archive-photo-grid" role="group" aria-label={"已选 " + photos.length + " 张照片"}>
-          {photos.map((photo) => <DocumentThumbnail key={photo.id} photo={photo} />)}
-        </div>
-        {remaining > 0 ? (
-          <button type="button" className="document-group-add" onClick={() => {
-            setReadError("");
-            onPickMore();
-          }}>继续添加照片</button>
-        ) : <p className="member-camera-status">已达到 5 张照片的上限。</p>}
-      </fieldset>
-      {error && <p className="album-error" role="alert">{error}</p>}
-    </SharedSheet>
+          <div className="document-photo-grid" data-columns="2" role="group" aria-label={"已选 " + photos.length + " 张照片"}>
+            {photos.map((photo, page) => (
+              <div className="document-editor-tile" key={photo.id}>
+                {isNew ? <DocumentThumbnail photo={photo} /> : (
+                  <>
+                    <button type="button" aria-label={"替换第 " + (page + 1) + " 张照片"}
+                      onClick={() => onOpen("pick-document-replace", photo.id)}>
+                      <DocumentThumbnail photo={photo} />
+                    </button>
+                    <button type="button" className="document-editor-remove"
+                      aria-label={"删除第 " + (page + 1) + " 张照片"}
+                      onClick={(event) => requestDelete(event, photo.id)}>
+                      <svg aria-hidden="true"><use href="#i-close" /></svg>
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+            {remaining > 0 && (
+              <button type="button" className="document-editor-add" onClick={() => onOpen("pick-document-add")}>
+                {isNew ? "继续添加照片" : "+ 添加"}
+              </button>
+            )}
+          </div>
+          {!isNew && (
+            <button type="button" className="ui-button-text document-editor-delete"
+              onClick={(event) => requestDelete(event)}>删除整份证件</button>
+          )}
+        </fieldset>
+        {error && !confirming && <p className="album-error" role="alert">{error}</p>}
+      </SharedSheet>
+      {confirming && (removingRecord ? (
+        <PhotoDeleteDialog overSheet returnFocusRef={deleteTrigger}
+          title={item ? "删除这张照片？" : "删除整份证件？"}
+          description={item ? "这是最后一张照片。删除后会一并移除这份证件。"
+            : "「" + snapshot.name + "」及其中 " + snapshot.photos.length + " 张照片将被删除，无法恢复。"}
+          confirmLabel="删除证件" onDelete={removeRecord} onClose={onReturn}
+          busy={busy} error={error} />
+      ) : (
+        <ConfirmationDialog overSheet returnFocusRef={deleteTrigger}
+          title="移除这张照片？" description="点击「保存」后，这张照片才会从证件中移除。"
+          confirmLabel="移除照片" onClose={onReturn}
+          onConfirm={() => {
+            setPhotos((current) => current.filter((_, page) => page !== index));
+            onReturn();
+          }} />
+      ))}
+    </>
   );
 }

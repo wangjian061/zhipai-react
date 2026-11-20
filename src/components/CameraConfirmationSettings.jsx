@@ -39,7 +39,6 @@ export default function CameraConfirmationSettings({
           <button
             type="button"
             disabled={disabled}
-            aria-haspopup="dialog"
             aria-pressed={
               !!selectedSpec && !specs.some((spec) => spec.id === selectedSpec)
             }

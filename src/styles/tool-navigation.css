@@ -4,17 +4,18 @@
   align-items: center;
   gap: 8px;
   flex: none;
-  height: 52px;
+  height: var(--ui-nav-height);
   padding: 0 12px;
   background: transparent;
   color: var(--ui-heading);
 }
 
-.tool-navigation .tool-navigation-back {
+.tool-navigation-back {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: var(--ui-touch-min);
+  height: var(--ui-touch-min);
+  flex: none;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -23,7 +24,8 @@
   touch-action: manipulation;
   transition:
     transform 160ms var(--ease),
-    opacity 160ms var(--ease);
+    opacity 160ms var(--ease),
+    background-color 150ms var(--ease);
 }
 
 .tool-navigation-back svg {
@@ -34,17 +36,17 @@
   stroke-width: 2;
 }
 
-.tool-navigation .tool-navigation-back:not(:disabled):active {
+.tool-navigation-back:not(:disabled):active {
   transform: scale(0.96);
 }
 
-.tool-navigation .tool-navigation-back:disabled {
+.tool-navigation-back:disabled {
   opacity: 0.45;
   cursor: default;
   transform: none;
 }
 
-.tool-navigation .tool-navigation-back:focus-visible {
+.tool-navigation-back:focus-visible {
   outline: 2px solid var(--brand-blue);
   outline-offset: 2px;
 }
@@ -54,8 +56,8 @@
   margin: 0;
   overflow: hidden;
   color: var(--ui-heading);
-  font-size: 17px;
-  font-weight: 650;
+  font-size: var(--ui-nav-title);
+  font-weight: 600;
   line-height: 1.4;
   text-align: center;
   text-overflow: ellipsis;
@@ -70,8 +72,41 @@
   min-width: 0;
 }
 
+/* The task header owns the device inset; legacy and immersive headers can still overlay art. */
+.page.ui-task-page {
+  padding-block-start: 0;
+  background: var(--ui-canvas);
+}
+
+.device-fit .page.ui-task-page {
+  padding-block-start: 0;
+}
+
+header.tool-navigation[data-appearance="task"], header.ui-task-masthead {
+  --task-nav-inset: var(--ui-navigation-safe-top, var(--device-status-height, env(safe-area-inset-top, 0px)));
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--ui-layer-fixed);
+  min-height: calc(var(--ui-nav-height) + var(--task-nav-inset));
+  padding-block-start: calc(var(--task-nav-inset) + var(--task-nav-top-gap, 0px));
+  background: var(--surface);
+}
+
+:is(.tool-navigation[data-appearance="task"], .ui-task-masthead) .tool-navigation-back {
+  background: transparent;
+}
+
+:is(.tool-navigation[data-appearance="task"], .ui-task-masthead)
+  .tool-navigation-back:not(:disabled):active {
+  background: var(--ui-nav-back-fill);
+}
+
+:is(.tool-navigation[data-appearance="task"], .ui-task-masthead) .tool-navigation-back svg {
+  stroke-width: 1.7;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .tool-navigation .tool-navigation-back {
+  .tool-navigation-back {
     transition: none;
   }
 }

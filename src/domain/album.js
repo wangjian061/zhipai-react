@@ -516,13 +516,6 @@ registerController("albumCenter", () => ({
   },
   syncLocation(event) {
     const query = new URLSearchParams(location.search);
-    if (this.modal === "delete" && this.deleteHistoryId && event?.type === "popstate") {
-      this.operationEpoch++;
-      const samePhoto = query.get("page") === "album" && query.get("photo") === this.photoId;
-      this.deleteHistoryId = null;
-      this.finishCloseModal(samePhoto);
-      if (samePhoto) return;
-    }
     if (this.modal === "preview" && event?.type === "popstate") {
       const samePhoto =
         query.get("page") === "album" && query.get("photo") === this.photoId;
@@ -547,7 +540,6 @@ registerController("albumCenter", () => ({
     this.modal = null;
     this.message = "";
     this.previewHistoryId = null;
-    this.deleteHistoryId = null;
     this.previewClosing = false;
     this.previewImageFailed = false;
     this.albumManaging = false;
@@ -714,10 +706,6 @@ registerController("albumCenter", () => ({
   },
   closeModal() {
     if (this.modal !== "preview" && (this.working || this.store.busy)) return;
-    if (this.modal === "delete" && this.deleteHistoryId && history.state?.albumDelete === this.deleteHistoryId) {
-      history.back();
-      return;
-    }
     if (
       this.modal === "preview" &&
       history.state?.albumPreview === this.previewHistoryId
@@ -777,20 +765,15 @@ registerController("albumCenter", () => ({
   capturePhoto() {
     if (!this.disabled && !this.downloading) this.openCamera();
   },
-  deleteCurrent() {
-    if (!this.photo || this.disabled || this.downloading) return;
-    this.selected = [this.photo.id];
-    this.deleteHistoryId = crypto.randomUUID();
-    history.pushState({ ...history.state, albumDelete: this.deleteHistoryId }, "", location.href);
-    this.showModal("delete");
-  },
   async confirmDelete() {
-    if (!this.selected.length || this.disabled) return;
+    if (
+      this.view !== "library" || !this.managing || this.modal !== "delete" ||
+      !this.selected.length || this.disabled
+    ) return;
     const ids = this.selected.filter((id) =>
-        this.photos.some((p) => p.id === id),
-      ),
-      epoch = this.operationEpoch,
-      from = this.view;
+      this.photos.some((p) => p.id === id),
+    );
+    const epoch = this.operationEpoch;
     if (!ids.length) return;
     this.working = true;
     this.message = "";
@@ -799,18 +782,7 @@ registerController("albumCenter", () => ({
       if (epoch === this.operationEpoch) {
         this.selected = [];
         this.modal = null;
-        if (from === "detail") {
-          this.working = false;
-          if (this.deleteHistoryId && history.state?.albumDelete === this.deleteHistoryId) {
-            this.deleteHistoryId = null;
-            if (history.state?.albumSheetFromList && history.length > 2) history.go(-2);
-            else {
-              history.replaceState({page:"album"}, "", "/?page=album");
-              window.dispatchEvent(new Event("zhipai-route"));
-            }
-          } else this.closeDetail();
-        }
-        else if (!this.photos.length) this.endManage();
+        if (!this.photos.length) this.endManage();
       }
     } catch (_) {
       if (epoch === this.operationEpoch)

@@ -12,6 +12,7 @@ export default function ToolPhotoSelection({
   selectionHint,
   activity,
   titleId,
+  title = forMember ? "添加照片" : "选择照片",
   onClose,
   onPhone,
   phoneTriggerRef,
@@ -24,10 +25,10 @@ export default function ToolPhotoSelection({
   return (
     <div className="tool-photo-selection">
       <header className="ui-sheet-header">
-        <h2 id={titleId}>{forMember ? "添加照片" : "选择照片"}</h2>
+        <h2 id={titleId}>{title}</h2>
         <button
           type="button"
-          aria-label={forMember ? "关闭添加照片" : "关闭选择照片"}
+          aria-label={"关闭" + title}
           disabled={busy}
           onClick={onClose}
         >

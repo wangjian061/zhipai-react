@@ -80,7 +80,7 @@
   z-index: -1;
   border: 1px solid transparent;
   border-radius: 8px;
-  background: var(--ui-canvas, #f5f7fb);
+  background: var(--ui-canvas);
   transition:
     background-color 150ms,
     border-color 150ms;

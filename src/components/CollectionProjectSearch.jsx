@@ -1,3 +1,4 @@
+import { TaskBackButton } from "./ToolNavigation.jsx";
 import React, { useCallback, useLayoutEffect, useRef } from "react";
 import { CollectionIcon } from "./CollectionHome.jsx";
 import { CollectionProjectRow } from "./CollectionProjectRows.jsx";
@@ -36,19 +37,15 @@ export default function CollectionProjectSearch({ scope: s }) {
 
   return (
     <section className="collection-project-search" aria-label="项目搜索">
-      <header className="collection-project-search-header">
+      <header className="collection-project-search-header ui-task-masthead">
         <h1 className="collection-search-sr-only">项目搜索</h1>
-        <button
-          className="collection-project-search-back"
-          type="button"
-          aria-label="返回来源列表"
+        <TaskBackButton
+          label="返回来源列表"
           onClick={() => {
             input.current?.blur();
             s.back();
           }}
-        >
-          <CollectionIcon name="chevron-left" />
-        </button>
+        />
         <form
           className="collection-project-search-form"
           role="search"

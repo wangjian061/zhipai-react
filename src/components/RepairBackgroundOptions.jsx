@@ -1,30 +1,23 @@
 import React from "react";
 
 export default function RepairBackgroundOptions({
+  ref,
   colors,
   color,
   disabled,
+  invalid = false,
   onChange,
-  required = true,
 }) {
   return (
-    <section className="tool-settings tool-repair-background">
-      <div className="tool-options-heading">
-        <h2 id="repair-background-title">背景颜色</h2>
-        <span aria-live="polite" id="repair-background-selection">
-          {color
-            ? `已选：${color.name}`
-            : required
-              ? "请选择一种"
-              : "沿用原订单"}
-        </span>
-      </div>
+    <section ref={ref} className="tool-repair-background" data-invalid={invalid || undefined}>
+      <h3 id="repair-background-title">背景颜色</h3>
       <div
         className="tool-repair-background-options"
         role="radiogroup"
         aria-labelledby="repair-background-title"
-        aria-describedby="repair-background-selection"
-        aria-required={required}
+        aria-describedby={invalid ? "repair-background-error" : undefined}
+        aria-required="true"
+        aria-invalid={invalid || undefined}
       >
         {colors.map((item) => (
           <label key={item.id}>
@@ -38,7 +31,7 @@ export default function RepairBackgroundOptions({
             />
             <i style={{ background: item.value }} aria-hidden="true">
               {color?.id === item.id && (
-                <svg viewBox="0 0 24 24">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m6 12 4 4 8-9" />
                 </svg>
               )}
@@ -47,6 +40,11 @@ export default function RepairBackgroundOptions({
           </label>
         ))}
       </div>
+      {invalid && (
+        <p id="repair-background-error" className="ui-field-error" role="alert">
+          请先选择一种背景颜色
+        </p>
+      )}
     </section>
   );
 }

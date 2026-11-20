@@ -1,7 +1,7 @@
 #toast-layer {
   position: absolute;
   inset: 0;
-  z-index: 33;
+  z-index: var(--ui-layer-toast);
   pointer-events: none;
 }
 .feedback-toast {
@@ -31,6 +31,12 @@
   overflow-wrap: anywhere;
   pointer-events: none;
 }
+.feedback-toast > span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
 .feedback-toast[hidden] {
   display: none;
 }
@@ -38,39 +44,48 @@
   min-width: 0;
   padding: 10px 12px;
   border-radius: var(--ui-toast-radius);
-  background: var(--ui-canvas);
+  background: var(--ui-info-fill);
   color: var(--ui-heading);
   font-size: 13px;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
 .feedback-module[data-tone="warning"] {
-  background: #fff4e5;
-  color: #754510;
+  background: var(--ui-warning-fill);
+  color: var(--ui-heading);
 }
 .feedback-module p {
   margin: 4px 0 0;
 }
-.confirmation-over-sheet {
-  z-index: 81;
+.confirmation-overlay {
+  z-index: var(--ui-layer-confirmation);
 }
+.app-viewport:has(:is(.confirmation-overlay, .camera-workflow-overlay, .camera-task-overlay, #payment-handoff-layer > .shared-sheet-overlay):not([hidden], [hidden] *)) > #toast-layer {
+  visibility: hidden;
+}
+.confirmation-dialog h2 {
+  font-size: var(--ui-sheet-title);
+  font-weight: 600;
+}
+
 .confirmation-dialog {
-  max-width: 300px;
+  max-width: 320px;
   color: var(--ui-heading);
 }
 .confirmation-dialog .dialog-description {
   font-size: var(--ui-button-font);
   color: var(--ui-body);
 }
-.confirmation-dialog .delete-confirm-actions button.is-primary {
-  background: var(--brand-blue);
-  color: white;
-}
+
 #payment-handoff-layer {
   position: absolute;
   inset: 0;
-  z-index: 84;
+  /* The external payment sheet sits one step above its origin drawer. */
+  z-index: calc(var(--ui-layer-drawer) + 1);
   pointer-events: none;
+}
+#payment-handoff-layer > .shared-sheet-overlay {
+  pointer-events: auto;
 }
 .checkout-methods {
   display: flex;
@@ -131,10 +146,24 @@
 .checkout-cashier-amount {
   margin: 12px 0 6px;
   color: var(--ui-heading);
-  font-size: 24px;
-  font-weight: 650;
+  font-size: var(--ui-display-price);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .checkout-recovery {
   margin-block: 8px;
+}
+
+/* A solid red action is reserved for the irreversible confirmation in an Alert. */
+.confirmation-dialog .delete-confirm-actions > .danger:not(:disabled) {
+  background: var(--ui-danger-ink);
+  color: #fff;
+}
+.confirmation-dialog .delete-confirm-actions > .danger {
+  min-height: var(--ui-button-height);
+  border: 0;
+  border-radius: var(--ui-button-radius);
+  font-size: var(--ui-button-font);
+  font-weight: var(--ui-button-weight);
+  line-height: 1.4;
 }

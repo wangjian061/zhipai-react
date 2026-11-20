@@ -1,3 +1,4 @@
+import { TaskBackButton } from "./ToolNavigation.jsx";
 import React, { useRef, useState } from "react";
 import { CollectionIcon } from "./CollectionHome.jsx";
 
@@ -14,14 +15,11 @@ export default function SupportSearch({ s }) {
       className="collection-project-search support-search-page"
       aria-label="帮助搜索"
     >
-      <header className="collection-project-search-header">
-        <button
-          className="collection-project-search-back"
-          aria-label="返回客服中心"
+      <header className="collection-project-search-header ui-task-masthead">
+        <TaskBackButton
+          label="返回客服中心"
           onClick={() => s.leaveSearch()}
-        >
-          <CollectionIcon name="chevron-left" />
-        </button>
+        />
         <form
           role="search"
           className="collection-project-search-form"

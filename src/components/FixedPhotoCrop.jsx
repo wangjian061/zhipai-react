@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import PhotoProcessingEffect, {
   PhotoProcessingStatus,
 } from "./PhotoProcessingEffect.jsx";
@@ -12,6 +12,21 @@ export default function FixedPhotoCrop({
   processing = false,
   onChange,
 }) {
+  const frame = useRef(null);
+  const gestureState = useRef(null);
+  gestureState.current = { value, disabled, onChange };
+  useEffect(() => {
+    const area = frame.current;
+    function zoom(event) {
+      const { value, disabled, onChange } = gestureState.current;
+      if (disabled) return;
+      event.preventDefault();
+      const delta = event.deltaY * (event.deltaMode ? 16 : 1);
+      onChange({ ...value, scale: value.scale * Math.exp(-delta * 0.003) });
+    }
+    area.addEventListener("wheel", zoom, { passive: false });
+    return () => area.removeEventListener("wheel", zoom);
+  }, []);
   const pointers = useRef(new Map());
   const gesture = useRef(null);
   const bounds = photoCropBounds(photo.width, photo.height, 5, 7, value);
@@ -37,9 +52,10 @@ export default function FixedPhotoCrop({
       <div className="print-crop-stage">
         <div
           className="print-crop-frame"
+          ref={frame}
           aria-label="一寸固定比例裁剪区域，拖动照片调整位置"
           onPointerDown={(event) => {
-            if (disabled) return;
+            if (disabled || (event.pointerType === "mouse" && event.button !== 0)) return;
             event.preventDefault();
             event.currentTarget.setPointerCapture(event.pointerId);
             pointers.current.set(event.pointerId, {
@@ -117,55 +133,37 @@ export default function FixedPhotoCrop({
       </div>
       <PhotoProcessingStatus label={processing ? "正在裁剪照片" : ""} />
       <div className="print-crop-controls">
-        <label>
-          <span>缩放</span>
-          <input
-            type="range"
-            min="1"
-            max="3"
-            step="0.01"
-            aria-label="照片缩放"
-            value={value.scale}
-            disabled={disabled}
-            onChange={(event) =>
-              onChange({ ...value, scale: Number(event.target.value) })
-            }
-          />
-          <output>{value.scale.toFixed(1)}×</output>
-        </label>
-        <div className="print-crop-position">
-          <label>
-            水平
-            <input
-              type="range"
-              min="-100"
-              max="100"
-              step="1"
-              value={value.offsetX}
-              aria-label="照片水平位置"
-              disabled={disabled}
-              onChange={(event) =>
-                onChange({ ...value, offsetX: Number(event.target.value) })
-              }
-            />
-          </label>
-          <label>
-            垂直
-            <input
-              type="range"
-              min="-100"
-              max="100"
-              step="1"
-              value={value.offsetY}
-              aria-label="照片垂直位置"
-              disabled={disabled}
-              onChange={(event) =>
-                onChange({ ...value, offsetY: Number(event.target.value) })
-              }
-            />
-          </label>
+        <div className="print-crop-tools">
+          <p>拖动或滑杆微调 5∶7 构图</p>
+          <button
+            type="button"
+            className="print-crop-reset"
+            disabled={disabled || (value.scale === 1 && !value.offsetX && !value.offsetY)}
+            onClick={() => onChange({ scale: 1, offsetX: 0, offsetY: 0 })}
+          >
+            复位
+          </button>
         </div>
-        <p>拖动照片或双指缩放，裁剪比例固定为 5∶7</p>
+        {[
+          { key: "scale", title: "缩放", label: "照片缩放", min: 1, max: 3, step: 0.01 },
+          { key: "offsetX", title: "水平", label: "照片水平位置", min: -100, max: 100, step: 1 },
+          { key: "offsetY", title: "垂直", label: "照片垂直位置", min: -100, max: 100, step: 1 },
+        ].map(({ key, title, label, min, max, step }) => (
+          <label key={key}>
+            <span>{title}</span>
+            <input
+              type="range"
+              min={min}
+              max={max}
+              step={step}
+              aria-label={label}
+              value={value[key]}
+              disabled={disabled}
+              onChange={(event) => onChange({ ...value, [key]: Number(event.target.value) })}
+            />
+            <output>{key === "scale" ? value[key].toFixed(1) + "×" : Math.round(value[key]) + "%"}</output>
+          </label>
+        ))}
       </div>
     </>
   );

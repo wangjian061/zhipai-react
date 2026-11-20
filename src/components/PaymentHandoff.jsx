@@ -73,7 +73,10 @@ export function PaymentRecovery({
   if (!feedback) return null;
   return (
     <div className="checkout-recovery">
-      <ModuleFeedback title={busy ? "正在查询支付结果…" : feedback.title}>
+      <ModuleFeedback
+        title={busy ? "正在查询支付结果…" : feedback.title}
+        tone={order.status === "verifying" ? "warning" : "info"}
+      >
         {feedback.detail}
       </ModuleFeedback>
       {order.status === "verifying" &&
