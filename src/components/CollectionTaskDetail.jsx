@@ -38,8 +38,8 @@ function PortraitGuide() {
   return (
     <figure className="collection-task-guide">
       <img
-        src="assets/print-portrait.png"
-        alt="白色背景、正面端正的一寸证件照拍摄参考"
+        src="assets/print-portrait-blue.webp"
+        alt="蓝色背景、正装正面人像拍摄参考"
       />
       <figcaption>拍摄参考</figcaption>
     </figure>
@@ -73,7 +73,7 @@ export default function CollectionTaskDetail({
             </p>
           </div>
         </div>
-        {s.canViewReviewReason && (
+        {s.canViewReviewReason && status !== "rejected" && (
           <button
             type="button"
             className="collection-task-review-link"
@@ -87,6 +87,17 @@ export default function CollectionTaskDetail({
       </section>
       <div className="collection-task-content">
         <section className="collection-task-visual" aria-label="本次采集照片">
+          {status === "rejected" && record.reason?.trim() && (
+            <div className="collection-task-review-summary">
+              <p>{record.reason}</p>
+              {s.canViewReviewReason && (
+                <button type="button" className="collection-task-review-link"
+                  disabled={s.disabled} onClick={() => s.openReviewReason()}>
+                  {s.failureReasonLabel}<CollectionIcon name="chevron" />
+                </button>
+              )}
+            </div>
+          )}
           {s.photoSrc ? (
             <>
               <figure className="collection-task-photo">
@@ -127,7 +138,7 @@ export default function CollectionTaskDetail({
           {status === "draft" && s.canCollect && (
             <button
               type="button"
-              className="collection-task-retake"
+              className="collection-task-retake ui-button-text"
               disabled={s.disabled}
               onClick={() => s.capture()}
             >

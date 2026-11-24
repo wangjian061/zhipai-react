@@ -186,7 +186,6 @@ export default function FamilyPhotoPicker({
           mascot="/assets/bear-album.webp"
           busy={busy}
           error={pickError || error}
-          selectionHint={!forDocument ? "从手机相册每次选 1 张；超过 1 MB 时，需同意压缩后上传。" : undefined}
           activity={activity}
           onClose={onClose}
           onPhone={openPhone}

@@ -51,7 +51,7 @@ export default function CollectionTaskDrawer({
     <SharedSheet opened embedded modal={modal} id={`${idPrefix}-drawer-title`}
       className="collection-drawer collection-auth-drawer collection-task-drawer"
       sectionProps={{ "data-panel": s.panel }} dialogRef={attach} bodyRef={body}
-      title={s.panelTitle} subtitle={confirm ? "核对照片及本人信息后提交审核" : s.failureReasonHint}
+      title={s.panelTitle} subtitle={confirm ? `确认照片与身份无误，提交给${s.project.organization || "所属机构"}审核` : s.failureReasonHint}
       busy={s.busy} onClose={() => s.closePanel()} footer={confirm && (
         <button type="button" className="collection-primary"
           disabled={s.disabled || !s.canCollect || s.statusKey !== "draft"}

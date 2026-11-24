@@ -1,8 +1,9 @@
-import { collectionHistoryState } from "../domain/collection-history.js";
+import { collectionHistoryState, universityPath } from "../domain/collection-history.js";
 import React from "react";
 const entries = [
   {
     category: "graduate",
+    href: universityPath,
     title: "毕业生采集",
     subtitle: "毕业图像采集",
     asset: "graduate",
@@ -34,7 +35,7 @@ export default function HomeCollectionCard() {
             className="home-collection-category"
             data-category={item.category}
             draggable={false}
-            href={`/?page=collection&view=projects&category=${item.category}&from=home&section=home`}
+            href={item.href || `/?page=collection&view=projects&category=${item.category}&from=home&section=home`}
             onClick={(event) => {
               if (
                 event.defaultPrevented ||

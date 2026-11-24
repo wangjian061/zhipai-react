@@ -47,6 +47,9 @@ const panels = {
   email: "邮件联系",
   requirements: "采集要求",
   projectRecords: "当前采集任务",
+  employeeBadge: "企业工牌定制",
+  certificate: "比赛证书定制",
+  membership: "会员卡定制",
   existing: "已有采集记录",
   policy: "阅读协议",
   oauth: "第三方授权",
@@ -154,10 +157,17 @@ export function resolveWorkbenchContext(
     guide = "collection." + view;
     title = collectionViews[view] || "专项采集";
     source = "collection-week2-development-handoff-1.4.6.md";
-    if (view === "records") title = scope?.recordListTitle || ({graduate:"毕业生采集记录",enrollment:"新生采集记录",association:"其它采集记录"})[q.get("category")] || "采集记录";
+    if (q.get("view") === "university") {
+      const mode = q.get("mode");
+      guide = mode === "school" ? "collection.project" : ["search", "all"].includes(mode) ? "collection.search" : "collection.projects";
+      title = mode === "school" ? "院校信息" : mode === "search" ? "院校搜索" : mode === "all" ? "全部院校" : "毕业生图像采集";
+    }
+    if (view === "projects" && q.get("category") === "enrollment") title = "新生入学采集";
+    if (view === "projects" && q.get("category") === "association") title = "其它采集";
+    if (view === "records") title = "采集记录";
     if (view === "projects" && ((q.get("category") || "all") === "all" || q.get("search")==="1" || q.has("q"))) {
       guide = "collection.search";
-      title = "项目搜索";
+      title = q.get("category") === "enrollment" ? "院校搜索" : q.get("category") === "association" ? "机构搜索" : "项目搜索";
       source = "collection-project-search-1.4.6.md";
     }
     if (["detail", "complete"].includes(view)) {
@@ -247,6 +257,13 @@ export function resolveWorkbenchContext(
     if (scope?.collectionCapture) group = "专项采集";
     if (scope?.collectionCapture && ["capture", "confirm"].includes(step))
       guide = "collection.camera." + step;
+  } else if (page === "print" && q.get("view") === "graduate") {
+    scope = scopes.graduatePrint;
+    guide = "print.graduate";
+    title = "毕业照片 6 寸冲印";
+    source = "pages/print.graduate.md";
+    state = ({ confirm: "确认订单", complete: "订单已确认" })[scope?.view || q.get("print")] || "选图与裁剪";
+    panel = ({ pick: "添加照片", crop: "手动裁剪（6 寸）", payment: "选择支付方式" })[scope?.panel] || "";
   } else if (page === "print") {
     scope = scopes.printStudio;
     const requestedView = scope?.view || q.get("print") || "layouts";

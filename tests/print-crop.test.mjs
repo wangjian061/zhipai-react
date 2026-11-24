@@ -152,7 +152,7 @@ test("print preview keeps an independent crop across layout changes, return, rel
   try {
     assert.equal(s.layouts.length, 2);
     assert.match(s.workspaceSheet(s.layout.id), /print-portrait-blue\.webp/);
-    s.selectGalleryImage("peel");
+    s.selectGalleryImage("angle");
     const matching = input("matching", 295, 413);
     await s.choosePhoto(matching, "phone");
     assert.equal(s.view, "layouts");
@@ -160,7 +160,7 @@ test("print preview keeps an independent crop across layout changes, return, rel
     assert.equal(s.previewTab, "sheet");
     await settle();
     assert.notEqual(s.draft.photo.id, matching.id);
-    assert.equal(s.galleryItem.id, "peel");
+    assert.equal(s.galleryItem.id, "angle");
     assert.equal(s.galleryItems.length, 4);
     s.showPreviewTab("crop");
     s.setCrop({ scale: 1.2, offsetX: 15, offsetY: 0 });
@@ -176,7 +176,7 @@ test("print preview keeps an independent crop across layout changes, return, rel
     history.back();
     assert.equal(s.modal, null);
     await settle();
-    assert.equal(s.galleryItem.id, "peel");
+    assert.equal(s.galleryItem.id, "angle");
     const oldURLs = s.layoutOptions.map((option) => option.previewURL);
     const landscape = input("landscape", 900, 600);
     await s.choosePhoto(landscape, "phone");

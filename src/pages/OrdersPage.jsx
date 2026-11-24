@@ -1,3 +1,4 @@
+import { orderNavigate } from "../domain/order-routing.js";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Controller, View } from "../runtime/components.jsx";
 import ToolNavigation from "../components/ToolNavigation.jsx";
@@ -495,6 +496,14 @@ function Detail({ s, order: o }) {
           </p>
         )}
       </div>
+      {o.checkoutPath && (
+        <footer className="orders-footer">
+          <button type="button" className="orders-primary" disabled={!s.online}
+            onClick={() => orderNavigate(o.checkoutPath)}>
+            {o.sourceStatus === "verifying" ? "查询支付结果" : "继续支付"}
+          </button>
+        </footer>
+      )}
       {s.canConfirmReceipt && (
         <footer className="orders-footer">
           <button

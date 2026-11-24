@@ -1,6 +1,7 @@
 // One-time, local-development data requested for the collection status review.
 // This module is dynamically imported only by the development records page.
 export const COLLECTION_EXAMPLE_BATCH = "collection-status-20261015";
+const GRADUATE_REVIEW_BATCH = "graduate-record-review";
 const examples = [
   ["pending", "林知夏", "enrollment", ""],
   [22, "陈书宁", "enrollment", ""],
@@ -29,28 +30,37 @@ const examples = [
   ],
 ];
 
-export function missingCollectionExamples(items, owner) {
+export function missingCollectionExamples(items, owner, graduateOnly = false) {
   if (!owner) return [];
-  const batch = items.filter(
-    (r) => r.exampleBatch === COLLECTION_EXAMPLE_BATCH,
+  // The automatic batch belongs to its first importing account.
+  if (!graduateOnly && items.some(
+    (r) => r.exampleBatch === COLLECTION_EXAMPLE_BATCH && r.owner !== owner,
+  )) return [];
+  const existing = new Set(
+    items.filter((r) => r.owner === owner &&
+      (r.exampleBatch === COLLECTION_EXAMPLE_BATCH || r.exampleBatch === GRADUATE_REVIEW_BATCH))
+      .map((r) => r.exampleKey),
   );
-  // The approved batch belongs to the first importing account, never later accounts.
-  if (batch.some((r) => r.owner !== owner)) return [];
-  const existing = new Set(batch.map((r) => r.exampleKey));
-  return examples.filter(([status]) => !existing.has(String(status)));
+  return examples.filter(([status, , projectId]) =>
+    (!graduateOnly || projectId === "graduate") && !existing.has(String(status)),
+  );
 }
 
-export function buildCollectionExamples(items, owner, photo, now = Date.now()) {
-  return missingCollectionExamples(items, owner).map(
+export function buildCollectionExamples(items, owner, photo, now = Date.now(), graduateOnly = false) {
+  const exampleBatch = graduateOnly ? GRADUATE_REVIEW_BATCH : COLLECTION_EXAMPLE_BATCH;
+  return missingCollectionExamples(items, owner, graduateOnly).map(
     ([status, name, projectId, reason]) => {
       const index = examples.findIndex(([value]) => value === status);
       const exampleKey = String(status);
+      const id = graduateOnly
+        ? `${exampleBatch}-${crypto.randomUUID()}`
+        : `${exampleBatch}-${exampleKey}`;
       return {
-        id: `${COLLECTION_EXAMPLE_BATCH}-${exampleKey}`,
+        id,
         owner,
         fixture: false,
         example: true,
-        exampleBatch: COLLECTION_EXAMPLE_BATCH,
+        exampleBatch,
         exampleKey,
         projectId,
         status,
@@ -58,7 +68,7 @@ export function buildCollectionExamples(items, owner, photo, now = Date.now()) {
         method: "student",
         number: `20261015${String(index + 1).padStart(4, "0")}`,
         lastFour: String(3101 + index),
-        identifierKey: `${COLLECTION_EXAMPLE_BATCH}-${exampleKey}`,
+        identifierKey: id,
         customer: `2026101500${String(index + 1).padStart(2, "0")}`,
         supplement: {
           referrer: "示例学院教务处",
@@ -75,31 +85,33 @@ export function buildCollectionExamples(items, owner, photo, now = Date.now()) {
 }
 
 let importing = null;
-export async function importCollectionExamples({
-  store,
-  owner,
-  isCurrent,
-  loadPhoto,
-}) {
-  if (importing) return importing;
+export async function importCollectionExamples(options) {
+  const { store, owner, isCurrent, loadPhoto, graduateOnly = false } = options;
+  if (importing) {
+    if (importing.store === store && importing.owner === owner && importing.graduateOnly === graduateOnly)
+      return importing.result;
+    await importing.result.catch(() => {});
+    return importCollectionExamples(options);
+  }
   if (
     !store.ready ||
     store.busy ||
     !isCurrent() ||
-    !missingCollectionExamples(store.items, owner).length
+    !missingCollectionExamples(store.items, owner, graduateOnly).length
   )
     return 0;
-  importing = (async () => {
+  const result = (async () => {
     const photo = await loadPhoto();
     if (!isCurrent() || store.busy || !store.ready) return 0;
     // Read the latest list after loading the asset to preserve intervening edits.
-    const records = buildCollectionExamples(store.items, owner, photo);
+    const records = buildCollectionExamples(store.items, owner, photo, Date.now(), graduateOnly);
     if (!records.length) return 0;
     await store.commit([...records, ...store.items]);
     return records.length;
   })();
+  importing = { store, owner, graduateOnly, result };
   try {
-    return await importing;
+    return await result;
   } finally {
     importing = null;
   }

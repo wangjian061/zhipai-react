@@ -136,7 +136,7 @@ test("featured configuration stays separate from full category lists and scoped 
   assert.equal(s.projectCategory, "all");
   assert.deepEqual(
     s.projectsShown.map((p) => p.id),
-    ["graduate", "graduate-degree", "graduate-continuing"],
+    ["graduate", "graduate-degree", "graduate-continuing", "graduate-xmu", "graduate-zju"],
   );
   s.openCategory("enrollment");
   assert.equal(s.view, "projects");
@@ -292,11 +292,15 @@ test("notification center has independent filters and returns to its source sect
 });
 test("sample projects have unique identities, complete category rules and resolvable detail routes", () => {
   const { s, instance } = setup();
-  assert.equal(s.projects.length, 9);
-  assert.equal(new Set(s.projects.map((p) => p.id)).size, 9);
+  assert.equal(s.projects.length, 11);
+  assert.equal(new Set(s.projects.map((p) => p.id)).size, s.projects.length);
   for (const category of ["enrollment", "graduate", "association"]) {
     const group = s.projects.filter((p) => p.type === category);
-    assert.equal(group.length, 3);
+    assert.equal(group.length, category === "graduate" ? 5 : 3);
+    if (category === "graduate") {
+      assert.deepEqual(group.map((p) => p.organization), ["海南师范大学", "深圳大学", "国家开放大学", "厦门大学", "浙江大学"]);
+      assert.ok(group.every((p) => p.demoSchedule && p.crest && p.summary));
+    }
     const base = group.find((p) => !p.example);
     for (const p of group) {
       assert.deepEqual(p.methods, base.methods);
@@ -1009,7 +1013,7 @@ test("backend actions distinguish production retry, review, completion and CHSI 
   instance.stop();
 });
 
-test("record statistics stay account-scoped and stable while progress filters support multiple selection", () => {
+test("record statistics stay account-scoped and stable while progress filters select one group", () => {
   const { s, instance, account } = setup();
   const store = getStore("collectionRecords");
   store.items = [
@@ -1060,37 +1064,38 @@ test("record statistics stay account-scoped and stable while progress filters su
     s.recordStatistics.map((c) => c.count),
     counts,
   );
-  assert.equal(s.recordFilterSelected("ongoing"), true);
-  assert.equal(s.recordFilterSelected("complete"), true);
+  assert.equal(s.recordFilter, "all");
   assert.equal(s.filteredRecords.length, 4);
-  s.toggleRecordFilter("ongoing");
+  s.selectRecordFilter("complete");
   assert.deepEqual(
     s.filteredRecords.map((r) => r.id),
     ["finished", "upload-failed"],
   );
-  s.toggleRecordFilter("complete");
-  assert.equal(s.recordFilter, "complete", "cannot clear the final selection");
+  assert.equal(s.selectRecordFilter("complete"), false);
+  assert.equal(s.recordFilter, "complete");
   s.category = "enrollment";
   assert.equal(s.filteredRecords.length, 0);
   assert.deepEqual(
     s.recordStatistics.map((c) => c.count),
     counts,
   );
-  s.toggleRecordFilter("ongoing");
+  s.selectRecordFilter("ongoing");
   assert.deepEqual(
     s.filteredRecords.map((r) => r.id),
     ["enroll"],
   );
   s.category = "all";
-  s.toggleRecordFilter("complete");
+  s.selectRecordFilter("all");
+  assert.equal(s.filteredRecords.length, 4);
+  s.selectRecordFilter("ongoing");
   assert.deepEqual(
     s.filteredRecords.map((r) => r.id),
     ["enroll", "review"],
   );
-  s.toggleRecordFilter("invalid");
+  s.selectRecordFilter("invalid");
   assert.equal(s.recordFilter, "ongoing");
   s.panel = "taskSupport";
-  s.toggleRecordFilter("complete");
+  s.selectRecordFilter("complete");
   assert.equal(s.recordFilter, "ongoing");
   account.session = null;
   assert.deepEqual(

@@ -192,10 +192,10 @@ test("new physical-template pages and personal photo sheets resolve complete own
     assert.equal(resolve(`?page=print&print=${alias}`).guide, "print.layouts");
 });
 
-test("each category record page resolves its own title and shared record documentation", () => {
+test("all category record pages resolve the common title and record documentation", () => {
   for (const category of ["graduate", "enrollment", "association"]) {
     const c = resolve("?page=collection&view=records&category=" + category);
-    assert.equal(c.title, ({graduate:"毕业生采集记录",enrollment:"新生采集记录",association:"其它采集记录"})[category]);
+    assert.equal(c.title, "采集记录");
     assert.equal(c.guide,"collection.records");
   }
 });

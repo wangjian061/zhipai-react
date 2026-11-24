@@ -1,3 +1,4 @@
+import AssociationServicePage from "./AssociationServicePage.jsx";
 import SharedSheet from "../components/SharedSheet.jsx";
 import CollectionShootingGuide from "../components/CollectionShootingGuide.jsx";
 import CollectionAnnouncement from "../components/CollectionAnnouncement.jsx";
@@ -5,6 +6,7 @@ import CollectionSupportDrawer from "../components/CollectionSupportDrawer.jsx";
 import React from "react";
 import CollectionDevelopmentExamples from "../components/CollectionDevelopmentExamples.jsx";
 import CollectionProjectOverview, {
+  CollectionExampleViewer,
   CollectionRequirements,
 } from "../components/CollectionProjectOverview.jsx";
 import CollectionIdentityDrawer from "../components/CollectionIdentityDrawer.jsx";
@@ -30,15 +32,16 @@ export default function CollectionPage({ scope, args = [] }) {
           as="section"
           scope={s}
           scopeRoot
-          className={s.view === "announcement" || s.isProjectSearch ? "page collection-page ui-task-page" : "page collection-page"}
+          className={s.view === "announcement" || s.isProjectSearch || s.associationService ? "page collection-page ui-task-page" : "page collection-page"}
           id="collection-page"
           data-view={s.view}
           data-record-category={s.recordCategory || undefined}
           data-task-status={s.isRecordView ? s.statusKey : undefined}
           data-task-tone={s.isRecordView ? s.status.tone : undefined}
-          show={s.page === "collection"}
+          show={s.page === "collection" && s.view !== "university"}
           aria-label="专项采集"
         >
+          {s.associationService ? <AssociationServicePage key={s.associationService.id} scope={s} /> : <>
           {import.meta.env.DEV && <CollectionDevelopmentExamples scope={s} />}
           <View
             as="header"
@@ -275,11 +278,12 @@ export default function CollectionPage({ scope, args = [] }) {
               ]}
             >
               {["captureMethod","shootingGuide"].includes(s.panel) && <CollectionShootingGuide scope={s}/>}
+              {s.panel === "projectExamples" && <CollectionExampleViewer scope={s} />}
               <CollectionPaymentDrawer scope={s} />
               <CollectionIdentityDrawer scope={s} />
               <CollectionTaskDrawer scope={s} />
               <CollectionSupportDrawer scope={s} />
-              {!s.isAuthPanel && !s.isTaskPanel && !["payment","captureMethod","shootingGuide"].includes(s.panel) && (
+              {!s.isAuthPanel && !s.isTaskPanel && !["payment","captureMethod","shootingGuide","projectExamples"].includes(s.panel) && (
                 <SharedSheet embedded opened id="collection-drawer-title" className="collection-drawer"
                   title={s.panelTitle} busy={s.busy} onClose={() => s.closePanel()}
                   dialogRef={(node) => { s.$refs.collectionDialog = node; }}
@@ -316,7 +320,7 @@ export default function CollectionPage({ scope, args = [] }) {
                           text={s.status.label}
                         ></View>
                         <View as="p" scope={s}>
-                          {"已存在该项目的采集记录，可继续办理。"}
+                          {s.project.type === "enrollment" ? "已有该院校的采集记录，可继续办理。" : "已存在该项目的采集记录，可继续办理。"}
                         </View>
                       </View>
                       <View
@@ -360,7 +364,7 @@ export default function CollectionPage({ scope, args = [] }) {
                         className="collection-empty"
                         show={!s.projectRecords.length}
                       >
-                        {"此项目还没有采集记录"}
+                        {s.project.type === "enrollment" ? "该院校还没有采集记录" : "此项目还没有采集记录"}
                       </View>
                     </View>
                     <View
@@ -375,6 +379,7 @@ export default function CollectionPage({ scope, args = [] }) {
               )}
             </View>
           </Portal>
+          </>}
         </View>
       )}
     </Controller>

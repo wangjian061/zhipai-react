@@ -1,3 +1,4 @@
+import { collectionHistoryState, returnCollectionHistory } from "./collection-history.js";
 import { registerController, getStore } from "../runtime/state.js";
 import { decodePhotoBlob } from "./album.js";
 import {
@@ -374,7 +375,8 @@ registerController("collectionScanner", () => ({
     this.stop();
     const target = new URL("/?page=collection&view=project", location.origin);
     target.searchParams.set("project", projectId);
-    const source = new URL(this.safeReturn(this.returnTo), location.origin);
+    const categoryBack = history.state?.collectionScanBack;
+    const source = new URL(this.safeReturn(categoryBack?.source || this.returnTo), location.origin);
     if (
       source.searchParams.get("page") === "collection" &&
       source.searchParams.get("view") === "project"
@@ -383,7 +385,9 @@ registerController("collectionScanner", () => ({
         if (source.searchParams.has(key))
           target.searchParams.set(key, source.searchParams.get(key));
     } else target.searchParams.set("scanBack", source.pathname + source.search);
-    history.replaceState({}, "", target);
+    const state = categoryBack?.target === location.pathname + location.search
+      ? collectionHistoryState(target.href, source.href) : {};
+    history.replaceState(state, "", target);
     window.dispatchEvent(new Event("zhipai-route"));
   },
   showFailure(error) {
@@ -473,6 +477,7 @@ registerController("collectionScanner", () => ({
       return;
     }
     this.stop();
+    if (returnCollectionHistory("scan")) return;
     history.replaceState({}, "", this.safeReturn(this.returnTo));
     window.dispatchEvent(new Event("zhipai-route"));
   },

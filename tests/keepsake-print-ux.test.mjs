@@ -121,9 +121,9 @@ test("gallery browsing leaves purchase unchanged, and choosing a layout returns 
   const { photo, sourcePhoto, crop } = studio.draft;
   Object.assign(studio.draft, { photo: null, sourcePhoto: null, crop: null });
   studio.modal = null;
-  assert.deepEqual(studio.galleryItems.map((item) => item.label), ["混排整版", "二寸8张", "背胶易撕", "模切细节"]);
-  studio.selectGalleryImage("peel");
-  assert.equal(studio.galleryItem.label, "背胶易撕");
+  assert.deepEqual(studio.galleryItems.map((item) => item.label), ["混排整版", "二寸8张", "斜角实拍", "模切细节"]);
+  studio.selectGalleryImage("angle");
+  assert.equal(studio.galleryItem.label, "斜角实拍");
   assert.equal(studio.draft.layout, mixed.id);
   await studio.selectLayout(two.id);
   assert.equal(studio.galleryItem.label, "二寸8张");
@@ -133,7 +133,7 @@ test("gallery browsing leaves purchase unchanged, and choosing a layout returns 
   assert.equal(studio.galleryItem.label, "二寸8张");
   assert.equal(studio.galleryItems.length, 4);
   studio.modal = "layoutPreview";
-  studio.selectGalleryImage("peel");
+  studio.selectGalleryImage("angle");
   studio.stepGalleryImage(1);
   assert.equal(studio.galleryItem.label, "模切细节");
   studio.stepGalleryImage(1);

@@ -11,6 +11,7 @@ import ScanPage from "../pages/ScanPage.jsx";
 import ToolsPage from "../pages/ToolsPage.jsx";
 import SupportPage from "../pages/SupportPage.jsx";
 import PrintPage from "../pages/PrintPage.jsx";
+import GraduateRoutes from "../pages/GraduateRoutes.jsx";
 import OrdersPage from "../pages/OrdersPage.jsx";
 import MyPage from "../pages/MyPage.jsx";
 import KeepsakesPage from "../pages/KeepsakesPage.jsx";
@@ -95,6 +96,7 @@ export default function AppShell({ scope, args = [] }) {
                     </>
                   )}
                 </Controller>
+                <GraduateRoutes />
                 <MyPage scope={s} args={[]} />
                 <KeepsakesPage scope={s} />
               </View>

@@ -4,12 +4,11 @@ import "../styles/photo-selection.css";
 export default function ToolPhotoSelection({
   library,
   selectedId,
+  multiSelection,
   mascot,
   busy,
   error,
-  requiresPortrait = false,
   forMember = false,
-  selectionHint,
   activity,
   titleId,
   title = forMember ? "添加照片" : "选择照片",
@@ -22,6 +21,8 @@ export default function ToolPhotoSelection({
 }) {
   const photos = library.finished || [];
   const selected = photos.find((p) => p.id === selectedId && p.blob);
+  const selectionCount = multiSelection?.selectedIds.length ?? Number(!!selected);
+  const albumVisible = !multiSelection?.onLogin;
   return (
     <div className="tool-photo-selection">
       <header className="ui-sheet-header">
@@ -38,14 +39,6 @@ export default function ToolPhotoSelection({
         </button>
       </header>
       <div className="photo-selection-controls">
-        {(selectionHint || !forMember) && (
-          <p className="photo-selection-description">
-            {selectionHint ||
-              (requiresPortrait
-                ? "请选择一张单人正面证件照，选取后需通过照片检查。"
-                : "每次仅选择一张照片，不限制照片内容。")}
-          </p>
-        )}
         <div className="photo-selection-sources">
           <button type="button" ref={phoneTriggerRef} disabled={busy} onClick={onPhone}>
             <svg aria-hidden="true">
@@ -76,12 +69,17 @@ export default function ToolPhotoSelection({
         role="region"
         aria-label="照片列表"
       >
-        {!library.ready && !library.error && (
+        {!albumVisible && (
+          <div className="photo-selection-library-empty">
+            <button type="button" className="ui-button-secondary" onClick={multiSelection.onLogin}>登录查看知拍相册</button>
+          </div>
+        )}
+        {albumVisible && !library.ready && !library.error && (
           <div className="photo-selection-loading" role="status">
             正在读取照片…
           </div>
         )}
-        {library.error && (
+        {albumVisible && library.error && (
           <div className="photo-selection-library-error" role="alert">
             <p>相册暂时无法读取，可重试或从手机相册选图。</p>
             <button
@@ -93,7 +91,7 @@ export default function ToolPhotoSelection({
             </button>
           </div>
         )}
-        {library.ready && !library.error && !photos.length && (
+        {albumVisible && library.ready && !library.error && !photos.length && (
           <div className="photo-selection-library-empty">
             <img src={mascot} width="96" height="96" alt="" />
             <strong>知拍相册暂无照片</strong>
@@ -102,24 +100,26 @@ export default function ToolPhotoSelection({
                 ? onCreate
                   ? "可从手机相册添加，或为成员拍照。"
                   : "可从手机相册添加照片。"
-                : "可从手机相册选取，或制作一张新照片。"}
+                : multiSelection ? "可从手机相册添加照片。" : "可从手机相册选取，或制作一张新照片。"}
             </p>
           </div>
         )}
-        {!!photos.length && (
+        {albumVisible && !!photos.length && (
           <div
             className="photo-selection-grid"
             role="group"
-            aria-label="知拍相册照片，单选"
+            aria-label={multiSelection ? "知拍相册照片，多选" : "知拍相册照片，单选"}
           >
-            {photos.map((photo) => (
-              <button
+            {photos.map((photo) => {
+              const chosen = multiSelection ? multiSelection.selectedIds.includes(photo.id) : photo.id === selectedId;
+              const added = multiSelection?.addedIds.has(photo.id);
+              return <button
                 type="button"
                 key={photo.id}
-                className={photo.id === selectedId ? "selected" : ""}
-                aria-pressed={photo.id === selectedId}
+                className={chosen ? "selected" : ""}
+                aria-pressed={chosen}
                 aria-label={"选择" + photo.name}
-                disabled={busy || library.busy || !photo.blob}
+                disabled={busy || library.busy || !photo.blob || added}
                 onClick={() => onSelect(photo.id)}
               >
                 <span className="photo-selection-thumbnail">
@@ -128,7 +128,7 @@ export default function ToolPhotoSelection({
                     alt={photo.name}
                     loading="lazy"
                   />
-                  {photo.id === selectedId && (
+                  {chosen && (
                     <span className="photo-selection-check">
                       <svg aria-hidden="true">
                         <use href="#i-check" />
@@ -137,10 +137,10 @@ export default function ToolPhotoSelection({
                   )}
                 </span>
                 <small>
-                  {photo.spec || `${photo.width} × ${photo.height} px`}
+                  {added ? "已添加" : photo.spec || `${photo.width} × ${photo.height} px`}
                 </small>
-              </button>
-            ))}
+              </button>;
+            })}
           </div>
         )}
         {error && (
@@ -153,11 +153,13 @@ export default function ToolPhotoSelection({
         <button
           type="button"
           className="photo-selection-confirm"
-          disabled={busy || library.busy || !library.ready || !selected}
+          disabled={busy || library.busy || !library.ready || !selectionCount}
           onClick={onConfirm}
         >
           {activity ? (
             <span role="status">{activity}</span>
+          ) : multiSelection ? (
+            selectionCount ? `添加 ${selectionCount} 张照片` : "添加所选照片"
           ) : forMember ? (
             "添加到此相册"
           ) : (

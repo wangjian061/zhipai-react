@@ -21,7 +21,7 @@ export default function PrintPage({ scope: s }) {
       id="print-page"
       data-view={s.view}
       inert={s.$store.printUi.opened}
-      show={s.page === "print"}
+      show={s.page === "print" && s.view !== "graduate"}
       aria-label="照片冲印"
     >
       <ToolNavigation

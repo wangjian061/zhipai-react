@@ -1,17 +1,21 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-function recordDate(timestamp) {
+const recordDateFormat = new Intl.DateTimeFormat("zh-CN", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function recordDate(timestamp, dotted) {
+  if (timestamp == null || timestamp === "") return "未记录";
   const date = new Date(timestamp);
-  return Number.isNaN(date.getTime())
-    ? "未记录"
-    : date.toLocaleDateString("zh-CN", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      });
+  if (Number.isNaN(date.getTime())) return "未记录";
+  return dotted
+    ? recordDateFormat.formatToParts(date).filter(part => part.type !== "literal").map(part => part.value).join(".")
+    : recordDateFormat.format(date);
 }
 
-function RecordPortrait({ record, contentHeight }) {
+function RecordPortrait({ record, contentHeight, recordsList }) {
   const blob = record.photo?.blob;
   const [preview, setPreview] = useState(null);
   const [failedURL, setFailedURL] = useState("");
@@ -33,7 +37,7 @@ function RecordPortrait({ record, contentHeight }) {
   return (
     <span
       className="collection-record-portrait"
-      style={{ width: contentHeight ? contentHeight * ratio : 82 }}
+      style={recordsList ? undefined : { width: contentHeight ? contentHeight * ratio : 82 }}
     >
       {visible ? (
         <img
@@ -59,25 +63,30 @@ function RecordPortrait({ record, contentHeight }) {
   );
 }
 
-export default function CollectionRecordCard({ scope: s, record }) {
+export default function CollectionRecordCard({ scope: s, record, recordsList = false }) {
   const contentRef = useRef(null);
   const [contentHeight, setContentHeight] = useState(0);
   useLayoutEffect(() => {
     const content = contentRef.current;
-    if (!content) return;
+    if (recordsList || !content) return;
     const observer = new ResizeObserver(([entry]) =>
       setContentHeight(entry.contentRect.height),
     );
     observer.observe(content);
     return () => observer.disconnect();
-  }, []);
+  }, [recordsList]);
   const project = s.projects.find((p) => p.id === record.projectId);
   const status = s.statusFor(record.status);
+  const statusKey = s.statusKeyFor(record.status);
+  const projectName = project?.name || "专项采集";
+  const organization = project?.organization || "未记录";
+  const date = recordDate(record.createdAt, recordsList);
+  const dateTime = date === "未记录" ? undefined : date.replaceAll(".", "-");
   return (
     <button
       type="button"
-      className="collection-record-card has-portrait"
-      data-status={s.statusKeyFor(record.status)}
+      className={"collection-record-card has-portrait" + (recordsList ? " is-record-list-item" : "")}
+      data-status={statusKey}
       data-record-id={record.id}
       data-status-tone={status.tone}
       disabled={s.disabled}
@@ -87,25 +96,41 @@ export default function CollectionRecordCard({ scope: s, record }) {
         key={record.id}
         record={record}
         contentHeight={contentHeight}
+        recordsList={recordsList}
       />
-      <span className="collection-record-content" ref={contentRef}>
-        <span className="collection-record-title-row">
-          <strong className="collection-record-title">
-            {project?.name || "专项采集"}
-          </strong>
-          <span className={"collection-chip " + status.tone}>
-            {status.label}
+      {recordsList ? (
+        <span className="collection-record-content collection-record-content--list">
+          <span className="collection-record-heading">
+            <strong className="collection-record-title">{organization}</strong>
+            <span className="collection-record-subtitle">
+              <span className="collection-record-batch">{projectName}</span>
+              <span aria-hidden="true">·</span>
+              <time dateTime={dateTime}>{date}</time>
+            </span>
+          </span>
+          <span className="collection-record-outcome">
+            <span className="collection-record-status">{status.label}</span>
+            {status.tone === "red" && <span className="collection-record-action is-recovery">去修改</span>}
           </span>
         </span>
-        <span className="collection-record-metadata">
-          <span>采集机构</span>
-          <span>{project?.organization || "未记录"}</span>
+      ) : (
+        <span className="collection-record-content" ref={contentRef}>
+          <span className="collection-record-title-row">
+            <strong className="collection-record-title">{projectName}</strong>
+            <span className={"collection-chip " + status.tone}>
+              {status.label}
+            </span>
+          </span>
+          <span className="collection-record-metadata">
+            <span>采集机构</span>
+            <span>{organization}</span>
+          </span>
+          <span className="collection-record-metadata">
+            <span>采集日期</span>
+            <time>{date}</time>
+          </span>
         </span>
-        <span className="collection-record-metadata">
-          <span>采集日期</span>
-          <time>{recordDate(record.createdAt)}</time>
-        </span>
-      </span>
+      )}
     </button>
   );
 }

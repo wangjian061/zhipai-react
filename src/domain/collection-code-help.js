@@ -18,3 +18,10 @@ export const collectionCodeHelp = {
     note: "",
   },
 };
+
+// The university page includes a local quick guide alongside the shared tutorial.
+export const universityChsiSteps = [
+  { title: "打开学信网", path: "微信搜「学信网」小程序或打开学信网 App" },
+  { title: "找到图像采集码", path: "学信档案 → 高等教育信息 → 图像采集码" },
+  { title: "保存并回知拍识别", path: "保存完整图片，点下方按钮从相册上传" },
+];

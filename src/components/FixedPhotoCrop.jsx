@@ -10,6 +10,7 @@ export default function FixedPhotoCrop({
   value,
   disabled,
   processing = false,
+  ratio,
   onChange,
 }) {
   const frame = useRef(null);
@@ -29,7 +30,7 @@ export default function FixedPhotoCrop({
   }, []);
   const pointers = useRef(new Map());
   const gesture = useRef(null);
-  const bounds = photoCropBounds(photo.width, photo.height, 5, 7, value);
+  const bounds = photoCropBounds(photo.width, photo.height, ...(ratio || [5, 7]), value);
   const begin = () => {
     const points = [...pointers.current.values()];
     gesture.current = points.length
@@ -53,7 +54,8 @@ export default function FixedPhotoCrop({
         <div
           className="print-crop-frame"
           ref={frame}
-          aria-label="一寸固定比例裁剪区域，拖动照片调整位置"
+          aria-label={ratio ? "六寸裁剪区域，拖动照片调整位置" : "一寸固定比例裁剪区域，拖动照片调整位置"}
+          style={ratio ? { aspectRatio: ratio.join(" / ") } : undefined}
           onPointerDown={(event) => {
             if (disabled || (event.pointerType === "mouse" && event.button !== 0)) return;
             event.preventDefault();
@@ -134,7 +136,7 @@ export default function FixedPhotoCrop({
       <PhotoProcessingStatus label={processing ? "正在裁剪照片" : ""} />
       <div className="print-crop-controls">
         <div className="print-crop-tools">
-          <p>拖动或滑杆微调 5∶7 构图</p>
+          <p>{ratio ? "拖动或滑杆微调六寸构图" : "拖动或滑杆微调 5∶7 构图"}</p>
           <button
             type="button"
             className="print-crop-reset"

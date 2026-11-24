@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="frame" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#98C6FF"/>
+      <stop offset=".48" stop-color="#4887E0"/>
+      <stop offset="1" stop-color="#325699"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="4" y1="15" x2="28" y2="15" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4385F1"/>
+      <stop offset=".5" stop-color="#50BDFF"/>
+      <stop offset="1" stop-color="#3275EB"/>
+    </linearGradient>
+    <linearGradient id="light" x2="0" y2="1">
+      <stop stop-color="#84D1FF" stop-opacity="0"/>
+      <stop offset="1" stop-color="#84D1FF" stop-opacity=".43"/>
+    </linearGradient>
+    <path id="corners" d="M4.5 11V7a2.5 2.5 0 0 1 2.5-2.5h4m10 0h4A2.5 2.5 0 0 1 27.5 7v4m0 10v4a2.5 2.5 0 0 1-2.5 2.5h-4m-10 0H7A2.5 2.5 0 0 1 4.5 25v-4"/>
+  </defs>
+  <path fill="url(#light)" d="M5 8h22v8H5z"/>
+  <g stroke-width="3.4" stroke-linecap="round">
+    <use href="#corners" transform="translate(0 1)" stroke="#284978"/>
+    <use href="#corners" stroke="url(#frame)"/>
+  </g>
+  <rect x="2.5" y="15" width="27" height="3" rx="1.5" fill="#3670BE"/>
+  <rect x="2.5" y="14" width="27" height="3" rx="1.5" fill="url(#beam)"/>
+</svg>

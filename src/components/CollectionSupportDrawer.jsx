@@ -20,12 +20,14 @@ export default function CollectionSupportDrawer({
   }, [s, s.panel, visible]);
   if (!visible) return null;
   const task = s.isRecordView ? s.current : null;
+  const schoolLanding = s.isCategoryLanding && s.projectCategory !== "association";
+  const nameLabel = schoolLanding ? "院校名称" : s.isAssociationLanding ? "机构名称" : "项目名称";
   return (
     <SheetFrame opened embedded modal={modal} id={`${idPrefix}-title`}
       className="collection-drawer collection-auth-drawer collection-support-drawer"
       dialogRef={(node) => { dialog.current = node; }} onClose={() => s.closePanel()}>
       <SheetHeader id={`${idPrefix}-title`} title={help ? s.helpArticle?.title || "采集帮助" : "联系知拍客服"}
-        subtitle={!help && "由知拍客服统一受理并协调机构"} onClose={() => s.closePanel()} />
+        subtitle={!help && (schoolLanding ? "由知拍客服统一受理并协调院校" : "由知拍客服统一受理并协调机构")} onClose={() => s.closePanel()} />
       <div className="ui-sheet-panel">
       <div className="ui-sheet-body collection-auth-body collection-support-body">
         {help ? (
@@ -69,7 +71,7 @@ export default function CollectionSupportDrawer({
             )}
             {!task && (
               <p>
-                没有采集任务也可以咨询，请在邮件中说明项目名称和遇到的问题。
+                没有采集任务也可以咨询，请在邮件中说明{nameLabel}和遇到的问题。
               </p>
             )}
             <div className="collection-support-address">

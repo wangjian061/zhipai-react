@@ -126,6 +126,9 @@ routes.push(
   resolve("?page=home", {}, {}, { guide: "update.demo", title: "强制更新" }),
 );
 
+routes.push(resolve("?page=print&view=graduate", {}, {}, { guide: "print.graduate", title: "毕业照片 6 寸冲印" }));
+routes.push(resolve("?page=collection&view=university&category=graduate", {}, {}, { guide: "collection.projects", title: "毕业生图像采集" }));
+
 for(const kind of ["postcard","stamp"])for(const view of ["templates","work","confirm","result"])routes.push(resolve(`?page=keepsake&kind=${kind}&view=${view}`));
 
 test("every supported page and business step loads its own complete document, including addresses and six distinct tools", async () => {

@@ -606,3 +606,28 @@ test("a successful code waits for record-store availability without losing its t
   assert.equal(collectionScanService.pending, null);
   ctx.close();
 });
+
+test("the institution scanner returns to the association landing after employee verification or cancellation", async () => {
+  const ctx = setup("collection");
+  const path = "/?page=collection&view=projects&category=association&from=home&section=home";
+  try {
+    navigate(path);
+    ctx.c.$refs.collectionCategoryList = { scrollTop: 68 };
+    ctx.c.openCategoryScanner();
+    assert.equal(current.search, "?page=scan");
+    await ctx.s.accept(institution("association-engineering"));
+    await settle();
+    assert.equal(ctx.c.projectId, "association-engineering");
+    assert.equal(ctx.c.panel, "employee");
+    assert.equal(current.searchParams.get("scanBack"), path);
+    ctx.c.closePanel();
+    ctx.c.back();
+    await settle();
+    assert.equal(current.pathname + current.search, path);
+    assert.equal(ctx.c.isAssociationLanding, true);
+    assert.equal(ctx.c.scrollHost.scrollTop, 68);
+    ctx.c.openCategoryScanner();
+    ctx.s.back();
+    assert.equal(current.pathname + current.search, path);
+  } finally { ctx.close(); }
+});

@@ -131,12 +131,6 @@
 .tool-photo-selection > .ui-sheet-footer {
   flex: none;
 }
-.photo-selection-description {
-  margin: 0 0 20px;
-  font-size: 13px;
-  line-height: 1.75;
-  color: var(--ui-muted, #6b7d96);
-}
 .photo-selection-sources {
   display: grid;
   grid-template-columns: 1fr 1fr;

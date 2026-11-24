@@ -43,7 +43,7 @@
 .collection-auth-input>input::placeholder{color:#6e7e94;font-size:14px}
 .collection-auth-drawer .collection-auth-input>input:focus-visible{outline:none}
 .collection-auth-input>button{display:grid;place-items:center;width:44px;height:42px;color:#8093ad;flex:none}
-.collection-auth-input>button svg{width:18px;height:18px}
+.collection-auth-input>button svg{width:20px;height:20px}
 .collection-auth-method-block{min-inline-size:0;margin-bottom:24px}
 .collection-auth-method-block>legend{padding:0;margin:0 0 12px}
 .collection-auth-method-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:4px;padding:4px;border-radius:12px;background:#f3f6fb}
@@ -52,23 +52,24 @@
 .collection-auth-method-option svg{width:16px;height:16px;flex:none;opacity:0;stroke-width:2}
 .collection-auth-method-option.selected{background:#fff;color:var(--brand-blue);font-weight:600}
 .collection-auth-method-option.selected svg{opacity:1}
-.collection-auth-method-option:focus-within{outline:2px solid #779fed;outline-offset:2px}
+.collection-auth-method-option:focus-within{outline:2px solid var(--brand-blue);outline-offset:2px}
 .collection-auth-method-option:has(input:disabled){opacity:.55;cursor:default}
-.collection-auth-proof{display:flex;align-items:center;gap:9px;font-size:12px;line-height:1.6;color:#547396;padding:13px 15px;margin-bottom:16px;border:0;border-radius:12px;background:#edf4ff}
+.collection-auth-proof{display:flex;align-items:center;gap:9px;font-size:12px;line-height:1.6;color:var(--ui-body);padding:13px 15px;margin-bottom:16px;border:0;border-radius:12px;background:#edf4ff}
 .collection-auth-proof>svg{width:18px;height:18px;color:#4278b4;flex:none}.collection-auth-proof>span{flex:1;min-width:0}.collection-auth-proof>img{width:42px;height:42px;object-fit:contain;border:1px solid #d7e3f3;border-radius:6px;background:#fff}
-.collection-auth-qr-guide{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;min-height:136px;padding:20px 16px;color:#748baa;background:#f3f6fb;border-radius:12px}
-.collection-auth-qr-guide>svg{width:40px;height:40px;stroke-width:1.2;color:#6e92c8}.collection-auth-qr-guide>strong{font-size:14px;font-weight:500;color:#526d91}.collection-auth-qr-guide>p{font-size:12px;line-height:1.7;color:var(--ui-muted);margin:0}
+.collection-auth-qr-guide{display:flex;width:100%;border:1px dashed #cbd8ec;align-items:center;justify-content:center;flex-direction:column;gap:10px;min-height:136px;padding:20px 16px;color:var(--ui-body);background:var(--ui-input-fill);border-radius:var(--ui-input-radius)}
+.collection-auth-qr-guide>svg{width:40px;height:40px;stroke-width:1.6;color:var(--brand-blue)}.collection-auth-qr-guide>strong{font-size:14px;font-weight:500;color:var(--ui-heading)}.collection-auth-qr-guide>span{font-size:12px;line-height:1.7;color:var(--ui-body)}
+.collection-auth-qr-guide:active:not(:disabled){background:var(--brand-tint)}
 .collection-auth-error{padding:12px 14px;margin:0 0 16px;border-radius:12px;border:0;background:var(--ui-danger-fill);color:var(--ui-danger-ink);font-size:12px;line-height:1.7}
 .collection-auth-footer{flex:none;background:#f7f9fc;padding:16px 24px var(--device-nav-bottom,29px);border:0}
 .collection-auth-drawer .collection-auth-footer .collection-primary{margin:0;}
 .collection-auth-secondary{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;margin:6px 0 0;}
-.collection-auth-secondary>svg{width:14px;height:14px}.collection-auth-secondary:disabled{color:#a2adbc}
+.collection-auth-secondary>svg{width:16px;height:16px}.collection-auth-secondary:disabled{color:var(--ui-disabled-ink)}
 .collection-auth-footer-options{display:flex;gap:12px;justify-content:center}
 .collection-auth-footer-options>.collection-auth-secondary{width:auto;flex:1;min-width:0}
 @media(max-width:360px){.collection-auth-body{padding-inline:14px}.collection-auth-documents{gap:10px}.collection-auth-block-heading{gap:6px}.is-reviewed .collection-auth-document-picture{width:48px;height:31px}}
 @media(prefers-reduced-motion:reduce){.collection-auth-input{transition:none}}
 
-.collection-auth-drawer :is(button,input):focus-visible{outline:2px solid #779fed;outline-offset:2px}
+.collection-auth-drawer :is(button,input):focus-visible{outline:2px solid var(--brand-blue);outline-offset:2px}
 
 .collection-payment-summary{padding:20px;background:#f3f6fb;border-radius:16px;margin-bottom:24px}
 .collection-payment-summary>span{display:block;font-size:12px;color:#62758e;margin-bottom:8px}

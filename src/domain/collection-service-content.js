@@ -5,6 +5,8 @@ export function createServiceContent() {
     ready: true,
     error: "",
     email: "zpai_service@163.com",
+    phone: "",
+    wechat: "",
     questions: [
       [
         "entry",

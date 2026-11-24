@@ -70,6 +70,7 @@ const purchaseDetails = (r, electronic = false) => {
   ].filter(([, value]) => value);
 };
 const printDescription = (r) => {
+  if (r.kind === "graduate") return `六寸光面相纸 · 共 ${r.quantity} 张`;
   const layout = r.layoutSnapshot;
   const name =
     layout?.description ||
@@ -147,7 +148,7 @@ export function normalizeOrders({
   for (const r of print.filter(own))
     add("print", r, {
       ...paymentFields(r, "print"),
-      title: ["adhesive-mixed-4-8", "adhesive-two-8"].includes(
+      title: r.kind === "graduate" ? `毕业照片 6 寸冲印（共 ${r.quantity} 张）` : ["adhesive-mixed-4-8", "adhesive-two-8"].includes(
         r.layoutSnapshot?.id || r.layout,
       )
         ? "背胶模切证件照"
@@ -160,6 +161,10 @@ export function normalizeOrders({
       fulfillment: printFulfillment(r),
       fulfillmentSteps: PRINT_FULFILLMENT_STEPS,
       sourceStatus: r.status,
+      ...(r.kind === "graduate" && ["pending", "verifying"].includes(r.status) ? {
+        payment: r.status === "verifying" ? "待确认支付" : paymentFields(r, "print").payment || "待支付",
+        checkoutPath: "/?page=print&view=graduate&print=confirm&order=" + encodeURIComponent(r.id),
+      } : {}),
       details: [],
       fees: [
         [
@@ -269,7 +274,7 @@ export function normalizeOrders({
     );
   }
   return [
-    ...new Map(entries.filter((e) => e.state).map((e) => [e.key, e])).values(),
+    ...new Map(entries.filter((e) => e.state || e.checkoutPath).map((e) => [e.key, e])).values(),
   ].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 }
 export function money(cents) {

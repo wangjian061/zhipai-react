@@ -582,32 +582,187 @@
           "stamp"
         ],
         "collectionNavigation": {
+          "independentUniversity": {
+            "route": "/?page=collection&view=university&category=graduate",
+            "entry": "home graduate collection card and direct link; header back restores home",
+            "modules": ["compact header with centered title, back button and customer support", "switchable five-step collection guide / ongoing university rail and unified scan", "bottom guide, records and print navigation"],
+            "sharedUI": ["CollectionHeader", "SharedSheet", "college search masthead", "dark photo viewer"],
+            "landing": {
+              "viewports": ["375×667", "375×812", "390×844", "402×874"],
+              "compactHeight": "Below 800px, tighten vertical spacing while retaining the full card and touch targets",
+              "canvas": { "surface": "collection-category-canvas", "tint": "--brand-diffuse-blue", "center": "--ui-canvas", "coverage": "diffuse blue at top and bottom safe areas of graduate, enrollment and association landings" },
+              "navigation": { "variant": "compact header", "backTouchPx": 44, "title": "毕业生图像采集", "titleAlignment": "center", "trailingArt": false },
+              "heroModes": {
+                "configField": "graduateHeroMode", "default": "flow", "values": ["flow", "schools"],
+                "prototypeControl": { "labels": ["采集流程", "合作院校"], "visualHeightPx": 30, "touchMinPx": 44 },
+                "flow": { "steps": ["获取图像采集码", "扫码绑定采集资格", "拍摄照片注意姿势", "提交等待审核", "上网完成"], "imagesPx": [810, 756], "imageHeightPx": 252, "artDirection": "documentary-style campus photos; scan and album diptych; over-the-shoulder camera view; one magnified anonymized completed record covering the original row", "centerCard": "informational article" },
+                "switchToIndex": 0, "restoreSchoolOnReturn": true
+              },
+              "schoolRail": {
+                "status": "ongoing on cards, demo status in lists and detail",
+                "statusPlacement": "left aligned below the collection summary",
+                "count": 5,
+                "maxCardWidthPx": 282,
+                "campusImageHeightPx": 150,
+                "minCardHeightPx": 352,
+                "cardAlignment": "vertical center",
+                "edgeFade": "16% at each side and 22px at the bottom to soften the shadow",
+                "neighborOutwardTiltDegrees": 0,
+                "neighborOpacity": 0.48,
+                "outerCardOpacity": 0.20,
+                "neighborSaturation": 0.35,
+                "neighborTreatment": "surface slightly brighter than canvas, soft blur, muted saturation, #CBD5E8 cool wash and lighter shadow",
+                "contentInsetPx": 14,
+                "crestSizePx": 54,
+                "radiusPx": 22,
+                "schedulePanel": {
+                  "fill": "#F5F7FC",
+                  "radiusPx": 14,
+                  "firstRow": ["开始时间", "start date YYYY.MM.DD"],
+                  "secondRow": ["结束时间", "end date YYYY.MM.DD", "decorative right chevron"],
+                  "chevronBadge": { "sizePx": 24, "iconPx": 13, "fill": "#E7EEFF" }
+                },
+                "snap": "center",
+                "loop": "bidirectional with three groups",
+                "motion": {
+                  "ease": "cubic-bezier(0.22, 1, 0.36, 1)",
+                  "entrance": { "durationMs": 420, "neighborDelayMs": 80, "oncePerPageSession": true },
+                  "autoplay": { "centerHoldMs": 3200, "slideMs": 650, "idleResumeMs": 5000, "direction": "forward" },
+                  "coverParallax": { "scale": 1.08, "maxOffsetPx": 10 },
+                  "centerPressScale": 0.985
+                },
+                "selection": "manual; side click centers, center click or keyboard opens detail",
+                "reducedMotion": "manual scroll only; clear cards"
+              },
+              "scanAction": { "heightPx": 48, "widthRangePx": [240, 272], "pill": true, "leadingIcon": "scan", "iconSizePx": 18, "contentGapPx": 7, "contentAlignment": "center", "cameraAndAlbum": true },
+              "bottomNavigation": {
+                "placement": "full width, flush with the bottom safe area",
+                "surface": "translucent over the lower blue wash with 12px backdrop blur and a 1px top divider",
+                "itemTouchPx": 48,
+                "itemRadiusPx": 12,
+                "columns": 3,
+                "photoIconSizePx": 28,
+                "photoIconFrame": "transparent, unframed",
+                "recordBadgeHeightPx": 16,
+                "printBadge": { "label": "热印", "fill": ["#FF6A3D", "#FF2E54"], "minHeightPx": 15, "fontSizePx": 9.5, "decorative": true },
+                "highlight": "only while the corresponding sheet is open"
+              },
+              "codeGuide": {
+                "entry": "bottom navigation",
+                "surface": "SharedSheet",
+                "title": "3 步获取图像采集码",
+                "sample": "112px sample beside its checklist and an independent zoom button; both open the full-screen viewer",
+                "sampleImage": { "asset": "collection-chsi-code-sample.webp", "source": "redacted CHSI screenshot", "sharedWithFullScreen": true, "code": "non-decodable black-and-white example" },
+                "steps": ["打开学信网", "找到图像采集码", "保存并回知拍识别"],
+                "stepLayout": "numbered timeline on the sheet surface",
+                "stepConnector": { "widthPx": 1.5, "fill": "#DDE6FA" },
+                "tutorialLink": "查看图文教程",
+                "footerAction": "已有采集码，去扫码 / 上传",
+                "initialFocus": "pointer opens on the dialog; keyboard opens on the close control",
+                "sampleReturnFocus": "the sample or zoom button that opened the viewer"
+              },
+              "printShowroom": {
+                "surface": "SharedSheet",
+                "height": "92% of the phone screen, respecting the status area",
+                "header": "centered segmented control and shared close button on the right",
+                "segments": ["毕业 6 寸冲印", "背胶排版照"],
+                "layout": "one product at a time: centered eyebrow, title, description and action above the uncropped studio photograph, footnote above the safe area",
+                "canvases": ["#F7F5F0", "#F5F6FA"],
+                "canvasTransitionMs": 280,
+                "switch": "select a segment or swipe horizontally, with vertical scrolling available on short screens",
+                "actions": ["开始挑选照片", "去排版冲印"],
+                "actionHeightPx": 44,
+                "footnotes": ["专业冲印相纸 · 支持逐张精裁 · 10 张起印", "一寸 / 二寸可选版式 · 撕下即贴 · 顺丰直发"],
+                "imageAspectRatio": "16:9",
+                "imageFit": "contain",
+                "assets": ["print-hero-graduate-6inch.webp", "print-hero-diecut-layout.webp"],
+                "destinations": ["/?page=print&view=graduate", "/?page=print&preset=layout"],
+                "return": "restore the showroom and selected product; closing returns focus to the dock entry"
+              }
+            },
+            "graduatePrint": {
+              "route": "/?page=print&view=graduate",
+              "sharedUI": ["ToolNavigation", "SharedSheet", "FixedPhotoCrop", "ShippingAddressFields", "PaymentHandoff"],
+              "photoRatios": ["3:2", "2:3"],
+              "minimumQuantity": 10,
+              "priceCents": { "base": 6000, "additional": 600, "shipping": 1000 }
+            }
+          },
+          "enrollmentLanding": {
+            "route": "/?page=collection&view=projects&category=enrollment",
+            "title": "新生入学采集",
+            "hero": { "config": "enrollmentHeroMode", "default": "flow", "options": ["flow", "schools"], "history": "enrollmentHero", "rail": "GraduateHeroRail", "steps": 6, "assetPixels": [810, 756], "dwellMs": 3200, "slideMs": 650 },
+            "wall": { "rowSeconds": [32, 46, 38], "directions": ["left", "right", "left"], "edgeFadePercent": 12, "reduceMotion": "static rows with manual horizontal scrolling", "data": "labeled demo; only configured enrollment schools open details" },
+            "search": "查找录取院校",
+            "dock": ["采集记录", "冲印照片"],
+            "dockColumns": 2,
+            "print": { "route": "/?page=print&preset=layout", "return": "restore enrollment hero mode and step on the originating landing" }
+          },
+          "associationLanding": {
+            "route": "/?page=collection&view=projects&category=association",
+            "title": "其它采集",
+            "offers": {
+              "cardWidth": "100%",
+              "aspectRatio": 2.2,
+              "format": "full-bleed WebP poster inside one labeled button",
+              "cornerRadiusPx": 20,
+              "dwellMs": 6000,
+              "controls": ["swipe", "four-stop slider with 8/12px segments and 4px gaps, 4px below the poster, inset by its corner radius", "arrow keys"],
+              "reducedMotion": "manual only",
+              "layout": { "title": "背胶模切排版照", "label": "立即下单", "route": "/?page=print&preset=layout" },
+              "serviceRoutes": ["employeeBadge", "certificate", "membership"],
+              "posters": ["association-banner-diecut.webp", "association-banner-badge.webp", "association-banner-certificate.webp", "association-banner-membership.webp"]
+            },
+            "servicePage": {
+              "route": "/?page=collection&view=association-service&category=association&service=employeeBadge",
+              "layout": ["ToolNavigation", "product photo and highlights", "2×2 specifications", "four-step timeline", "business contact", "fixed two-action footer"],
+              "heroAssets": ["association-detail-badge.webp", "association-detail-certificate.webp", "association-detail-membership.webp"],
+              "heroImagePx": [1080, 720],
+              "contact": "shared support email, clipboard feedback, product-specific mail draft",
+              "return": "restore poster, organization rail offset and focus on the opening poster"
+            },
+            "list": { "title": "正在采集", "status": "ongoing", "cardViewportWidthPercent": 62, "widthRangePx": [216, 260], "minHeightRangePx": [190, 200], "projectName": { "reservedLines": 2, "overflow": "ellipsis" }, "statusPlacement": "left aligned on its own row below the project name and above the date panel", "photoHeightRangePx": [76, 84], "dateRows": ["开始时间", "结束时间"], "dateFormat": "YYYY.MM.DD", "restoreHorizontalOffset": true },
+            "mainActions": { "placement": "below the organization rail, with remaining space above the dock", "prompt": "查找所属机构，开启照片采集", "heightPx": 48, "widthRangePx": [240, 272], "search": "搜索查找机构" },
+            "dock": ["扫码进机构", "采集记录", "冲印照片"],
+            "dockColumns": 3,
+            "dockPrintRoute": "/?page=print&preset=layout",
+            "dockIcons": ["association-dock-scan.svg", "university-dock-records.webp", "university-dock-print.webp"]
+          },
           "categoryPage": [
             "compact themed header",
             "scoped search and personal category-record button in one row",
-            "project list"
+            "graduate-only CHSI scanner shortcut with 44px touch target",
+            "all/open project filter, project artwork and credential hint"
           ],
+          "projectSearch": "scoped example queries, submitted results and focused return to the originating row",
+          "projectDetail": "availability notice, existing records when present, four examples with dark immersive viewer",
+          "identity": "clickable code upload, configured alternate methods and inline field errors",
+          "captureSheets": "SharedSheet title 16px/600 and 44px close; camera choices retain source focus",
+          "taskDetail": "22px/700 status title, blue portrait reference, rejection summary and scoped institutional submission",
+          "categoryLandingSupport": { "categories": ["graduate", "enrollment", "association"], "label": "客服", "icon": "nav-service", "position": "top right", "touchMinPx": 44, "panel": "email", "requiresLogin": false },
           "categoryHeader": {
             "component": "CollectionHeader compact",
             "height": "system safe area + shared 92px header body at standard text size",
             "layout": "equal side columns, 44px back target on the left, single centered title with wrapping, category or archive illustration on the right",
             "maxIllustrationPx": 72,
-            "scope": "graduate, enrollment and association project and record lists"
+            "scope": "compatible legacy category lists"
           },
           "recordPage": [
-            "shared compact themed header with category record title and smaller archive artwork",
-            "progress filters",
+            "all three category records use a white status area and ToolNavigation with centered 采集记录 above fixed white tabs and a thin divider; the independently scrolling list uses the canvas color",
+            "category-specific single-select progress: 全部, 进行中, 已完成; all categories use 44px text tabs with a 20 by 2px blue underline",
+            "category record cards are shadowless with 72 by 96px top-centered cover portraits; organization and a single batch/date line align at the top, the 6px status dot and optional correction pill align at the bottom",
+            "category records show 去修改 for failures only; upload failure still routes to the existing support guidance in task detail",
             "independently scrolling personal category records"
           ],
           "searchTrailingLabelMinWidthPx": 212,
           "recordEntry": {
-            "component": "collection-record-entry",
-            "layout": "rounded button with archive icon, label and count capsule, to the right of scoped search",
-            "heightPx": 46,
-            "iconSizePx": 20,
+            "component": "CollectionSchoolDock",
+            "layout": "shared bottom navigation on all three category homepages",
+            "minTouchHeightPx": 48,
+            "iconSizePx": 28,
+            "legacyCategoryList": { "component": "collection-record-entry", "heightPx": 46, "iconSizePx": 20, "gapFromSearchPx": 8 },
             "label": "采集记录",
-            "countBadge": "brand-tint capsule showing the exact owned category total including zero, only after successful read",
-            "gapFromSearchPx": 8,
+            "countBadge": "blue counter showing the exact owned category total including zero, only after successful read",
             "accessibleName": "category record title and truthful count or read state",
             "titles": {
               "graduate": "毕业生采集记录",

@@ -211,7 +211,8 @@ test("repair payment sheet presents four unselected colors before payment and up
 });
 test("repair photo selection and check accept clear individual portraits without a plain background requirement", () => {
   const selection = render("repair", false, "idle", { panel: "album" });
-  assert.match(selection.content, /请选择一张清晰的单人正面人像/);
+  assert.match(selection.content, /选择照片.*手机相册.*制作一张.*知拍相册.*使用这张照片/);
+  assert.doesNotMatch(selection.content, /请选择一张清晰的单人正面人像|每次仅选择一张照片/);
   const check = render("repair", true, "awaiting", { panel: "portraitOutcome" });
   assert.match(check.content, /清晰的单人正面人像，可继续精修/);
   assert.doesNotMatch(check.content, /证件照|照片背景复杂|标准化/);

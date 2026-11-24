@@ -1,0 +1,360 @@
+.association-landing {
+  flex: 1;
+  min-width: 0;
+}
+.association-list {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px var(--brand-page-inset, 16px) 0;
+}
+.association-offers {
+  --association-poster-radius: 20px;
+  isolation: isolate;
+}
+.association-offer-stage {
+  position: relative;
+  aspect-ratio: 2.2 / 1;
+  border-radius: var(--association-poster-radius);
+  overflow: hidden;
+  touch-action: pan-y pinch-zoom;
+}
+.association-slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+}
+.association-slide[data-active="true"] { z-index: 1; pointer-events: auto; opacity: 1; }
+.association-slide img { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; }
+.association-slide:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: -3px; }
+@media (prefers-reduced-motion: no-preference) {
+  .association-slide { transition: opacity 360ms ease; }
+}
+
+.association-offer-pages {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  width: fit-content;
+  margin-inline: auto var(--association-poster-radius);
+  padding-block: 4px 12px;
+}
+.association-offer-pages span {
+  width: 8px;
+  height: 2px;
+  border-radius: var(--university-pill-radius);
+  background: var(--ui-swatch-light-border);
+}
+.association-offer-pages span[data-active="true"] {
+  width: 12px;
+  background: var(--brand-blue);
+}
+.association-offer-pages input {
+  position: absolute;
+  inset: 0 0 auto;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: var(--ui-touch-min);
+  border: 0;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.association-offer-pages input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 8px;
+  height: var(--ui-touch-min);
+}
+.association-offer-pages input::-moz-range-thumb {
+  width: 8px;
+  height: var(--ui-touch-min);
+  border: 0;
+}
+.association-offer-pages:has(input:focus-visible) {
+  border-radius: var(--ui-input-radius);
+  outline: 2px solid var(--brand-blue);
+}
+
+.association-organizations h2 {
+  margin: 0;
+  color: var(--ui-heading);
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+.association-orgs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(216px, 62cqw, 260px);
+  align-items: stretch;
+  gap: 10px;
+  margin-inline: calc(0px - var(--brand-page-inset, 16px));
+  padding: 8px var(--brand-page-inset, 16px) 10px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--brand-page-inset, 16px);
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+.association-orgs:active { scroll-snap-type: none; }
+.association-org-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  min-height: clamp(190px, 24cqh, 200px);
+  padding: 4px 4px 6px;
+  border-radius: 20px;
+  box-shadow: var(--ui-card-shadow);
+  background: var(--surface);
+  text-align: left;
+  scroll-snap-align: start;
+}
+.association-org-cover {
+  display: block;
+  width: 100%;
+  height: clamp(76px, 10cqh, 84px);
+  border-radius: var(--ui-card-radius);
+  object-fit: cover;
+  background: var(--ui-input-fill);
+}
+.association-org-copy {
+  display: grid;
+  gap: 2px;
+  padding: 6px 8px 5px;
+  color: var(--ui-body);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.association-org-heading { font-size: 16px; line-height: 1.4; color: var(--university-title-ink); }
+.association-org-status {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: var(--university-pill-radius);
+  background: var(--ui-success-fill);
+  color: var(--ui-success-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+.association-org-project {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  block-size: 2lh;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-size: 13px;
+}
+.association-org-card > .university-school-date {
+  gap: 2px;
+  margin: auto 7px 0;
+  padding: 4px 8px;
+  border-radius: 10px;
+}
+@media (pointer: fine) {
+  .association-orgs { scrollbar-width: thin; scrollbar-color: var(--ui-selection-border) transparent; }
+}
+.association-intake {
+  flex: none;
+  padding: clamp(8px, 2cqh, 16px) var(--brand-page-inset, 16px) 12px;
+}
+.association-landing > .university-dock {
+  margin-block-start: auto;
+  padding-block: 3px calc(3px + max(env(safe-area-inset-bottom, 0px), var(--device-nav-bottom, 0px)));
+}
+.association-service-page {
+  --association-detail-ink: #111c38;
+  --association-spec-fill: #f5f7fc;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  background: var(--ui-canvas);
+}
+.association-service-scroll {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px var(--brand-page-inset, 16px) 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.association-service-scroll > section { flex: none; }
+.association-service-scroll h2,
+.association-service-scroll h3 {
+  margin: 0;
+  color: var(--association-detail-ink);
+  font-weight: 700;
+  line-height: 1.4;
+}
+.association-service-scroll p {
+  margin: 0;
+  color: var(--ui-body);
+  line-height: 1.5;
+}
+.association-service-hero {
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--surface);
+}
+.association-service-hero > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  background: var(--ui-input-fill);
+}
+.association-service-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 6px;
+  padding: 16px;
+  font-size: 14px;
+}
+.association-service-intro h2 { font-size: var(--ui-collection-task-title); }
+.association-service-intro .association-service-eyebrow,
+.association-service-highlights > li {
+  padding: 3px 8px;
+  border-radius: var(--university-pill-radius, 999px);
+  background: var(--ui-secondary-fill);
+  color: var(--ui-secondary-ink);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.association-service-intro .association-service-eyebrow {
+  background: var(--brand-blue-soft);
+  color: var(--brand-blue);
+}
+.association-service-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.association-service-card {
+  padding: 16px;
+  border-radius: var(--ui-card-radius);
+  background: var(--surface);
+}
+.association-service-card h2 { font-size: var(--ui-sheet-title); }
+.association-service-specs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0 0;
+}
+.association-service-specs > div {
+  padding: 10px 12px;
+  border-radius: var(--ui-input-radius);
+  background: var(--association-spec-fill);
+}
+.association-service-specs dt { color: #64748b; font-size: 11.5px; }
+.association-service-specs dd {
+  margin: 3px 0 0;
+  color: var(--association-detail-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.association-service-steps {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin: 12px 0 0;
+  list-style: none;
+}
+.association-service-steps > li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 10px;
+}
+.association-service-steps > li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  inset: 19px auto -13px 9px;
+  width: 2px;
+  background: var(--ui-selection-border);
+}
+.association-service-steps h3 { font-size: 14px; }
+.association-service-steps p { margin-top: 2px; font-size: 12.5px; }
+.association-service-contact {
+  border: 1px solid rgb(0 50 255 / 12%);
+  background: linear-gradient(180deg, #f5f8ff, var(--surface));
+}
+.association-service-contact p { margin-top: 4px; font-size: 13px; }
+.association-service-channels {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+}
+.association-service-channels > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.association-service-channels dt { color: var(--ui-body); font-size: 13px; }
+.association-service-channels dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--association-detail-ink);
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.association-service-email button {
+  min-height: var(--ui-touch-min);
+  padding-inline: 15px;
+  border-radius: var(--university-pill-radius, 999px);
+}
+.association-service-footer {
+  flex: none;
+  padding: 5px var(--brand-page-inset, 16px) calc(6px + max(env(safe-area-inset-bottom, 0px), var(--device-nav-bottom, 0px)));
+  background: var(--surface);
+  border-top: 1px solid var(--ui-divider);
+}
+.association-service-footer > p {
+  margin: 0 0 5px;
+  color: var(--ui-body);
+  font-size: 12px;
+}
+.association-service-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 8px;
+}
+.association-service-actions > :is(button, a) {
+  display: grid;
+  place-items: center;
+  min-height: var(--ui-touch-min);
+  padding: 4px 8px;
+  border-radius: var(--university-pill-radius, 999px);
+  text-align: center;
+}
+.association-service-actions > .ui-button-secondary:not(:disabled) {
+  border: 1px solid var(--ui-selection-border);
+  background: var(--brand-blue-soft);
+  color: var(--brand-blue);
+}

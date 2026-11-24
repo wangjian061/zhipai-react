@@ -1,11 +1,13 @@
 import React, { useCallback, useLayoutEffect, useRef } from "react";
 import CollectionRecordCard from "./CollectionRecordCard.jsx";
 import CollectionHeader from "./CollectionHeader.jsx";
+import ToolNavigation from "./ToolNavigation.jsx";
 import { CollectionIcon } from "./CollectionHome.jsx";
 
 const filters = [
-  { id: "ongoing", name: "采集中" },
-  { id: "complete", name: "采集完成" },
+  { id: "all", name: "全部" },
+  { id: "ongoing", name: "进行中" },
+  { id: "complete", name: "已完成" },
 ];
 
 export default function CollectionRecords({ scope: s }) {
@@ -22,16 +24,39 @@ export default function CollectionRecords({ scope: s }) {
       list.current.scrollTop = s.sectionScroll[s.scrollKey] || 0;
   }, [s, s.view, s.scrollKey, s.account.session?.phone]);
   if (s.view !== "records") return null;
+  const progressFilters = (
+    <div className={"collection-record-filters" + (s.scopedRecords ? " collection-record-filters--tabs" : "")}
+      role="group" aria-label="采集进度">
+      {filters.map(({ id, name }) => (
+        <button key={id} type="button" className={s.recordFilter === id ? "is-selected" : ""}
+          aria-pressed={s.recordFilter === id}
+          onClick={() => {
+            if (!s.selectRecordFilter(id)) return;
+            if (list.current) list.current.scrollTop = 0;
+            s.sectionScroll[s.scrollKey] = 0;
+          }}>
+          {name}
+        </button>
+      ))}
+    </div>
+  );
   return (
     <>
-      <CollectionHeader
-        compact={s.scopedRecords}
-        title={s.recordListTitle}
-        subtitle="进度追踪 · 照片归档"
-        image="assets/collection-icon-records.webp"
-        onBack={() => (s.scopedRecords ? s.back() : s.exitCollection())}
-      />
-      <div className="collection-inner collection-records-inner collection-section-container">
+      {s.scopedRecords ? (
+        <div className="collection-records-masthead">
+          <ToolNavigation title={s.recordListTitle} onBack={() => s.back()} />
+          {s.account.session && progressFilters}
+        </div>
+      ) : (
+        <CollectionHeader
+          compact={s.scopedRecords}
+          title={s.recordListTitle}
+          subtitle="进度追踪 · 照片归档"
+          image="assets/collection-icon-records.webp"
+          onBack={() => (s.scopedRecords ? s.back() : s.exitCollection())}
+        />
+      )}
+      <div className={"collection-inner collection-records-inner" + (s.scopedRecords ? "" : " collection-section-container")}>
         {!s.account.session ? (
           <div className="collection-service-empty collection-login-card">
             <p>登录后查看本人的采集记录</p>
@@ -85,39 +110,7 @@ export default function CollectionRecords({ scope: s }) {
                 ))}
               </nav>
             )}
-            <div
-              className="collection-record-filters"
-              role="group"
-              aria-label="采集进度，可多选"
-            >
-              {filters.map((filter) => {
-                const selected = s.recordFilterSelected(filter.id);
-                return (
-                  <button
-                    key={filter.id}
-                    type="button"
-                    className={selected ? "is-selected" : ""}
-                    aria-pressed={selected}
-                    aria-disabled={selected && s.recordFilter !== "all"}
-                    onClick={() => {
-                      s.toggleRecordFilter(filter.id);
-                      if (list.current) list.current.scrollTop = 0;
-                      s.sectionScroll[s.scrollKey] = 0;
-                    }}
-                  >
-                    <span
-                      className="collection-filter-check"
-                      aria-hidden="true"
-                    >
-                      <svg viewBox="0 0 16 16">
-                        <path d="m3.5 8 3 3 6-6" />
-                      </svg>
-                    </span>
-                    {filter.name}
-                  </button>
-                );
-              })}
-            </div>
+            {!s.scopedRecords && progressFilters}
             <div
               className="collection-record-list"
               ref={attachList}
@@ -144,6 +137,7 @@ export default function CollectionRecords({ scope: s }) {
                   key={record.id}
                   scope={s}
                   record={record}
+                  recordsList
                 />
               ))}
               {s.recordsStore.ready &&
@@ -158,7 +152,7 @@ export default function CollectionRecords({ scope: s }) {
                         s.scopedRecords ? s.back() : s.route("home")
                       }
                     >
-                      查看采集项目
+                      {s.recordCategory === "association" ? "查看采集项目" : "返回采集首页"}
                     </button>
                   </div>
                 )}

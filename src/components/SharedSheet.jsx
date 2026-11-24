@@ -11,6 +11,8 @@ export function SheetFrame({
   children,
   className = "",
   returnFocusRef,
+  initialFocusRef,
+  focusDialogOnOpen = false,
   target = "#shared-modal-layer",
   embedded = false,
   modal = true,
@@ -21,15 +23,17 @@ export function SheetFrame({
   useEffect(() => {
     if (!opened || !modal) return;
     const previous = document.activeElement;
-    queueMicrotask(() =>
-      dialog.current?.querySelector("button:not(:disabled),input:not(:disabled)")?.focus(),
-    );
+    queueMicrotask(() => {
+      const initial = initialFocusRef?.current || (focusDialogOnOpen ? dialog.current : null);
+      if (initial) initial.focus({ preventScroll: true });
+      else dialog.current?.querySelector("button:not(:disabled),input:not(:disabled)")?.focus();
+    });
     return () => queueMicrotask(() => {
       const trigger = returnFocusRef?.current || previous;
       if (trigger?.isConnected && trigger.getClientRects().length && !trigger.closest("[inert]"))
         trigger.focus({ preventScroll: true });
     });
-  }, [opened, modal, returnFocusRef]);
+  }, [opened, modal, returnFocusRef, initialFocusRef, focusDialogOnOpen]);
   if (!opened) return null;
 
   function key(event) {

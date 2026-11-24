@@ -34,7 +34,7 @@
   flex: none;
   width: 18px;
   height: 18px;
-  color: #657181;
+  color: var(--ui-body);
 }
 
 .collection-project-search-form input {
@@ -55,7 +55,7 @@
 }
 
 .collection-project-search-form input::placeholder {
-  color: #657181;
+  color: var(--ui-body);
 }
 .collection-project-search-form input::-webkit-search-cancel-button {
   display: none;
@@ -86,7 +86,7 @@
 }
 
 .collection-project-search-clear {
-  color: #657181;
+  color: var(--ui-body);
 }
 .collection-project-search-clear svg {
   width: 16px;
@@ -121,7 +121,7 @@
 
 .collection-project-search-heading > span {
   flex: none;
-  color: #657181;
+  color: var(--ui-body);
   font-size: 12px;
 }
 
@@ -157,7 +157,7 @@
 
 .collection-project-search .collection-project-row p {
   align-items: baseline;
-  color: #657181;
+  color: var(--ui-body);
   font-size: 12px;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -169,29 +169,11 @@
 .collection-project-search .collection-project-date {
   font-variant-numeric: tabular-nums;
 }
-.collection-project-search .collection-project-state {
-  padding: 0;
-  margin-top: 8px;
-  border-radius: 0;
-  background: transparent;
-  color: var(--collection-muted);
-  font-size: 12px;
-  line-height: 1.5;
-}
-.collection-project-search .collection-project-state.green {
-  color: #306b55;
-}
-.collection-project-search .collection-project-state.warm {
-  color: #966526;
-}
-.collection-project-search .collection-project-state.red {
-  color: #975950;
-}
 .collection-project-search .collection-project-row > svg {
   display: block;
   width: 16px;
   height: 16px;
-  color: #657181;
+  color: var(--ui-body);
 }
 
 .collection-project-search-empty {
@@ -203,7 +185,7 @@
   width: 32px;
   height: 32px;
   margin-bottom: 20px;
-  color: #657181;
+  color: var(--ui-body);
   stroke-width: 1.6;
 }
 
@@ -216,7 +198,7 @@
 
 .collection-project-search-empty p {
   margin-top: 8px;
-  color: #657181;
+  color: var(--ui-body);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -281,3 +263,16 @@
 
 .phone[data-help-search] .pages { bottom:0; }
 .device-fit .support-page:has(.support-search-page) { padding-top:0; }
+
+.collection-search-examples { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 8px; margin-top: 12px; }
+.collection-project-search-empty .collection-search-examples button { margin: 0; padding: 0; border-radius: 999px; }
+.collection-search-examples button span {
+  display: block;
+  padding: 6px 12px;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: inherit;
+  background: var(--surface);
+  color: var(--ui-body);
+  font-size: 12px;
+}
+.collection-search-examples button:active span { background: var(--brand-tint); color: var(--brand-blue); }

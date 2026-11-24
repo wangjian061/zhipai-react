@@ -170,11 +170,14 @@ export function PaymentAccountPrompt({ access, path }) {
 function paymentAtCurrentPage(page) {
   const {
     printStudio,
+    graduatePrint,
     keepsakeStudio,
     cameraStudio,
     toolStudio,
     collectionFlow,
   } = getControllerScopes();
+  if (page === "print" && graduatePrint?.view === "confirm")
+    return [graduatePrint.order, graduatePrint.busy, graduatePrint.resolvePayment];
   if (page === "print" && printStudio?.view === "confirm")
     return [
       printStudio.order,

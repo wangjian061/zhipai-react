@@ -2,6 +2,7 @@ import {
   cleanShippingAddress,
   shippingAddressError,
 } from "./shipping-address.js";
+import { returnToUniversityPrint, universityPrintHistory } from "./collection-history.js";
 import {
   openOrderCenter,
   printOrderPath,
@@ -122,7 +123,7 @@ const PRINT_LAYOUTS = [
 const PRINT_GALLERY = [
   { id: "adhesive-mixed-4-8", label: "混排整版", image: "./assets/print-product-mixed-4-8.webp" },
   { id: "adhesive-two-8", label: "二寸8张", image: "./assets/print-product-two-8.webp" },
-  { id: "peel", label: "背胶易撕", image: "./assets/print-product-peel.webp" },
+  { id: "angle", label: "斜角实拍", image: "./assets/print-product-angle.webp" },
   { id: "corner", label: "模切细节", image: "./assets/print-product-corner.webp" },
 ];
 
@@ -270,7 +271,7 @@ async function requestPrintQuote(layout, quantity, address) {
   };
 }
 const DEFAULT_CROP = { scale: 1, offsetX: 0, offsetY: 0 };
-function cleanCrop(value) {
+export function cleanCrop(value) {
   return {
     scale: Math.max(1, Math.min(3, Number(value?.scale) || 1)),
     offsetX: Math.max(-100, Math.min(100, Number(value?.offsetX) || 0)),
@@ -358,6 +359,7 @@ function plainPrintState(state) {
       entry: d.entry === "album" ? "album" : "home",
       returnTo: d.returnTo,
     },
+    ...(state.graduateDrafts ? { graduateDrafts: storageValue(state.graduateDrafts) } : {}),
     addresses: state.addresses.map(printAddressCopy),
     orders: state.orders.map((o) => ({
       id: o.id,
@@ -366,6 +368,7 @@ function plainPrintState(state) {
       token: o.token,
       status: o.status,
       photo: printPhotoCopy(o.photo),
+      ...(o.kind === "graduate" ? { graduatePhotos: storageValue(o.graduatePhotos || []) } : {}),
       kind: o.kind,
       layout: o.layout,
       layoutSnapshot: printLayoutCopy(o.layoutSnapshot),
@@ -1389,6 +1392,12 @@ registerController("printStudio", () => ({
     this.albumFromPreview = false;
     this.$store.printUi.preview = false;
     const q = new URLSearchParams(location.search);
+    if (q.get("page") === "print" && q.get("view") === "graduate") {
+      this.view = "graduate";
+      this.modal = null;
+      this.$store.printUi.opened = false;
+      return;
+    }
     this.confirmFromPreview = q.get("from") === "preview";
     if (q.get("page") !== "print" || (this.view === "crop" && q.get("print") !== "crop")) {
       this.cropTask++;
@@ -1530,7 +1539,10 @@ registerController("printStudio", () => ({
     });
     const state = replace && view === "confirm" && extras.from === "preview"
       ? { printReturnToPreview: true } : {};
-    history[replace ? "replaceState" : "pushState"](state, "", url);
+    history[replace ? "replaceState" : "pushState"]({
+      ...universityPrintHistory(replace),
+      ...state,
+    }, "", url);
     window.dispatchEvent(new Event("zhipai-route"));
   },
   async enter(detail) {
@@ -1570,6 +1582,7 @@ registerController("printStudio", () => ({
     if (
       ["preview", "select", "crop", "layouts", "confirm"].includes(this.view)
     ) {
+      if (returnToUniversityPrint()) return;
       const url = new URL(
         this.draft.returnTo || "/?page=home",
         location.origin,

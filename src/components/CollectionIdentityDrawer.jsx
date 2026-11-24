@@ -116,9 +116,14 @@ function IdentityUpload({ scope: s }) {
 }
 function PersonalInformation({ scope: s }) {
   const numberLabel = methodNames[s.method] || "编号";
+  const errors = s.identityErrors || {};
+  const fieldFeedback = (name) => errors[name] && (
+    <small className="ui-field-error" id={`collection-identity-${name}-error`}>{errors[name]}</small>
+  );
   return (
     <form
       id="collection-auth-form"
+      noValidate
       className="collection-auth-form"
       onSubmit={(event) => {
         event.preventDefault();
@@ -145,6 +150,7 @@ function PersonalInformation({ scope: s }) {
                   disabled={s.busy}
                   onChange={() => {
                     s.method = method;
+                    s.clearIdentityError("number");
                   }}
                 />
                 <span>{methodTitles[method] || methodNames[method]}</span>
@@ -161,6 +167,8 @@ function PersonalInformation({ scope: s }) {
           <div className="collection-auth-input">
             <input
               name="collection-person-name"
+              aria-invalid={!!errors.name}
+              aria-describedby={errors.name ? "collection-identity-name-error" : undefined}
               maxLength={30}
               placeholder="请输入本人姓名"
               autoComplete="name"
@@ -169,15 +177,19 @@ function PersonalInformation({ scope: s }) {
               value={s.identity.name}
               onChange={(event) => {
                 s.identity.name = event.target.value;
+                s.clearIdentityError("name");
               }}
             />
           </div>
+          {fieldFeedback("name")}
         </label>
         <label className="collection-auth-field">
           <span>{numberLabel}</span>
           <div className="collection-auth-input">
             <input
               name="collection-person-number"
+              aria-invalid={!!errors.number}
+              aria-describedby={errors.number ? "collection-identity-number-error" : undefined}
               type={s.method === "id" && s.maskIdentity ? "password" : "text"}
               maxLength={32}
               autoComplete="off"
@@ -188,6 +200,7 @@ function PersonalInformation({ scope: s }) {
               value={s.identity.number}
               onChange={(event) => {
                 s.identity.number = event.target.value;
+                s.clearIdentityError("number");
               }}
             />
             {s.method === "id" && (
@@ -204,6 +217,7 @@ function PersonalInformation({ scope: s }) {
               </button>
             )}
           </div>
+          {fieldFeedback("number")}
         </label>
         {s.panel === "qrCheck" && (
           <label className="collection-auth-field">
@@ -211,16 +225,20 @@ function PersonalInformation({ scope: s }) {
             <div className="collection-auth-input">
               <input
                 name="collection-person-last-four"
-                inputMode="numeric"
+                aria-invalid={!!errors.lastFour}
+                aria-describedby={errors.lastFour ? "collection-identity-lastFour-error" : undefined}
+                autoCapitalize="characters"
                 maxLength={4}
                 placeholder="仅填写后四位"
                 disabled={s.busy}
                 value={s.identity.lastFour}
                 onChange={(event) => {
                   s.identity.lastFour = event.target.value;
+                  s.clearIdentityError("lastFour");
                 }}
               />
             </div>
+            {fieldFeedback("lastFour")}
           </label>
         )}
       </section>
@@ -248,8 +266,11 @@ export default function CollectionIdentityDrawer({ scope: s }) {
     };
   }, [s, s.panel]);
   useLayoutEffect(() => {
-    if (s.error && body.current) body.current.scrollTop = 0;
-  }, [s.error]);
+    if (!s.error) return;
+    const field = body.current?.querySelector('input[aria-invalid="true"]');
+    if (field) field.focus();
+    else if (body.current) body.current.scrollTop = 0;
+  }, [s.error, s.identityValidationAttempt]);
   if (!s.isAuthPanel) return null;
   const hasForm = ["verify", "alternate", "employee", "qrCheck"].includes(
     s.panel,
@@ -285,11 +306,12 @@ export default function CollectionIdentityDrawer({ scope: s }) {
         {s.panel === "qr" && (
           <section className="collection-auth-block">
             <BlockHeading title="认证资料" hint="学信网图像采集码" />
-            <div className="collection-auth-qr-guide">
+            <button type="button" className="collection-auth-qr-guide" disabled={s.busy}
+              onClick={() => s.$refs.collectionQr?.click()}>
               <CollectionIcon name="scan" />
-              <strong>上传或扫描采集码</strong>
-              <p>JPG、PNG 或 WebP，15 MB以内</p>
-            </div>
+              <strong>上传学信网图像采集码</strong>
+              <span>JPG、PNG 或 WebP，15 MB以内</span>
+            </button>
           </section>
         )}
         <input
@@ -318,12 +340,12 @@ export default function CollectionIdentityDrawer({ scope: s }) {
             </button>
             {s.identityMethods.length > 0 && (
               <button
-                className="collection-auth-secondary"
+                className="collection-auth-secondary ui-button-text"
                 type="button"
                 disabled={s.busy}
-                onClick={() => s.alternate()}
+                onClick={() => s.alternate(s.identityMethods.includes("student") ? "student" : undefined)}
               >
-                其他认证方式
+                {s.identityMethods.includes("student") ? "没有身份证？改用学号认证" : "其他认证方式"}
                 <CollectionIcon name="chevron" />
               </button>
             )}
@@ -335,11 +357,7 @@ export default function CollectionIdentityDrawer({ scope: s }) {
               className="collection-primary"
               type="submit"
               form="collection-auth-form"
-              disabled={
-                s.disabled ||
-                !s.identity.name.trim() ||
-                !s.identity.number.trim()
-              }
+              disabled={s.disabled}
             >
               {s.busy ? "匹配中…" : "确认并匹配"}
             </button>

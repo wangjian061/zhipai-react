@@ -21,7 +21,7 @@ Object.defineProperty(globalThis, "navigator", {
 globalThis.window = new EventTarget();
 globalThis.document = { activeElement: null };
 await import("../src/domain/index.js");
-const { collectionHistoryState } =
+const { collectionHistoryState, returnCollectionHistory, universityPath, universityProjectPath } =
   await import("../src/domain/collection-history.js");
 const { PRINT_LAYOUTS, printDraftSeed } =
   await import("../src/domain/print.js");
@@ -116,6 +116,109 @@ test("home → category → project returns through the exact history and restor
     c.stop();
   }
 });
+test("association search, scanner, records and layout printing return to the home-linked category and rail position", async () => {
+  const flow = collection("/?page=home");
+  const s = flow.scope;
+  const landing = "/?page=collection&view=projects&category=association&from=home&section=home";
+  try {
+    history.pushState(collectionHistoryState(landing), "", landing);
+    window.dispatchEvent(new Event("zhipai-route"));
+    await settle();
+    s.$refs.associationRail = { scrollLeft: 208 };
+    s.scrollHost.scrollTop = 24;
+
+    function checkReturn() {
+      assert.equal(location.pathname + location.search, landing);
+      assert.equal(s.isAssociationLanding, true);
+      assert.equal(history.state.associationRailOffset, 208);
+      assert.equal(s.scrollHost.scrollTop, 24);
+    }
+
+    s.enterProjectSearch();
+    assert.equal(location.searchParams.get("search"), "1");
+    assert.equal(s.projectCategory, "association");
+    s.back();
+    await settle();
+    checkReturn();
+
+    s.openCategoryScanner();
+    assert.equal(location.search, "?page=scan");
+    createController("collectionScanner", [], root.scope).scope.back();
+    await settle();
+    checkReturn();
+
+    s.openCategoryRecords();
+    assert.equal(s.recordCategory, "association");
+    assert.equal(s.view, "records");
+    s.back();
+    await settle();
+    checkReturn();
+
+    s.openAssociationPrint();
+    assert.equal(location.search, "?page=print&preset=layout");
+    const studio = createController("printStudio");
+    studio.setElement({ querySelectorAll: () => [] });
+    studio.scope.syncLocation();
+    assert.equal(studio.scope.view, "layouts");
+    studio.scope.back();
+    await settle();
+    checkReturn();
+
+    s.back();
+    assert.equal(location.search, "?page=home");
+  } finally {
+    flow.stop();
+  }
+});
+
+test("open-project filtering keeps closed projects discoverable through scoped search and the all view", async () => {
+  const c = collection("/?page=collection&view=projects&category=association");
+  const s = c.scope;
+  try {
+    assert.ok(s.projectsShown.some((project) => project.id === "association-talent"));
+    s.setProjectFilter("open");
+    assert.ok(s.projectsShown.length > 0);
+    assert.ok(s.projectsShown.every((project) => project.status === "ongoing" && s.entryEnabled(project.type)));
+    s.enterProjectSearch("行业人才");
+    await settle();
+    assert.ok(s.isProjectSearch);
+    assert.deepEqual(s.projectsShown.map(({ id }) => id), ["association-talent"]);
+    s.back();
+    await settle();
+    assert.equal(s.projectFilter, "open");
+    assert.ok(s.projectsShown.every((project) => project.status === "ongoing"));
+    s.setProjectFilter("all");
+    assert.ok(s.projectsShown.some((project) => project.id === "association-talent"));
+  } finally {
+    c.stop();
+  }
+});
+
+test("identity validation reports only affected fields and clears errors without discarding input", async () => {
+  const c = collection("/?page=collection&view=project&project=enrollment");
+  const s = c.scope;
+  try {
+    getStore("account").session = { phone: "13800008000" };
+    await settle();
+    s.panel = "alternate";
+    s.method = "student";
+    await s.matchIdentity();
+    assert.deepEqual(Object.keys(s.identityErrors), ["name", "number"]);
+    s.identity.name = "测试学生";
+    s.clearIdentityError("name");
+    assert.deepEqual(Object.keys(s.identityErrors), ["number"]);
+    assert.equal(s.identity.name, "测试学生");
+    s.identity.number = "0000";
+    s.clearIdentityError("number");
+    await s.matchIdentity();
+    assert.match(s.identityErrors.number, /未匹配到采集名单/);
+    assert.equal(s.identity.name, "测试学生");
+    assert.equal(getStore("collectionRecords").items.length, 0);
+  } finally {
+    c.stop();
+  }
+});
+
 test("project tasks return to the same project, then category, while filtering out other owners", async () => {
   for (const [category,project] of [["graduate","graduate-degree"],["enrollment","enrollment-vocational"],["association","association-engineering"]]) {
     const c=collection("/?page=collection&view=projects&category="+category),s=c.scope;
@@ -176,6 +279,65 @@ test("legacy aggregate collection URLs return to the app home", () => {
     const c=collection(path);
     try {assert.equal(location.search,"?page=home"); assert.equal(history.length,1);}
     finally {c.stop();}
+  }
+});
+test("home opens the standalone university view and its back action restores the exact home entry", () => {
+  const home = "/?page=home";
+  const c = collection(home);
+  try {
+    history.pushState(collectionHistoryState(universityPath), "", universityPath);
+    window.dispatchEvent(new Event("zhipai-route"));
+    assert.equal(c.scope.view, "university");
+    assert.equal(c.scope.projectCategory, "graduate");
+    assert.equal(returnCollectionHistory("category"), true);
+    assert.equal(location.pathname + location.search, home);
+    assert.equal(backCalls, 1);
+  } finally {
+    c.stop();
+  }
+});
+test("university school links use the original project detail and return to the originating list", () => {
+  for (const source of [universityPath, universityPath + "&mode=all", universityPath + "&mode=search&q=" + encodeURIComponent("示例")]) {
+    const c = collection(source);
+    try {
+      const target = universityProjectPath("graduate", source);
+      history.pushState(collectionHistoryState(target), "", target);
+      window.dispatchEvent(new Event("zhipai-route"));
+      assert.equal(c.scope.view, "project");
+      assert.equal(c.scope.project.id, "graduate");
+      assert.equal(c.scope.panel, null);
+      c.scope.back();
+      assert.equal(location.pathname + location.search, source);
+      assert.equal(c.scope.view, "university");
+      assert.equal(backCalls, 1);
+    } finally {
+      c.stop();
+    }
+  }
+});
+test("old university school URLs resolve to the existing detail and preserve the search fallback", () => {
+  const query = encodeURIComponent("示例学院");
+  const c = collection(universityPath + "&mode=school&school=graduate&from=search&q=" + query);
+  try {
+    assert.equal(c.scope.view, "project");
+    assert.equal(location.searchParams.get("project"), "graduate");
+    assert.equal(history.length, 1);
+    c.scope.back();
+    assert.equal(location.pathname + location.search, universityPath + "&mode=search&q=" + query);
+    assert.equal(c.scope.view, "university");
+  } finally {
+    c.stop();
+  }
+});
+test("starting collection from a university link keeps that detail as the login return", () => {
+  const target = universityProjectPath("graduate", universityPath + "&mode=all");
+  const c = collection(target);
+  try {
+    c.scope.begin();
+    assert.equal(location.searchParams.get("page"), "account");
+    assert.equal(location.searchParams.get("back"), target);
+  } finally {
+    c.stop();
   }
 });
 test("direct or untrusted category history falls back by replacing the entry without leaving the app", () => {

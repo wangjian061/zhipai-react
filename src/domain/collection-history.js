@@ -1,3 +1,44 @@
+export const universityPath = "/?page=collection&view=university&category=graduate";
+
+function rememberHero(key, mode, index) {
+  const hero = { mode, index };
+  history.replaceState({ ...history.state, [key]: hero }, "", location.href);
+  return hero;
+}
+export function rememberGraduateHero(mode, index = 0) {
+  return rememberHero("graduateHero", mode, index);
+}
+export function rememberEnrollmentHero(mode, index = 0) {
+  return rememberHero("enrollmentHero", mode, index);
+}
+
+export const layoutPrintPath = "/?page=print&preset=layout";
+
+export function openCollectionPrint(path) {
+  history.pushState({ universityPrintBack: 1 }, "", path);
+  window.dispatchEvent(new Event("zhipai-route"));
+}
+
+export function universityPrintHistory(replace) {
+  const steps = history.state?.universityPrintBack;
+  return Number.isSafeInteger(steps) && steps > 0
+    ? { universityPrintBack: steps + (replace ? 0 : 1) } : {};
+}
+
+export function returnToUniversityPrint() {
+  const steps = history.state?.universityPrintBack;
+  if (!Number.isSafeInteger(steps) || steps < 1 || steps >= history.length) return false;
+  if (steps === 1) history.back();
+  else history.go(-steps);
+  return true;
+}
+
+export function universityProjectPath(id, source = universityPath) {
+  return "/?" + new URLSearchParams({
+    page: "collection", view: "project", project: id, category: "graduate", scanBack: source,
+  });
+}
+
 // Mark only known in-app transitions. history.length alone may include external pages.
 function localPath(value) {
   try {
@@ -15,6 +56,9 @@ function category(path, view = "projects") {
     ["graduate", "enrollment", "association"].includes(q.get("category"))
     ? q.get("category")
     : "";
+}
+function landingCategory(path) {
+  return category(path) || (category(path, "university") === "graduate" ? "graduate" : "");
 }
 export function collectionHistoryState(
   target,
@@ -35,8 +79,15 @@ export function collectionHistoryState(
     const source = replace ? previous?.collectionSearchBack?.source : from;
     return source ? { collectionSearchBack: { source, target: to } } : {};
   }
+  if (!replace && q.get("page") === "scan" && landingCategory(from))
+    return { collectionScanBack: { source: from, target: to } };
+  if (!replace && q.get("page") === "collection" && q.get("view") === "services" && category(from) === "association")
+    return { collectionServicesBack: { source: from, target: to } };
+  if (!replace && category(to, "association-service") === "association" &&
+      category(from) === "association" && sourceQuery.get("search") !== "1" && !sourceQuery.has("q"))
+    return { collectionAssociationServiceBack: { source: from, target: to } };
   if (category(to, "records")) {
-    if (!replace && category(from) === category(to, "records"))
+    if (!replace && landingCategory(from) === category(to, "records"))
       return { collectionRecordsBack: { source: from, target: to } };
     const retained =
       replace &&
@@ -58,6 +109,9 @@ export function collectionHistoryState(
         category(from, "records") === q.get("category")))
   )
     return { collectionTaskBack: { source: from, target: to } };
+  const sourcePage = sourceQuery.get("page") || sourceQuery.get("state") || "home";
+  if (!replace && to === universityPath && sourcePage === "home")
+    return { collectionCategoryBack: { source: from, target: to } };
   if (category(to)) {
     if (replace) {
       const retained =
@@ -74,7 +128,8 @@ export function collectionHistoryState(
     q.get("view") === "project" &&
     (category(from) ||
       (sourceQuery.get("page") === "collection" &&
-        sourceQuery.get("view") === "projects"))
+        (sourceQuery.get("view") === "projects" ||
+          (sourceQuery.get("view") === "university" && q.get("scanBack") === from))))
   )
     return replace
       ? {}
@@ -87,6 +142,9 @@ export function returnCollectionHistory(kind) {
     task: "collectionTaskBack",
     search: "collectionSearchBack",
     category: "collectionCategoryBack",
+    services: "collectionServicesBack",
+    associationService: "collectionAssociationServiceBack",
+    scan: "collectionScanBack",
     records: "collectionRecordsBack",
   }[kind];
   const mark = history.state?.[key],
@@ -101,20 +159,26 @@ export function returnCollectionHistory(kind) {
     typeof history.back !== "function"
   )
     return false;
-  if (
-    kind === "project" &&
-    new URL(source, location.origin).searchParams.get("view") !== "projects"
-  )
-    return false;
   const sourceQuery = new URL(source, location.origin).searchParams;
   const currentQuery = new URL(current, location.origin).searchParams;
+  if (
+    kind === "project" &&
+    sourceQuery.get("view") !== "projects" &&
+    !(sourceQuery.get("view") === "university" && currentQuery.get("scanBack") === source)
+  )
+    return false;
   if (
     sourceQuery.get("page") === "collection" &&
     ([null, "home"].includes(sourceQuery.get("view")) ||
       (sourceQuery.get("view") === "records" && !category(source, "records")))
   )
     return false;
-  if (kind === "records" && category(source) !== category(current, "records"))
+  if (kind === "scan" && (currentQuery.get("page") !== "scan" || !landingCategory(source))) return false;
+  if (kind === "services" && (currentQuery.get("view") !== "services" || category(source) !== "association")) return false;
+  if (kind === "associationService" &&
+      (category(current, "association-service") !== "association" || category(source) !== "association" ||
+        sourceQuery.get("search") === "1" || sourceQuery.has("q"))) return false;
+  if (kind === "records" && landingCategory(source) !== category(current, "records"))
     return false;
   if (kind === "task") {
     const fromProject =

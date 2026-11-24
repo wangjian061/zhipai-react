@@ -1,0 +1,102 @@
+.enrollment-landing {
+  flex: 1;
+  min-width: 0;
+}
+.enrollment-wall {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--university-feature-height);
+  box-sizing: content-box;
+  padding-block: var(--university-rail-padding);
+}
+.collection-scroll[inert] .enrollment-marquee-track { animation-play-state: paused; }
+.enrollment-wall-rows {
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+}
+.enrollment-marquee {
+  overflow: hidden;
+  padding-block: 6px;
+}
+.enrollment-marquee-track,
+.enrollment-marquee-group {
+  display: flex;
+  width: max-content;
+}
+.enrollment-marquee-group {
+  flex: none;
+  min-width: 100cqw;
+  justify-content: space-around;
+  gap: 10px;
+  padding-right: 10px;
+}
+.enrollment-marquee-track {
+  animation: enrollment-schools 32s linear infinite;
+}
+.enrollment-marquee:nth-child(2) .enrollment-marquee-track {
+  animation-duration: 46s;
+  animation-direction: reverse;
+  animation-delay: -1.5s;
+}
+.enrollment-marquee:nth-child(3) .enrollment-marquee-track {
+  animation-duration: 38s;
+  animation-delay: -1.8s;
+}
+@keyframes enrollment-schools {
+  to { transform: translate3d(-50%, 0, 0); }
+}
+.enrollment-marquee:active .enrollment-marquee-track,
+.enrollment-marquee[data-held] .enrollment-marquee-track,
+.enrollment-marquee:focus-within .enrollment-marquee-track,
+.enrollment-landing[inert] .enrollment-marquee-track {
+  animation-play-state: paused;
+}
+@media (hover: hover) {
+  .enrollment-marquee:hover .enrollment-marquee-track { animation-play-state: paused; }
+}
+.enrollment-school-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--ui-touch-min);
+  padding: 8px 14px 8px 10px;
+  border: 1px solid rgb(17 28 56 / 5%);
+  border-radius: var(--university-pill-radius);
+  background: var(--surface);
+  box-shadow: 0 4px 12px rgb(17 28 56 / 4%);
+  color: var(--university-title-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.enrollment-school-chip:focus-visible { outline-offset: -2px; }
+.enrollment-crest { width: 26px; height: 26px; border-radius: 50%; object-fit: contain; }
+.enrollment-example-seal {
+  display: grid;
+  place-items: center;
+  border: 3px double currentColor;
+  background: var(--brand-blue-soft);
+  color: #365a88;
+  font: 700 13px/1 "Songti SC", serif;
+}
+.enrollment-example-seal[data-school="enrollment-vocational"] { color: #356b56; background: #f2faf5; }
+.enrollment-example-seal[data-school="enrollment-postgraduate"] { color: #874348; background: #fcf5f5; }
+.enrollment-wall-note {
+  margin: 10px 0 0;
+  text-align: center;
+  color: var(--ui-body);
+  font-size: 11.5px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .enrollment-marquee { overflow-x: auto; scrollbar-width: none; }
+  .enrollment-marquee-track { animation: none; }
+  .enrollment-marquee-group { padding-inline: 18px; }
+  .enrollment-marquee-group[aria-hidden="true"] { display: none; }
+}
+
+/* Bring the canonical chips into view when keyboard focus enters a moving row. */
+.enrollment-marquee:has(:focus-visible) { overflow-x: auto; scrollbar-width: none; }
+.enrollment-marquee:has(:focus-visible) .enrollment-marquee-track { animation: none; }
+.enrollment-marquee:has(:focus-visible) .enrollment-marquee-group[aria-hidden="true"] { display: none; }

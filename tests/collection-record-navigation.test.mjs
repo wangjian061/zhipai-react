@@ -1,10 +1,13 @@
 // Domain navigation and static React checks; no real accounts or browser automation.
 import test, { after } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "vite";
 import { createController, getStore } from "../src/runtime/state.js";
+import { collectionHistoryState, layoutPrintPath, openCollectionPrint, rememberEnrollmentHero, rememberGraduateHero, returnToUniversityPrint, returnCollectionHistory, universityPath, universityProjectPath } from "../src/domain/collection-history.js";
+import { goGraduate } from "../src/domain/graduate-print.js";
 
 let entries = [],
   cursor = 0;
@@ -52,6 +55,9 @@ const { default: Records } = await server.ssrLoadModule(
 const { default: Projects } = await server.ssrLoadModule(
   "/src/components/CollectionProjects.jsx",
 );
+const { default: AssociationServicePage } = await server.ssrLoadModule("/src/pages/AssociationServicePage.jsx");
+const { default: CollectionHeader } = await server.ssrLoadModule("/src/components/CollectionHeader.jsx");
+const { default: CollectionSupportDrawer } = await server.ssrLoadModule("/src/components/CollectionSupportDrawer.jsx");
 const wait = () => new Promise((r) => setTimeout(r, 8));
 function setup(category = "enrollment", path) {
   entries = [
@@ -73,7 +79,8 @@ function setup(category = "enrollment", path) {
       id: projectId,
       owner: "records-owner",
       projectId,
-      status: i === 2 ? "complete" : "reviewing",
+      status: "reviewing",
+      createdAt: new Date(2026, 10, 23, 12).getTime(),
       updatedAt: i,
     })),
     {
@@ -105,23 +112,118 @@ function setup(category = "enrollment", path) {
 const render = (Component, s) =>
   renderToStaticMarkup(React.createElement(Component, { scope: s }));
 
+test("school details, records and scanner restore the graduate mode and card in the landing history entry", () => {
+  const { s, flow } = setup("graduate", universityPath);
+  try {
+    rememberGraduateHero("schools", 3);
+    const detail = universityProjectPath("graduate-xmu", universityPath);
+    goGraduate(detail, false, collectionHistoryState(detail));
+    assert.equal(s.project.id, "graduate-xmu");
+    s.back();
+    assert.equal(location.pathname + location.search, universityPath);
+    assert.deepEqual(history.state.graduateHero, { mode: "schools", index: 3 });
+    const records = "/?page=collection&view=records&category=graduate&from=university";
+    goGraduate(records, false, collectionHistoryState(records));
+    assert.equal(s.view, "records");
+    s.back();
+    assert.deepEqual(history.state.graduateHero, { mode: "schools", index: 3 });
+    assert.deepEqual(rememberGraduateHero("flow"), { mode: "flow", index: 0 });
+    rememberGraduateHero("flow", 2);
+    goGraduate("/?page=scan", false, collectionHistoryState("/?page=scan"));
+    assert.equal(returnCollectionHistory("scan"), true);
+    assert.deepEqual(history.state.graduateHero, { mode: "flow", index: 2 });
+  } finally { flow.stop(); }
+});
+
+test("enrollment returns to its saved step or school wall from search, details, records and layout printing", () => {
+  const { s, flow } = setup("enrollment", "/?page=home");
+  try {
+    s.openCategory("enrollment");
+    const landing = location.href;
+    const categoryBack = history.state.collectionCategoryBack;
+    rememberEnrollmentHero("flow", 4);
+    s.enterProjectSearch();
+    assert.equal(location.searchParams.get("search"), "1");
+    s.back();
+    assert.equal(location.href, landing);
+    assert.deepEqual(history.state.enrollmentHero, { mode: "flow", index: 4 });
+    assert.deepEqual(history.state.collectionCategoryBack, categoryBack);
+    rememberEnrollmentHero("schools");
+    s.openProject("enrollment");
+    assert.equal(s.project.organization, "示例学院");
+    s.back();
+    assert.match(render(Projects, s), /enrollment-wall/);
+    s.openCategoryRecords();
+    assert.equal(s.recordCategory, "enrollment");
+    s.back();
+    assert.deepEqual(history.state.enrollmentHero, { mode: "schools", index: 0 });
+    rememberEnrollmentHero("flow", 5);
+    openCollectionPrint(layoutPrintPath);
+    assert.equal(location.searchParams.get("preset"), "layout");
+    assert.equal(returnToUniversityPrint(), true);
+    assert.equal(location.href, landing);
+    assert.deepEqual(history.state.enrollmentHero, { mode: "flow", index: 5 });
+    assert.equal(history.state.universityPrintPanel, undefined);
+    assert.equal(history.state.graduateHero, undefined);
+  } finally { flow.stop(); }
+});
+
+test("each category landing opens public support directly and closes on the same history entry", async () => {
+  for (const category of ["graduate", "enrollment", "association"]) {
+    const view = category === "graduate" ? "university" : "projects";
+    const { s, flow, records } = setup(category, "/?page=collection&view=" + view + "&category=" + category);
+    try {
+      getStore("account").session = null;
+      records.ready = false;
+      await wait();
+      const landing = () => category === "graduate"
+        ? renderToStaticMarkup(React.createElement(CollectionHeader, { title: "毕业生图像采集", compact: true, support: s }))
+        : render(Projects, s);
+      assert.match(landing(), /aria-haspopup="dialog" aria-expanded="false"[^>]*><svg[^>]*><use href="#i-nav-service"[^>]*><\/use><\/svg>客服/);
+      if (category === "association") s.$refs.associationRail = { scrollLeft: 112 };
+      const url = location.href;
+      for (const close of [() => s.closePanel(), () => history.back()]) {
+        s.openEmailContact();
+        s.openEmailContact();
+        assert.equal(cursor, 1);
+        assert.equal(history.state.collectionContactFor, category);
+        s.sync();
+        assert.equal(s.panel, "email");
+        assert.match(landing(), /collection-hero-support" aria-haspopup="dialog" aria-expanded="true"/);
+        const sheet = render(CollectionSupportDrawer, s);
+        assert.match(sheet, /联系知拍客服/);
+        assert.match(sheet, /复制邮箱/);
+        assert.match(sheet, /href="mailto:/);
+        assert.ok(sheet.includes(category === "association" ? "机构名称" : "院校名称"));
+        assert.equal(s.confirmEmailContact(), true);
+        close();
+        await wait();
+        assert.equal(s.panel, null);
+        assert.equal(cursor, 0);
+        assert.equal(location.href, url);
+        if (category === "association") assert.equal(history.state.associationRailOffset, 112);
+      }
+    } finally {
+      flow.stop();
+    }
+  }
+});
+
 test("all three entries count only owned non-fixture tasks and open the matching record list", () => {
   for (const category of ["graduate", "enrollment", "association"]) {
-    const { s, flow } = setup(category);
+    const { s, flow, records } = setup(category);
     try {
       assert.equal(s.categoryRecordSummary.count, 1);
       const projects = render(Projects, s);
       assert.match(projects, /collection-themed-hero has-back is-compact/);
       assert.ok(projects.includes(`aria-label="${s.categoryInfo.recordsTitle}，1 条"`));
-      assert.match(projects, /class="collection-record-count" aria-hidden="true">1<\/span>/);
-      assert.ok(
-        projects.indexOf('role="search"') <
-          projects.indexOf("collection-record-entry"),
-      );
-      assert.ok(
-        projects.indexOf("collection-record-entry") <
-          projects.indexOf("采集项目</h2>"),
-      );
+      if (category !== "graduate") {
+        assert.match(projects, /class="university-dock".*class="university-record-count" aria-hidden="true">1<\/strong>/);
+      } else {
+        assert.match(projects, /class="collection-record-count" aria-hidden="true">1<\/span>/);
+        assert.ok(projects.indexOf('role="search"') < projects.indexOf("collection-record-entry"));
+        assert.ok(projects.indexOf("collection-record-entry") < projects.indexOf("采集项目</h2>"));
+      }
       s.openCategoryRecords();
       assert.equal(s.scopedRecords, true);
       assert.equal(s.recordCategory, category);
@@ -130,10 +232,23 @@ test("all three entries count only owned non-fixture tasks and open the matching
         [category],
       );
       const html = render(Records, s);
-      assert.match(html, /collection-themed-hero has-back is-compact/);
-      assert.ok(html.includes(`<h1>${s.categoryInfo.recordsTitle}</h1>`));
+      assert.doesNotMatch(html, /collection-filter-check|可多选/);
+      assert.equal((html.match(/aria-pressed="true"/g) || []).length, 1);
+      const masthead = html.slice(0, html.indexOf('class="collection-inner'));
+      assert.match(masthead, /collection-records-masthead.*tool-navigation-back.*<h1[^>]*>采集记录<\/h1>.*collection-record-filters--tabs/);
+      assert.doesNotMatch(html, /collection-themed-hero|采集机构|collection-chip|查看详情|去修改/);
+      const project = s.projects.find(item => item.id === category);
+      assert.ok(html.includes(project.organization));
+      assert.ok(html.includes(project.name));
+      assert.match(html, /collection-record-heading.*collection-record-subtitle.*<time dateTime="2026-11-23">2026\.11\.23<\/time>.*collection-record-outcome.*collection-record-status">审核中/i);
+      const record = records.items.find(record => record.id === category);
+      for (const [status, label] of [[40, "审核未通过"], ["processing_failed", "证件照制作失败"]]) {
+        record.status = status;
+        const failed = render(Records, s);
+        assert.ok(failed.includes(`class="collection-record-status">${label}</span>`));
+        assert.match(failed, /class="collection-record-action is-recovery">去修改/);
+      }
       assert.doesNotMatch(html, /进度追踪 · 照片归档|collection-record-statistics/);
-      assert.ok(html.indexOf("collection-themed-hero") < html.indexOf("collection-record-filters"));
       assert.ok(html.includes('data-record-id="' + category + '"'));
       assert.doesNotMatch(html, /data-record-id="(?:fixture|other-account)"/);
     } finally {
@@ -141,14 +256,14 @@ test("all three entries count only owned non-fixture tasks and open the matching
     }
   }
 });
-test("task back restores scoped filters and scroll, then returns to its original category and position", async () => {
-  const { s, flow } = setup("graduate");
+for (const category of ["graduate", "enrollment", "association"]) test(category + " task back restores scoped filters and scroll, then its category and position", async () => {
+  const { s, flow } = setup(category);
   try {
     await wait();
     s.scrollHost.scrollTop = 128;
     s.openCategoryRecords();
     await wait();
-    s.toggleRecordFilter("complete"); // leave ongoing selected
+    s.selectRecordFilter("ongoing");
     s.scrollHost.scrollTop = 216;
     s.openRecord(s.filteredRecords[0]);
     await wait();
@@ -157,14 +272,60 @@ test("task back restores scoped filters and scroll, then returns to its original
     assert.equal(s.primaryLabel, "返回采集记录");
     s.back();
     await wait();
-    assert.equal(s.recordCategory, "graduate");
+    assert.equal(s.recordCategory, category);
     assert.equal(s.recordFilter, "ongoing");
     assert.equal(s.scrollHost.scrollTop, 216);
     s.back();
     await wait();
     assert.equal(s.view, "projects");
-    assert.equal(s.projectCategory, "graduate");
+    assert.equal(s.projectCategory, category);
     assert.equal(s.scrollHost.scrollTop, 128);
+  } finally {
+    flow.stop();
+  }
+});
+test("graduate dock records retain the selected tab and scroll after viewing an upload failure", async () => {
+  const { s, flow, records } = setup(
+    "graduate",
+    "/?page=collection&view=records&category=graduate&from=university&samples=graduate",
+  );
+  try {
+    records.items.find(record => record.id === "graduate").status = "upload_failed";
+    assert.equal(s.selectRecordFilter("ongoing"), true);
+    assert.equal(s.filteredRecords.length, 0);
+    assert.match(render(Records, s), /还没有这类采集记录/);
+    assert.equal(s.selectRecordFilter("complete"), true);
+    const html = render(Records, s);
+    assert.match(html, /aria-pressed="true">已完成/);
+    assert.match(html, /class="collection-record-status">上网失败.*class="collection-record-action is-recovery">去修改/);
+    s.scrollHost.scrollTop = 184;
+    s.openRecord(s.filteredRecords[0]);
+    await wait();
+    assert.equal(s.projectFrom, "records");
+    assert.equal(s.primaryLabel, "联系客服");
+    s.back();
+    await wait();
+    assert.equal(s.recordFilter, "complete");
+    assert.equal(s.scrollHost.scrollTop, 184);
+    assert.equal(location.searchParams.get("from"), "university");
+    assert.equal(location.searchParams.get("samples"), "graduate");
+    s.back();
+    assert.equal(location.searchParams.get("view"), "university");
+  } finally {
+    flow.stop();
+  }
+});
+test("the graduate sample link survives the login handoff", () => {
+  const path = "/?page=collection&view=records&category=graduate&from=university&samples=graduate";
+  const { s, flow } = setup("graduate", path);
+  try {
+    getStore("account").session = null;
+    const html = render(Records, s);
+    assert.match(html, /tool-navigation-title[^>]*>采集记录<\/h1>.*登录后查看本人的采集记录/);
+    assert.doesNotMatch(html, /collection-record-filters--tabs|还没有这类采集记录/);
+    s.loginForRecords();
+    assert.equal(location.searchParams.get("page"), "account");
+    assert.equal(location.searchParams.get("back"), path);
   } finally {
     flow.stop();
   }
@@ -228,4 +389,136 @@ test("signed-out, loading, failure and empty records keep honest feedback and a 
   } finally {
     flow.stop();
   }
+});
+
+test("each public association service loads full content and returns to the opening offer and organization rail", async () => {
+  const { s, flow, records } = setup("association");
+  const landing = location.href;
+  try {
+    getStore("account").session = null;
+    records.ready = false;
+    records.error = "unavailable";
+    await wait();
+    for (const [index, item] of [
+      ["employeeBadge", "企业工牌定制", "badge", "哑光 PVC / 高清覆膜", "人像工号匹配"],
+      ["certificate", "比赛证书定制", "certificate", "丝绒硬壳烫金封面", "选手照精准嵌位"],
+      ["membership", "会员卡定制", "membership", "磨砂 PVC / 拉丝金属", "编号防重核验"],
+    ].entries()) {
+      const [id, title, asset, specification, highlight] = item;
+      let focused;
+      s.scrollHost.scrollTop = 73;
+      s.$refs.associationRail = { scrollLeft: 187 };
+      s.scrollHost.querySelector = selector => selector === `[data-service="${id}"][data-active="true"]`
+        ? { focus(options) { focused = options; } } : null;
+      s.openAssociationService(id);
+      assert.equal(s.view, "association-service");
+      assert.equal(s.panel, null);
+      assert.equal(s.associationService.id, id);
+      assert.equal(location.searchParams.get("service"), id);
+      assert.equal(history.state.collectionAssociationServiceBack.source, new URL(landing).pathname + new URL(landing).search);
+      assert.equal(render(Projects, s), "");
+      const html = render(AssociationServicePage, s);
+      assert.match(html, /tool-navigation.*aria-label="返回其它采集"/s);
+      assert.match(html, /可以定制设计。<\/p>.*规格与工艺.*定制合作流程.*沟通需求.*线上采集.*样张核对.*批量交付.*商务定制咨询.*复制联系邮箱.*联系商务咨询/s);
+      for (const value of [title, specification, highlight, "zpai_service@163.com"])
+        assert.ok(html.includes(value), value);
+      assert.doesNotMatch(html, /role="dialog"|立即下单|线上支付|企业微信|href="tel:/);
+      const path = "/assets/association-detail-" + asset + ".webp";
+      assert.ok(html.includes(path));
+      const webp = readFileSync(new URL("../public" + path, import.meta.url));
+      assert.equal(webp.toString("ascii", 8, 16), "WEBPVP8 ");
+      assert.deepEqual([webp.readUInt16LE(26) & 0x3fff, webp.readUInt16LE(28) & 0x3fff], [1080, 720]);
+      assert.ok(webp.length < 140_000);
+      const draft = new URL(s.associationServiceEmailLink);
+      assert.equal(draft.pathname, "zpai_service@163.com");
+      assert.equal(draft.searchParams.get("subject"), "知拍定制咨询｜" + title);
+      assert.match(draft.searchParams.get("body"), /预估数量.*期望交付时间.*打样需求/s);
+
+      s.openAssociationPrint();
+      assert.equal(s.view, "association-service");
+      if (index === 0) s.back();
+      else history.back();
+      await wait();
+      assert.equal(location.href, landing);
+      assert.equal(history.state.associationOffer, id);
+      assert.equal(history.state.associationRailOffset, 187);
+      assert.equal(s.scrollHost.scrollTop, 73);
+      assert.deepEqual(focused, { preventScroll: true });
+      const restored = render(Projects, s);
+      assert.match(restored, new RegExp('class="association-slide" data-active="true"[^>]*data-service="' + id + '"'));
+      assert.ok(restored.includes(`第 ${index + 2} 张，${title}`));
+    }
+  } finally { flow.stop(); }
+});
+
+test("association service deep links support clipboard success, failure and fallback navigation", async () => {
+  const detail = "/?page=collection&view=association-service&category=association&service=employeeBadge";
+  const { s, flow } = setup("association", detail);
+  try {
+    assert.equal(s.associationService.id, "employeeBadge");
+    let written;
+    navigator.clipboard = { async writeText(value) { written = value; } };
+    await s.copySupportEmail();
+    assert.equal(written, "zpai_service@163.com");
+    assert.equal(s.contactNotice, "商务邮箱已复制");
+    navigator.clipboard = { async writeText() { throw new Error("denied"); } };
+    await s.copySupportEmail();
+    assert.equal(s.contactNotice, "复制失败，请长按邮箱地址复制。");
+    assert.match(render(AssociationServicePage, s), /role="status">复制失败，请长按邮箱地址复制。/);
+    s.back();
+    assert.equal(s.isAssociationLanding, true);
+    assert.equal(history.length, 1);
+    const invalid = detail.replace("employeeBadge", "layout");
+    history.replaceState({}, "", invalid);
+    s.sync();
+    assert.equal(s.isAssociationLanding, true);
+  } finally {
+    delete navigator.clipboard;
+    flow.stop();
+  }
+});
+
+test("returning from the second association card preserves both scroll axes and the focused project", async () => {
+  const { s, flow } = setup("association");
+  try {
+    await wait();
+    let focused;
+    s.$refs.associationRail = { scrollLeft: 219 };
+    s.scrollHost.scrollTop = 37;
+    s.scrollHost.querySelectorAll = () => [{
+      dataset: { projectId: "association-engineering" },
+      focus(options) { focused = options; },
+    }];
+    s.openProject("association-engineering");
+    assert.equal(s.view, "project");
+    assert.equal(s.project.id, "association-engineering");
+    s.back();
+    await wait();
+    assert.equal(s.isAssociationLanding, true);
+    assert.equal(history.state.associationRailOffset, 219);
+    assert.equal(s.scrollHost.scrollTop, 37);
+    assert.deepEqual(focused, { preventScroll: true });
+  } finally { flow.stop(); }
+});
+
+test("the die-cut offer enters layout production directly and its Back action restores the category", async () => {
+  const path = "/?page=collection&view=projects&category=association&from=home&section=home";
+  const { s, flow } = setup("association", path);
+  try {
+    s.$refs.associationRail = { scrollLeft: 172 };
+    s.scrollHost.scrollTop = 57;
+    s.openAssociationPrint();
+    assert.equal(location.search, "?page=print&preset=layout");
+    const studio = createController("printStudio");
+    studio.setElement({ querySelectorAll: () => [] });
+    const print = studio.scope;
+    print.syncLocation();
+    assert.equal(print.view, "layouts");
+    print.back();
+    await wait();
+    assert.equal(location.pathname + location.search, path);
+    assert.equal(history.state.associationRailOffset, 172);
+    assert.equal(s.scrollHost.scrollTop, 57);
+    assert.equal(s.panel, null);
+  } finally { flow.stop(); }
 });

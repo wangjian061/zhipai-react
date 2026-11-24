@@ -1,7 +1,14 @@
 import React, { useLayoutEffect, useRef, useCallback } from "react";
 import { CollectionIcon } from "./CollectionHome.jsx";
+const projectCredentials = {
+  graduate: "凭学信网采集码办理",
+  enrollment: "凭身份证或学号核验",
+  association: "凭姓名与工号核验",
+};
+
 export function CollectionProjectRow({ scope: s, project: p, onOpen }) {
   const state = s.projectStatus(p);
+  const schoolSearch = s.projectCategory === "enrollment" && s.isProjectSearch;
   return (
     <button
       className="collection-project-row"
@@ -13,17 +20,18 @@ export function CollectionProjectRow({ scope: s, project: p, onOpen }) {
         <img src={p.image} alt="" />
       </span>
       <div>
-        <strong>{p.name}</strong>
+        <strong>{schoolSearch ? p.organization : p.name}</strong>
         <p>
           <CollectionIcon name="collection-org" />
-          {p.organization}
+          {schoolSearch ? p.name : p.organization}
         </p>
         <p className="collection-project-date">
           <CollectionIcon name="document" />
           {p.date}
         </p>
+        {projectCredentials[p.type] && <p>{projectCredentials[p.type]}</p>}
         <span className={"collection-project-state " + state.tone}>
-          {state.label}
+          {p.demoSchedule ? "演示 · " : ""}{state.label}
         </span>
       </div>
       <CollectionIcon name="chevron" />
@@ -58,7 +66,12 @@ export default function CollectionProjectRows({ scope: s }) {
       {!s.projectsShown.length && (
         <div className="collection-empty">
           <CollectionIcon name="search" />
-          <p>{s.view === "home" ? "暂无热门项目" : "未找到匹配的采集项目"}</p>
+          <p>{home ? "暂无热门项目" : s.projectFilter === "open" ? "本类暂无可采集项目" : "未找到匹配的采集项目"}</p>
+          {!home && s.projectFilter === "open" && (
+            <button type="button" className="ui-button-text" onClick={() => s.setProjectFilter("all")}>
+              查看全部项目
+            </button>
+          )}
           {s.searchTerm && (
             <button className="account-text" onClick={() => s.clearSearch()}>
               清除搜索

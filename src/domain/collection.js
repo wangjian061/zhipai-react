@@ -1,6 +1,10 @@
 import {
   collectionHistoryState,
   returnCollectionHistory,
+  layoutPrintPath,
+  openCollectionPrint,
+  universityPath,
+  universityProjectPath,
 } from "./collection-history.js";
 import { createMessageHistory } from "./collection-messages.js";
 import {
@@ -29,6 +33,7 @@ import {shootingGuides, skipShootingGuide} from "./collection-shooting.js";
 import { uploadedPhoto, decodePhotoBlob, downloadAlbumBlob } from "./album.js";
 import { readCollectionQRCode } from "./scan.js";
 import {
+  ASSOCIATION_SERVICES,
   COLLECTION_CATEGORIES,
   COLLECTION_PROJECT_STATES,
   COLLECTION_PROJECT_MEDIA,
@@ -66,7 +71,7 @@ const COLLECTION_BASE_PROJECTS = [
     id: "graduate",
     type: "graduate",
     name: "2026届毕业生图像采集",
-    organization: "示例学院",
+    organization: "海南师范大学",
     date: "2026-08-01 至 2026-11-30",
     image: "assets/collection-graduate.png",
     methods: ["qr"],
@@ -97,7 +102,7 @@ const COLLECTION_BASE_PROJECTS = [
     ],
   },
 ];
-// Additional fictional projects reuse the matching category's supported methods and requirements.
+// Additional prototype projects reuse the matching category's supported methods and requirements.
 const COLLECTION_PROJECTS = [
   ...COLLECTION_BASE_PROJECTS,
   ...[
@@ -112,7 +117,7 @@ const COLLECTION_PROJECTS = [
       id: "graduate-degree",
       type: "graduate",
       name: "2027届毕业生学历照片采集",
-      organization: "示例应用技术学院",
+      organization: "深圳大学",
       date: "2026-09-01 至 2027-05-31",
     },
     {
@@ -133,8 +138,22 @@ const COLLECTION_PROJECTS = [
       id: "graduate-continuing",
       type: "graduate",
       name: "继续教育毕业生图像采集",
-      organization: "示例继续教育学院",
+      organization: "国家开放大学",
       date: "2026-09-01 至 2027-02-28",
+    },
+    {
+      id: "graduate-xmu",
+      type: "graduate",
+      name: "2027届本科毕业生图像采集",
+      organization: "厦门大学",
+      date: "2026-10-15 至 2027-03-31",
+    },
+    {
+      id: "graduate-zju",
+      type: "graduate",
+      name: "2027届研究生毕业图像采集",
+      organization: "浙江大学",
+      date: "2026-11-01 至 2027-04-30",
     },
     {
       id: "association-talent",
@@ -242,7 +261,7 @@ const collectionAdapter = {
     if (!fields.name.trim() || !fields.number.trim())
       throw Error("请填写姓名及认证编号");
     if (/^0+$/.test(fields.number))
-      throw Error("未匹配到采集名单，请核对姓名和编号");
+      throw Object.assign(Error("未匹配到采集名单，请核对姓名和编号"), { field: "number" });
     if (fields.method === "id" && !/^[1-9]\d{16}[\dXx]$/.test(fields.number))
       throw Error("请输入正确的18位身份证号");
     const identifierKey = await accountHash(fields.number.trim(), project.id);
@@ -310,7 +329,7 @@ function collectionNavigate(
   if (view !== "home") u.searchParams.set("view", view);
   if (project) u.searchParams.set("project", project);
   if (record) u.searchParams.set("record", record);
-  for (const key of ["category", "q", "from", "section", "message", "search"])
+  for (const key of ["category", "q", "from", "section", "message", "search", "service"])
     if (context[key]) u.searchParams.set(key, context[key]);
   const state = collectionHistoryState(u.href, location.href, history.state, replace);
   if (context.section === APP_HOME_SECTION) {
@@ -432,6 +451,7 @@ registerController("collectionFlow", () => ({
   projects: COLLECTION_PROJECTS.map((p) => ({
     ...p,
     requiresUpload: p.type === "graduate",
+    demoSchedule: p.type === "graduate",
     price: COLLECTION_PRICES[p.id] ?? 1200,
     status: collectionProjectState(p.id),
     ...COLLECTION_PROJECT_MEDIA[p.id],
@@ -454,6 +474,10 @@ registerController("collectionFlow", () => ({
   searchTerm: "",
   dedicatedSearch: false,
   projectSearchReturnId: "",
+  projectCategoryReturnId: "",
+  associationServiceId: "",
+  projectFilters: {},
+  projectExampleIndex: 0,
   projectCategory: "all",
   helpOpen: "",
   sectionScroll: { home: 0, records: 0, services: 0 },
@@ -488,6 +512,8 @@ registerController("collectionFlow", () => ({
   qrURL: "",
   qrRead: false,
   qrPrototype: false,
+  identityErrors: {},
+  identityValidationAttempt: 0,
   scanReturn: null,
   busy: false,
   error: "",
@@ -553,13 +579,24 @@ registerController("collectionFlow", () => ({
       .map((id) => this.projects.find((p) => p.id === id))
       .filter(Boolean);
   },
+  get projectFilter() {
+    return this.projectFilters[this.projectCategory] || "all";
+  },
+  setProjectFilter(filter) {
+    if (this.projectFilter === filter || !["all", "open"].includes(filter)) return;
+    this.projectFilters[this.projectCategory] = filter;
+    this.sectionScroll[this.scrollKey] = 0;
+    if (this.scrollHost) this.scrollHost.scrollTop = 0;
+  },
   get projectsShown() {
     if (this.view === "home") return this.featuredProjects;
     const term = this.searchTerm.trim().toLowerCase();
     return this.projects.filter(
       (p) =>
         (this.projectCategory === "all" || p.type === this.projectCategory) &&
-        (!term || (p.name + p.organization).toLowerCase().includes(term)),
+        (!term || (p.name + p.organization).toLowerCase().includes(term)) &&
+        (this.isProjectSearch || this.projectFilter !== "open" ||
+          (p.status === "ongoing" && this.entryEnabled(p.type))),
     );
   },
   projectStatus(project) {
@@ -606,7 +643,7 @@ registerController("collectionFlow", () => ({
     return { count, label: `${count} 条` };
   },
   get recordListTitle() {
-    return this.categories.find(c => c.id === this.recordCategory)?.recordsTitle || "采集记录";
+    return "采集记录";
   },
   get scrollKey() {
     if (this.scopedRecords) return "records:" + this.recordCategory;
@@ -629,6 +666,22 @@ registerController("collectionFlow", () => ({
   },
   get isSection() {
     return ["home", "records", "services"].includes(this.view) && !this.scopedRecords;
+  },
+  get isAssociationLanding() {
+    return this.view === "projects" && this.projectCategory === "association" && !this.isProjectSearch;
+  },
+  get isCategoryLanding() {
+    if (this.page !== "collection") return false;
+    if (this.view === "university") return !new URLSearchParams(location.search).get("mode");
+    return this.view === "projects" && !this.isProjectSearch && ["enrollment", "association"].includes(this.projectCategory);
+  },
+  get categoryContactPanel() {
+    return this.isCategoryLanding && history.state?.collectionContactFor === this.projectCategory ? "email" : null;
+  },
+  get associationService() {
+    return this.page === "collection" && this.view === "association-service"
+      ? ASSOCIATION_SERVICES[this.associationServiceId] || null
+      : null;
   },
   get isProjectSearch() {
     return this.view === "projects" && (this.projectCategory === "all" || this.dedicatedSearch);
@@ -758,14 +811,10 @@ registerController("collectionFlow", () => ({
       })),
     ];
   },
-  recordFilterSelected(filter) {
-    return this.recordFilter === "all" || this.recordFilter === filter;
-  },
-  toggleRecordFilter(filter) {
-    if (!["ongoing", "complete"].includes(filter) || this.panel) return;
-    if (this.recordFilter === "all")
-      this.recordFilter = filter === "ongoing" ? "complete" : "ongoing";
-    else if (this.recordFilter !== filter) this.recordFilter = "all";
+  selectRecordFilter(filter) {
+    if (!["all", "ongoing", "complete"].includes(filter) || this.panel || this.recordFilter === filter) return false;
+    this.recordFilter = filter;
+    return true;
   },
   get projectRecords() {
     return this.records.filter((r) => r.projectId === this.projectId);
@@ -1037,17 +1086,17 @@ registerController("collectionFlow", () => ({
       {
         email: "联系知拍客服",
         serviceHelp: this.helpArticle?.title || "采集帮助",
-        identity: "身份认证",
+        identity: "身份证认证",
         verify: "核对身份信息",
         alternate: "其他认证方式",
-        qr: "毕业生身份认证",
+        qr: "上传采集码",
         employee: "身份认证",
         existing: "已有采集记录",
         requirements: "采集要求",
         projectRecords: "当前采集任务",
         reviewReason: this.failureReasonTitle,
         taskSupport: "客服支持",
-        confirm: "确认提交",
+        confirm: "提交审核",
         qrCheck: "确认身份信息",
       }[this.panel] || ""
     );
@@ -1143,8 +1192,37 @@ registerController("collectionFlow", () => ({
       this.releaseIdentity();
       return;
     }
-    const validRecords = q.get("view") === "records" && this.categories.some(c => c.id === q.get("category"));
-    if (!validRecords && !["projects", "project", "notifications", "announcement", "services", "detail", "complete"].includes(q.get("view"))) {
+    if (q.get("view") === "university") {
+      if (q.get("mode") === "school") {
+        const project = this.projects.find((item) => item.id === q.get("school") && item.type === "graduate");
+        const from = q.get("from");
+        const source = new URL(universityPath, location.origin);
+        if (from === "all" || from === "search") {
+          source.searchParams.set("mode", from);
+          if (q.get("q")) source.searchParams.set("q", q.get("q"));
+        }
+        const returnTo = source.pathname + source.search;
+        history.replaceState({}, "", project ? universityProjectPath(project.id, returnTo) : returnTo);
+        window.dispatchEvent(new Event("zhipai-route"));
+        return;
+      }
+      this.task++;
+      this.releaseIdentity();
+      this.busy = false;
+      this.view = "university";
+      this.projectCategory = "graduate";
+      this.panel = this.categoryContactPanel;
+      this.contactNotice = "";
+      return;
+    }
+    const view = q.get("view");
+    const service = q.get("service");
+    if (view === "association-service" && (q.get("category") !== "association" || !Object.hasOwn(ASSOCIATION_SERVICES, service) || !this.entryEnabled("association"))) {
+      collectionNavigate("projects", "", "", true, { category: "association" });
+      return;
+    }
+    const validRecords = view === "records" && this.categories.some(c => c.id === q.get("category"));
+    if (!validRecords && !["projects", "project", "notifications", "announcement", "services", "association-service", "detail", "complete"].includes(view)) {
       const linkedRecord = this.records.find(item => item.id === q.get("record"));
       const linkedProject = this.projects.find(item => item.id === (linkedRecord?.projectId || q.get("project")));
       collectionNavigate("home", "", "", true, {category: linkedProject?.type || q.get("category")});
@@ -1156,18 +1234,9 @@ registerController("collectionFlow", () => ({
     this.releaseIdentity();
     const leftSearch = this.isProjectSearch;
     const previousPanel = this.panel;
-    this.view = [
-      "project",
-      "projects",
-      "notifications",
-      "announcement",
-      "records",
-      "services",
-      "detail",
-      "complete",
-    ].includes(q.get("view"))
-      ? q.get("view")
-      : "home";
+    const previousService = this.associationService?.id;
+    this.view = view;
+    this.associationServiceId = view === "association-service" ? service : "";
     this.dedicatedSearch = q.get("search") === "1" || (q.has("q") && ["projects","project"].includes(this.view));
     this.recordCategory = validRecords ? q.get("category") : "";
     if (validRecords) this.projectCategory = this.recordCategory;
@@ -1218,7 +1287,8 @@ registerController("collectionFlow", () => ({
     this.recordId = q.get("record") || "";
     this.messageId = q.get("message") || "";
     this.error = "";
-    this.panel = null;
+    this.panel = this.categoryContactPanel;
+    this.contactNotice = "";
     const layer = history.state?.collectionCaptureLayer;
     if (layer?.record === this.recordId && this.canChooseCapture) {
       const methods = this.captureMethods;
@@ -1235,8 +1305,18 @@ registerController("collectionFlow", () => ({
       this.markNotificationViewed();
       if (this.scrollHost)
         this.scrollHost.scrollTop = this.sectionScroll[this.scrollKey] || 0;
+      if (this.isAssociationLanding && previousService && history.state?.associationOffer === previousService && !this.panel)
+        this.scrollHost?.querySelector?.(`[data-service="${previousService}"][data-active="true"]`)?.focus({ preventScroll: true });
       if (["captureMethod","shootingGuide"].includes(previousPanel) && !this.panel && this.isRecordView)
         (this.previousFocus?.isConnected ? this.previousFocus : this.$refs.collectionScroll?.closest?.(".collection-page")?.querySelector(".collection-task-footer button"))?.focus?.({preventScroll:true});
+      if (this.view === "projects" && !this.isProjectSearch && this.projectCategoryReturnId) {
+        const origin = [...(this.scrollHost?.querySelectorAll?.("[data-project-id]") || [])]
+          .find((node) => node.dataset.projectId === this.projectCategoryReturnId);
+        if (origin) origin.focus({ preventScroll: true });
+        this.projectCategoryReturnId = "";
+      }
+      if (previousPanel === "projectExamples" && this.view === "project")
+        this.previousFocus?.focus?.({ preventScroll: true });
       if (leftSearch && !this.isProjectSearch && ["projects","home"].includes(this.view)) this.$refs.projectSearchEntry?.focus?.({preventScroll:true});
       if (
         this.view === "notifications" &&
@@ -1349,6 +1429,9 @@ registerController("collectionFlow", () => ({
     collectionNavigate(view, project, record, false, context);
   },
   rememberScroll() {
+    if (this.isAssociationLanding && this.$refs.associationRail) {
+      history.replaceState({ ...history.state, associationRailOffset: this.$refs.associationRail.scrollLeft }, "", location.href);
+    }
     if (this.scrollHost)
       this.sectionScroll[this.scrollKey] = this.scrollHost.scrollTop;
   },
@@ -1460,6 +1543,7 @@ registerController("collectionFlow", () => ({
   exitCollection() {
     if (this.busy || this.panel || !this.isSection) return;
     this.rememberScroll();
+    if (this.view === "services" && returnCollectionHistory("services")) return;
     this.go("home");
   },
   enterProjectSearch(term = "") {
@@ -1503,6 +1587,35 @@ registerController("collectionFlow", () => ({
         : "");
     accountRoute("welcome", this.scopedRecords ? location.pathname + location.search : target);
   },
+  openAssociationPrint() {
+    if (!this.isAssociationLanding || this.busy || this.panel) return;
+    this.rememberScroll();
+    openCollectionPrint(layoutPrintPath);
+  },
+  openAssociationService(service) {
+    if (!Object.hasOwn(ASSOCIATION_SERVICES, service) || !this.isAssociationLanding || this.busy || this.panel) return;
+    history.replaceState({ ...history.state, associationOffer: service }, "", location.href);
+    this.route("association-service", "", "", { category: "association", service });
+  },
+  openCategoryScanner() {
+    if (this.busy || this.panel || this.view !== "projects" || this.isProjectSearch ||
+        !["graduate", "association"].includes(this.projectCategory) || !this.entryEnabled(this.projectCategory)) return;
+    this.rememberScroll();
+    window.dispatchEvent(new CustomEvent("zhipai-scan-open", {
+      detail: { returnTo: location.pathname + location.search },
+    }));
+    const path = "/?page=scan";
+    history.pushState(collectionHistoryState(path), "", path);
+    window.dispatchEvent(new Event("zhipai-route"));
+  },
+  openProjectExamples(index, trigger) {
+    if (this.view !== "project" || this.panel || this.busy) return;
+    this.rememberScroll();
+    this.projectExampleIndex = index;
+    history.pushState({ ...history.state, collectionExamplesLayer: this.projectId }, "", location.href);
+    this.openPanel("projectExamples");
+    if (trigger) this.previousFocus = trigger;
+  },
   openCategoryRecords() {
     if (this.busy || this.panel || this.view !== "projects" || this.isProjectSearch) return;
     this.route("records", "", "", {
@@ -1512,6 +1625,7 @@ registerController("collectionFlow", () => ({
   openProject(id) {
     this.releaseIdentity();
     if (!this.projects.some((p) => p.id === id)) return;
+    if (this.view === "projects" && !this.isProjectSearch) this.projectCategoryReturnId = id;
     this.route("project", id, "", {
       from: this.view,
       search: this.isProjectSearch ? "1" : "",
@@ -1554,6 +1668,11 @@ registerController("collectionFlow", () => ({
       this.closePanel();
       return;
     }
+    if (this.view === "association-service") {
+      if (!returnCollectionHistory("associationService"))
+        collectionNavigate("projects", "", "", true, { category: "association" });
+      return;
+    }
     if (this.view === "home") {
       this.go("home");
       return;
@@ -1588,6 +1707,12 @@ registerController("collectionFlow", () => ({
     }
     if (this.scopedRecords) {
       this.rememberScroll();
+      if (new URLSearchParams(location.search).get("from") === "university") {
+        if (returnCollectionHistory("records")) return;
+        history.replaceState({}, "", universityPath);
+        window.dispatchEvent(new Event("zhipai-route"));
+        return;
+      }
       if (!returnCollectionHistory("records"))
         collectionNavigate("projects", "", "", true, {category:this.recordCategory, section:this.notificationFrom});
       return;
@@ -1618,6 +1743,7 @@ registerController("collectionFlow", () => ({
             ].includes(target.searchParams.get("page")) &&
             target.searchParams.get("view") !== "project"
           ) {
+            if (["university", "projects"].includes(target.searchParams.get("view")) && returnCollectionHistory("project")) return;
             history.replaceState({}, "", target);
             window.dispatchEvent(new Event("zhipai-route"));
             return;
@@ -1668,14 +1794,34 @@ registerController("collectionFlow", () => ({
           encodeURIComponent("专项采集咨询")
       : undefined;
   },
+  get associationServiceEmailLink() {
+    const service = this.associationService, email = this.supportEmail;
+    if (!service || !email) return undefined;
+    const subject = encodeURIComponent(`知拍定制咨询｜${service.title}`);
+    const body = encodeURIComponent([
+      "你好，我想咨询" + service.title + "。",
+      "团队或机构名称：",
+      "预估数量：",
+      "期望交付时间：",
+      "材质、版式与打样需求：",
+    ].join("\r\n"));
+    return `mailto:${email}?subject=${subject}&body=${body}`;
+  },
+  get canContactSupport() {
+    return this.isCategoryLanding || this.view === "services" || (this.isRecordView && this.current);
+  },
   openEmailContact() {
     if (
       this.busy ||
-      (this.view !== "services" && !(this.isRecordView && this.current)) ||
+      !this.canContactSupport ||
       (this.panel && !["taskSupport", "serviceHelp"].includes(this.panel))
     )
       return;
     if (!this.panel) this.previousFocus = document.activeElement;
+    if (this.isCategoryLanding) {
+      this.rememberScroll();
+      history.pushState({ ...history.state, collectionContactFor: this.projectCategory }, "", location.href);
+    }
     this.error = "";
     this.contactNotice = "";
     this.panel = "email";
@@ -1688,7 +1834,7 @@ registerController("collectionFlow", () => ({
   confirmEmailContact() {
     if (
       !["email", "taskSupport"].includes(this.panel) ||
-      (this.view !== "services" && !(this.isRecordView && this.current)) ||
+      !this.canContactSupport ||
       !this.supportEmail ||
       this.busy
     )
@@ -1700,11 +1846,13 @@ registerController("collectionFlow", () => ({
   async copySupportEmail() {
     if (!this.supportEmail) return;
     const email = this.supportEmail,
-      token = this.task;
+      token = this.task,
+      service = this.associationService;
+    if (service) this.contactNotice = "";
     try {
       await navigator.clipboard.writeText(email);
-      if (token === this.task && ["email", "taskSupport"].includes(this.panel))
-        this.contactNotice = "邮箱已复制";
+      if (token === this.task && (service || ["email", "taskSupport"].includes(this.panel)))
+        this.contactNotice = service ? "商务邮箱已复制" : "邮箱已复制";
     } catch (_) {
       if (token === this.task)
         this.contactNotice = "复制失败，请长按邮箱地址复制。";
@@ -1712,7 +1860,7 @@ registerController("collectionFlow", () => ({
   },
   openPanel(panel) {
     if (
-      (panel === "serviceHelp" ? this.busy : this.disabled) ||
+      (["serviceHelp", "projectExamples"].includes(panel) ? this.busy : this.disabled) ||
       ![
         "identity",
         "verify",
@@ -1729,6 +1877,7 @@ registerController("collectionFlow", () => ({
         "existing",
         "requirements",
         "projectRecords",
+        "projectExamples",
       ].includes(panel)
     )
       return;
@@ -1743,6 +1892,14 @@ registerController("collectionFlow", () => ({
   },
   closePanel() {
     if (this.busy) return;
+    if (this.panel === "email" && this.categoryContactPanel && typeof history.back === "function") {
+      history.back();
+      return;
+    }
+    if (this.panel === "projectExamples" && history.state?.collectionExamplesLayer === this.projectId) {
+      history.back();
+      return;
+    }
     if (["captureMethod","shootingGuide"].includes(this.panel)) {
       this.captureFileRequest++;
       if (history.state?.collectionCaptureLayer && typeof history.back === "function") {
@@ -1775,6 +1932,7 @@ registerController("collectionFlow", () => ({
     this.qr = null;
     this.qrRead = false;
     this.qrPrototype = false;
+    this.identityErrors = {};
     this.identity = {
       name: "",
       number: "",
@@ -1789,9 +1947,12 @@ registerController("collectionFlow", () => ({
       return;
     }
     if (!this.account.loggedIn) {
+      const scanBack = new URLSearchParams(location.search).get("scanBack");
       accountRoute(
         "welcome",
-        "/?page=collection&view=project&project=" + this.projectId,
+        ["enrollment", "association"].includes(this.project.type) || scanBack?.startsWith(universityPath)
+          ? location.pathname + location.search
+          : "/?page=collection&view=project&project=" + this.projectId,
       );
       return;
     }
@@ -1835,9 +1996,15 @@ registerController("collectionFlow", () => ({
     if (!this.idSides.front || !this.idSides.back) return;
     this.openPanel("verify");
   },
-  alternate() {
-    const method = this.identityMethods[0];
-    if (this.disabled || !method) return;
+  clearIdentityError(field) {
+    if (!this.identityErrors[field]) return;
+    const { [field]: removed, ...remaining } = this.identityErrors;
+    this.identityErrors = remaining;
+    if (!Object.keys(remaining).length) this.error = "";
+  },
+  alternate(method = this.identityMethods[0]) {
+    if (this.disabled || !this.identityMethods.includes(method)) return;
+    this.identityErrors = {};
     this.method = method;
     this.openPanel("alternate");
   },
@@ -1950,6 +2117,19 @@ registerController("collectionFlow", () => ({
       this.error = "请先登录再认证";
       return;
     }
+    const errors = {};
+    if (!this.identity.name.trim()) errors.name = "请填写本人姓名";
+    if (!this.identity.number.trim()) errors.number = "请填写认证编号";
+    else if (this.method === "id" && !/^[1-9]\d{16}[\dXx]$/.test(this.identity.number))
+      errors.number = "请输入正确的18位身份证号";
+    if (this.method === "qr" && this.identity.lastFour && !/^[0-9A-Za-z]{4}$/.test(this.identity.lastFour))
+      errors.lastFour = "请输入正确的证件号后四位";
+    this.identityErrors = errors;
+    if (Object.keys(errors).length) {
+      this.identityValidationAttempt++;
+      this.error = "请检查标出的信息后重新匹配";
+      return;
+    }
     const token = ++this.task,
       project = this.project,
       fields = {
@@ -2002,10 +2182,15 @@ registerController("collectionFlow", () => ({
       this.busy = false;
       this.openRecord(record);
     } catch (e) {
-      if (token === this.task)
+      if (token === this.task) {
+        if (e.field) {
+          this.identityErrors = { [e.field]: e.message };
+          this.identityValidationAttempt++;
+        }
         this.error = /[\u4e00-\u9fff]/.test(e.message)
           ? e.message
           : "身份匹配未完成，请重试";
+      }
     } finally {
       if (token === this.task) this.busy = false;
     }

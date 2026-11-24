@@ -83,7 +83,7 @@ const adaptedFs = {
           code;
       }
       const extractedDependencies = {
-        print: ["shipping-address"],
+        print: ["shipping-address", "collection-history"],
         tools: ["outfit-catalogue", "order-payment"],
       }[match[1]];
       if (extractedDependencies) {

@@ -60,7 +60,8 @@
   flex: none;
   background: transparent;
 }
-.collection-task-nav > button {
+.collection-task-nav > button,
+.collection-hero-support {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -98,7 +99,6 @@
   margin: 10px 16px 16px;
   padding: 0;
   min-width: 0;
-  border: 1px solid #fff;
   border-radius: 24px;
   overflow: hidden;
   background: #fff;
@@ -120,7 +120,7 @@
   flex: 1;
 }
 .collection-task-status h1 {
-  font-size: 27px;
+  font-size: var(--ui-collection-task-title);
   line-height: 1.35;
   letter-spacing: 0.01em;
   font-weight: 700;
@@ -148,15 +148,15 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  min-height: 36px;
-  margin: 4px 0 0 84px;
+  min-height: var(--ui-touch-min);
+  margin: 4px 0 0;
   color: var(--task-heading);
   font-size: 12px;
   font-weight: 600;
 }
 .collection-task-review-link > svg {
-  width: 13px;
-  height: 13px;
+  width: 16px;
+  height: 16px;
 }
 .collection-task-content {
   display: flex;
@@ -207,7 +207,6 @@
   margin: 0 auto;
   background: #fff;
   border: 0;
-  box-shadow: 0 0 0 1px #e6ebf2;
 }
 .collection-task-guide > img {
   display: block;
@@ -224,13 +223,13 @@
   padding: 4px 7px;
   border-radius: 5px;
   background: #f3f5fbe8;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.4;
-  color: #536a86;
+  color: var(--ui-body);
 }
 .collection-task-processing {
   padding: 24px 12px;
-  color: #536a86;
+  color: var(--ui-body);
   font-size: 13px;
   line-height: 1.7;
   text-align: center;
@@ -240,10 +239,10 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 12px;
-  color: #4d6785;
+  font-size: 13px;
+  color: var(--brand-blue);
   width: 100%;
-  min-height: 36px;
+  min-height: var(--ui-touch-min);
   margin-top: 4px;
 }
 .collection-task-retake svg {
@@ -266,7 +265,7 @@
   height: 30px;
 }
 .collection-task-missing > button {
-  min-height: 40px;
+  min-height: var(--ui-touch-min);
   font-size: 12px;
   color: #527aad;
   padding: 0 16px;
@@ -279,14 +278,14 @@
   color: #596d85;
 }
 .collection-task-error {
-  color: #a52d2d;
+  color: var(--ui-danger-ink);
 }
 .collection-task-error p {
   margin: 0;
 }
 .collection-task-error button {
-  min-height: 36px;
-  color: #a52d2d;
+  min-height: var(--ui-touch-min);
+  color: var(--ui-danger-ink);
   font-size: 12px;
   margin-top: 4px;
   text-decoration: underline;
@@ -387,9 +386,6 @@
   }
   .collection-task-nav {
     padding-inline: 20px;
-  }
-  .collection-task-status h1 {
-    font-size: 25px;
   }
   .collection-task-footer {
     padding-inline: 18px;
@@ -517,4 +513,31 @@
   color: #6b819c;
   background: #f0f4fa;
   font-size: 14px;
+}
+
+.collection-task-review-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 4px 10px 4px 12px;
+  border-radius: var(--ui-toast-radius);
+  background: var(--ui-danger-fill);
+  color: var(--ui-danger-ink);
+}
+.collection-task-review-summary p {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+.collection-task-review-summary .collection-task-review-link {
+  flex: none;
+  margin: 0;
+  color: inherit;
 }

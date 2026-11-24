@@ -963,8 +963,6 @@ export default function ToolsPage({ scope, args = [] }) {
                       mascot={s.mascot}
                       busy={s.busy}
                       error={s.error}
-                      requiresPortrait={s.config.requiresPortrait}
-                      selectionHint={s.action === "repair" ? "请选择一张清晰的单人正面人像，选取后需通过照片检查。" : undefined}
                       titleId="tool-sheet-title"
                       onClose={() => s.closePanel()}
                       onPhone={() => s.pickPhone()}

@@ -26,6 +26,10 @@
 .account-drawer,.collection-drawer{border-radius:var(--ui-sheet-radius) var(--ui-sheet-radius) 0 0;box-shadow:var(--ui-sheet-shadow)}
 
 .shared-sheet > .ui-sheet-header::before { content:none; }
+.shared-sheet:focus { outline:none; }
+.shared-sheet > .ui-sheet-header > button:last-child { border-radius:50%; }
+.shared-sheet > .ui-sheet-header > button:last-child:focus-visible { outline:2px solid var(--brand-blue); outline-offset:2px; }
+.shared-sheet > .ui-sheet-header > button:last-child:focus:not(:focus-visible) { outline:none; }
 .shared-sheet-heading { flex:1; min-width:0; }
 .shared-sheet-heading > p { margin:4px 0 0; color:var(--ui-body); font-size:13px; line-height:1.5; }
 .shared-sheet .ui-sheet-header svg { width:20px; height:20px; }

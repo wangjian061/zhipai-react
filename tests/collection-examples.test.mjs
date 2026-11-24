@@ -88,6 +88,34 @@ test("repeat import retains edited examples, original records and account isolat
   assert.deepEqual(buildCollectionExamples(store.items, "", photo), []);
 });
 
+test("opt-in graduate samples work for the current account after another account imported the old batch", async () => {
+  const original = buildCollectionExamples([], owner, photo);
+  const current = "graduate-preview-account";
+  const store = {
+    items: [...original],
+    ready: true,
+    busy: false,
+    async commit(items) {
+      this.items = items;
+    },
+  };
+  const options = {
+    store,
+    owner: current,
+    isCurrent: () => true,
+    loadPhoto: async () => photo,
+  };
+  assert.equal(await importCollectionExamples(options), 0);
+  assert.equal(await importCollectionExamples({ ...options, graduateOnly: true }), 6);
+  const records = store.items.filter(record => record.owner === current);
+  assert.equal(records.length, 6);
+  assert.ok(records.every(record => record.example && record.projectId === "graduate"));
+  assert.equal(new Set(store.items.map(record => record.id)).size, 16);
+  assert.deepEqual(store.items.filter(record => record.owner === owner), original);
+  assert.equal(await importCollectionExamples({ ...options, graduateOnly: true }), 0);
+  assert.equal(await importCollectionExamples({ ...options, owner, graduateOnly: true }), 0);
+});
+
 test("concurrent imports commit once and preserve writes made during asset loading", async () => {
   let release,
     commits = 0;

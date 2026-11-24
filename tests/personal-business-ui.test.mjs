@@ -112,7 +112,9 @@ test("each home collection link exposes its own title and description independen
     const entry = entries[index];
     assert.equal(
       entry.attribs.href,
-      `/?page=collection&view=projects&category=${category}&from=home&section=home`,
+      category === "graduate"
+        ? "/?page=collection&view=university&category=graduate"
+        : `/?page=collection&view=projects&category=${category}&from=home&section=home`,
     );
     const caption = entry.children.find(
       (child) => child.attribs?.class === "home-collection-caption",
@@ -371,7 +373,7 @@ test("print workspace shares the keepsake gallery and places purchase layout ins
   assert.equal(byClass(nodes, "print-product-photo")[0].attribs.src, "./assets/print-product-mixed-4-8.webp");
   assert.equal(byClass(nodes, "print-product-photo")[0].attribs.width, undefined);
   assert.equal(byClass(nodes, "print-sheet-svg").length, 0);
-  assert.match(text, /混排整版.*二寸8张.*背胶易撕.*模切细节/);
+  assert.match(text, /混排整版.*二寸8张.*斜角实拍.*模切细节/);
   assert.match(text, /背胶模切证件照.*相纸规格.*富士相纸 六寸.*每单 1 版，不支持加印/);
   assert.match(text, /上传照片 · 预览效果/);
   assert.doesNotMatch(text, /已选版式|可选版式|¥19\.80|运费 ¥10\.00/);
@@ -380,10 +382,10 @@ test("print workspace shares the keepsake gallery and places purchase layout ins
   assert.match(switched.text, /相纸规格.*富士相纸 六寸/);
   assert.equal(byClass(switched.nodes, "print-product-photo")[0].attribs.src, "./assets/print-product-two-8.webp");
   s.modal = "layoutPreview";
-  s.selectGalleryImage("peel");
+  s.selectGalleryImage("angle");
   const viewer = render("PrintLayoutViewer", { scope: s });
-  assert.equal(byClass(viewer.nodes, "print-product-photo")[0].attribs.src, "./assets/print-product-peel.webp");
-  assert.match(viewer.text, /背胶易撕.*上一张.*3 \/ 4.*下一张/);
+  assert.equal(byClass(viewer.nodes, "print-product-photo")[0].attribs.src, "./assets/print-product-angle.webp");
+  assert.match(viewer.text, /斜角实拍.*上一张.*3 \/ 4.*下一张/);
   assert.equal(s.draft.layout, domain.PRINT_LAYOUTS[1].id);
 
   s.draft.photo = { ...photo, width: 295, height: 413 };
@@ -395,7 +397,7 @@ test("print workspace shares the keepsake gallery and places purchase layout ins
   const galleryButtons = newRail.children.filter((node) => node.name === "button");
   assert.equal(galleryButtons.length, 4);
   assert.equal(galleryButtons[2].attribs["aria-pressed"], "true");
-  assert.equal(byClass(withPhoto.nodes, "print-product-photo")[0].attribs.src, "./assets/print-product-peel.webp");
+  assert.equal(byClass(withPhoto.nodes, "print-product-photo")[0].attribs.src, "./assets/print-product-angle.webp");
   assert.match(withPhoto.text, /继续预览.*去确认订单/);
   assert.doesNotMatch(withPhoto.text, /我的整版/);
   assert.equal(byClass(withPhoto.nodes, "print-sheet-svg").length, 0);

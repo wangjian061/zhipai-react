@@ -26,9 +26,9 @@
 | --- | --- | --- |
 | 首页通知铃铛 | `/?page=collection&view=notifications&section=app-home` | 保留个人首页来源；浏览列表不标已读，打开消息后更新红点 |
 | 底部相机 | 原个人拍摄／相册制作 | 从首页进入，权限、取消和成片沿[制作契约](camera-confirmation-1.4.6.md) |
-| 毕业生采集 | `/?page=collection&view=projects&category=graduate&from=home&section=home` | 本分类项目及范围搜索，返回原首页 |
-| 新生采集 | 同上`category=enrollment` | 本分类项目及范围搜索，返回原首页 |
-| 其它采集 | 同上`category=association` | 沿稳定association标识，保留行业协会项目，不据展示名删项目 |
+| 毕业生采集 | `/?page=collection&view=university&category=graduate` | 毕业生图像采集、院校搜索和毕业冲印入口，页头返回首页 |
+| 新生采集 | `/?page=collection&view=projects&category=enrollment&from=home&section=home` | 本分类项目及范围搜索，返回原首页 |
+| 其它采集 | `/?page=collection&view=projects&category=association&from=home&section=home` | 沿稳定association标识，保留行业协会项目，不据展示名删项目 |
 | 照片冲印 | 冲印照片与排版直接工作页 | 选图自动比例校验，必要裁剪回工作页，确认排版后沿原地址付款 |
 | 六项照片处理工具 | 各工具直接工作页 | 页内选图／换图／设置，无独立选图或步骤条；检查、费用、交付见下节 |
 | 照片规格 | 独立九项规格目录 | 选规格、选色，再到原相机制作；[规格契约](photo-specifications-1.4.6.md) |

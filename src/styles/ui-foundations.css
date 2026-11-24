@@ -1,5 +1,6 @@
 /* Shared mobile UI values; status surfaces and branded artwork remain contextual. */
 :root{
+  --brand-blue-soft:#f3f7ff;
   --ui-heading:#203858;
   --ui-body:#53637b;
   --ui-muted:#73849a;
@@ -26,6 +27,7 @@
   --ui-swatch-light-border:#d0dae8;
   --ui-selection-border:#b8ccff;
   --brand-canvas:#f1f5fd;
+  --brand-diffuse-blue:155 203 255;
   --ui-card-radius:16px;
   --ui-button-height:48px;
   --ui-button-radius:14px;
@@ -42,6 +44,7 @@
   --ui-disabled-ink:#58677e;
   --ui-input-font:16px;
   --ui-page-title:18px;
+  --ui-collection-task-title:22px;
   --ui-section-title:15px;
   --ui-sheet-title:16px;
   --ui-layer-fixed:5;
@@ -200,7 +203,7 @@ button:is(.ui-button-primary, .primary-button, .tool-primary, .print-primary,
   --brand-mascot-width: min(163px, 40%);
   --brand-header-fill:
     linear-gradient(to bottom, transparent 58%, var(--brand-canvas)),
-    radial-gradient(ellipse 65% 76% at 37% 31%, rgb(155 203 255 / .55), transparent),
+    radial-gradient(ellipse 65% 76% at 37% 31%, rgb(var(--brand-diffuse-blue) / .55), transparent),
     radial-gradient(ellipse 20% 45% at 100% 66%, rgb(211 200 255 / .30), transparent),
     linear-gradient(to bottom, #cfe0ff, var(--brand-canvas));
 }
