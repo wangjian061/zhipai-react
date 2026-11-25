@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { DomUtils, parseDocument } from "htmlparser2";
 import { createServer } from "vite";
 import { ENROLLMENT_FLOW_STEPS, createCollectionConfig, enrollmentHeroMode } from "../src/domain/collection-config.js";
 import { createController, getStore } from "../src/runtime/state.js";
@@ -181,6 +182,7 @@ test("search from the collection entrance preserves the supplied query and proje
     const html = render(s);
     assert.ok(html.includes('value="毕业"'));
     assert.ok(html.includes("5 个项目"));
+    assert.doesNotMatch(html, /data-directory|collection-directory-group|共 5 家机构/);
     for (const project of s.projectsShown) {
       assert.ok(html.includes(project.name));
       assert.ok(html.includes(project.organization));
@@ -189,6 +191,182 @@ test("search from the collection entrance preserves the supplied query and proje
     }
     assert.equal((html.match(/role="listitem"/g) || []).length, 5);
     assert.equal(pushes, 1);
+  } finally {
+    flow.stop();
+  }
+});
+
+test("association search opens a keyboard-free directory including ended organizations", () => {
+  const { s, flow, records } = setup("/?page=collection&view=projects&category=association");
+  try {
+    records.ready = false;
+    records.error = "个人记录未能读取";
+    s.setProjectFilter("open");
+    s.enterProjectSearch();
+    assert.equal(s.focusNewSearch, false);
+    const html = render(s);
+    assert.match(html, /全部机构<\/h2><span>共 3 家机构<\/span>/);
+    const groups = DomUtils.findAll(node => node.attribs.role === "listitem", parseDocument(html).children);
+    assert.equal(groups.length, 3);
+    const expected = [
+      ["association", "示例协会", "行业协会会员照片采集", "进行中", "2026.08.01 - 11.30"],
+      ["association-engineering", "示例工程技术协会", "工程技术协会会员证件照采集", "进行中", "2026.10.01 - 2027.03.31"],
+      ["association-talent", "示例行业服务中心", "行业人才登记照片采集", "已结束", "2026.04.01 - 09.30"],
+    ];
+    for (const [index, group] of groups.entries()) {
+      const [id, organization, project, status, dates] = expected[index];
+      const buttons = DomUtils.getElementsByTagName("button", group.children);
+      assert.equal(buttons.length, 1);
+      const row = buttons[0];
+      assert.equal(row.attribs["data-project-id"], id);
+      assert.equal(DomUtils.getElementsByTagName("img", row.children).length, 1);
+      const text = DomUtils.textContent(row);
+      assert.ok(text.startsWith(organization + project + status + "·" + dates));
+      assert.equal(DomUtils.getElementsByTagName("use", row.children)[0].attribs.href, "#i-chevron");
+    }
+    assert.match(html, /data-complete="true">已显示全部机构/);
+    assert.doesNotMatch(html, /演示 ·|加载更多机构|快捷试搜|个人记录未能读取|示例职业学院/);
+    s.openProject("association-talent");
+    assert.equal(s.project.id, "association-talent");
+    assert.equal(s.canCollect, false);
+    s.back();
+    assert.equal(s.searchTerm, "");
+    assert.equal(s.projectSearchReturnId, "association-talent");
+    assert.match(render(s), /已显示全部机构/);
+  } finally {
+    flow.stop();
+  }
+});
+
+test("one organization header serves multiple independently reachable projects, including the return to a child row", async () => {
+  const { s, flow } = setup("/?page=collection&view=projects&category=association&search=1");
+  try {
+    const original = s.projects.find(project => project.id === "association-engineering");
+    const second = { ...original, id: "test-renewal", name: "工作证换发照片采集", date: "2027-04-01 至 2027-06-30", status: "not_started", demoSchedule: true };
+    s.projects.push(second);
+    s.keyword = original.organization;
+    s.searchProjects();
+    await settle();
+    const html = render(s);
+    assert.match(html, /搜索结果<\/h2><span>共 1 家机构<\/span>/);
+    assert.match(html, /data-complete="true">已显示全部搜索结果/);
+    const groups = DomUtils.findAll(node => node.attribs.role === "listitem", parseDocument(html).children);
+    assert.equal(groups.length, 1);
+    const group = groups[0];
+    assert.equal(DomUtils.getElementsByTagName("img", group.children).length, 1);
+    const [heading] = DomUtils.getElementsByTagName("h3", group.children);
+    assert.equal(DomUtils.textContent(heading), original.organization);
+    assert.match(DomUtils.textContent(group), /示例工程技术协会2 个项目/);
+    const rows = DomUtils.getElementsByTagName("button", group.children);
+    assert.deepEqual(rows.map(row => row.attribs["data-project-id"]), [original.id, second.id]);
+    for (const row of rows) {
+      assert.equal(row.attribs["aria-describedby"], heading.attribs.id);
+      assert.doesNotMatch(DomUtils.textContent(row), /示例工程技术协会|演示 ·/);
+      assert.equal(DomUtils.getElementsByTagName("use", row.children)[0].attribs.href, "#i-chevron");
+    }
+    assert.match(DomUtils.textContent(rows[0]), /工程技术协会会员证件照采集进行中·2026.10.01 - 2027.03.31/);
+    assert.match(DomUtils.textContent(rows[1]), /工作证换发照片采集未开始·2027.04.01 - 06.30/);
+
+    s.scrollHost.scrollTop = 145;
+    s.openProject(rows[1].attribs["data-project-id"]);
+    assert.equal(s.project.id, second.id);
+    s.back();
+    await settle();
+    assert.equal(s.searchTerm, original.organization);
+    assert.equal(s.projectSearchReturnId, second.id);
+    assert.equal(s.scrollHost.scrollTop, 145);
+    assert.match(render(s), /2 个项目/);
+
+    s.keyword = second.name;
+    s.searchProjects();
+    const filtered = render(s);
+    assert.match(filtered, /collection-directory-single[^>]+data-project-id="test-renewal"/);
+    assert.doesNotMatch(filtered, /collection-directory-group-header|data-project-id="association-engineering"/);
+  } finally { flow.stop(); }
+});
+
+test("directory rows keep two thumbnail sizes, aligned card content and an inset keyboard focus ring", () => {
+  const css = readFileSync(new URL("../src/styles/collection-project-search.css", import.meta.url), "utf8");
+  assert.match(css, /\.collection-directory-group \.collection-project-art\s*\{[^}]*width: 88px;[^}]*height: 68px;/);
+  assert.match(css, /\.collection-directory-single \.collection-directory-copy\s*\{[^}]*justify-content: space-between;[^}]*height: 68px;/);
+  assert.match(css, /\.collection-directory-group-header \.collection-project-art\s*\{[^}]*width: 44px;[^}]*height: 34px;/);
+  assert.match(css, /\.collection-directory-subproject\s*\{[^}]*min-height: 48px;/);
+  assert.match(css, /\.collection-directory-group button:focus-visible\s*\{[^}]*outline-offset: -2px;/);
+});
+
+test("organization directory appends batches, searches beyond them and restores the selected row and offset", async () => {
+  const { s, flow } = setup("/?page=collection&view=projects&category=association&search=1");
+  try {
+    const template = s.projects.find(p => p.id === "association");
+    const extra = Array.from({ length: 20 }, (_, i) => ({
+      ...template, id: "test-org-" + i, organization: "测试机构" + i, name: "登记采集" + i,
+    }));
+    s.projects.push(...extra, { ...extra[0], id: "test-extra-project", name: "第二批登记" });
+    await settle();
+    const groupCount = () => (render(s).match(/role="listitem"/g) || []).length;
+    assert.equal(s.organizationDirectory.total, 23);
+    assert.equal(groupCount(), 10);
+    assert.match(render(s), /test-extra-project/);
+    assert.match(render(s), /collection-directory-footer"><button[^>]*>加载更多机构/);
+    assert.doesNotMatch(render(s), /data-project-id="test-org-19"/);
+    s.loadMoreOrganizations(10, 420);
+    assert.equal(groupCount(), 10);
+    s.loadMoreOrganizations(10, 100);
+    s.loadMoreOrganizations(10, 98);
+    assert.equal(groupCount(), 20);
+    s.scrollHost.scrollTop = 680;
+    s.openProject("test-org-15");
+    s.back();
+    await settle();
+    assert.equal(groupCount(), 20);
+    assert.equal(s.scrollHost.scrollTop, 680);
+    assert.equal(s.projectSearchReturnId, "test-org-15");
+
+    s.keyword = "登记采集19";
+    assert.equal(groupCount(), 20);
+    s.searchProjects();
+    await settle();
+    assert.equal(groupCount(), 1);
+    assert.equal(s.scrollHost.scrollTop, 0);
+    assert.match(render(s), /data-project-id="test-org-19"/);
+    s.keyword = "测试机构";
+    s.searchProjects();
+    await settle();
+    assert.equal(groupCount(), 10);
+    s.loadMoreOrganizations(10);
+    assert.equal(groupCount(), 20);
+    s.scrollHost.scrollTop = 350;
+    s.openProject("test-org-19");
+    s.back();
+    await settle();
+    assert.equal(s.searchTerm, "测试机构");
+    assert.equal(s.projectSearchReturnId, "test-org-19");
+    assert.equal(groupCount(), 20);
+    assert.equal(s.scrollHost.scrollTop, 350);
+    s.clearSearch();
+    await settle();
+    assert.equal(groupCount(), 20);
+    assert.equal(s.scrollHost.scrollTop, 680);
+    s.loadMoreOrganizations(20);
+    assert.equal(groupCount(), 23);
+    assert.match(render(s), /已显示全部机构/);
+    assert.doesNotMatch(render(s), /加载更多机构/);
+  } finally {
+    flow.stop();
+  }
+});
+
+test("an empty organization directory and an unmatched search have distinct recovery states", () => {
+  const { s, flow } = setup("/?page=collection&view=projects&category=association&search=1");
+  try {
+    s.keyword = "不存在的机构";
+    s.searchProjects();
+    assert.match(render(s), /未找到相关机构.*修改关键词/s);
+    assert.doesNotMatch(render(s), /已显示全部机构|role="listitem"/);
+    s.projects = s.projects.filter(p => p.type !== "association");
+    s.clearSearch();
+    assert.match(render(s), /暂无公开机构/);
+    assert.doesNotMatch(render(s), /修改关键词|加载更多机构|已显示全部机构/);
   } finally {
     flow.stop();
   }
@@ -408,6 +586,8 @@ test("enrollment landing presents three seamless rows, only configured school li
     s.searchProjects();
     assert.deepEqual(s.projectsShown.map(p => p.id), ["enrollment"]);
     assert.doesNotMatch(render(s), /项目|机构|学信/);
+    assert.match(render(s), /1 所院校/);
+    assert.doesNotMatch(render(s), /data-directory|collection-directory-group/);
     s.openProject("enrollment");
     getStore("account").session = { phone: "enrollment-test" };
     s.begin();

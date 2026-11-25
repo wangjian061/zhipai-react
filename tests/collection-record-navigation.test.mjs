@@ -478,6 +478,33 @@ test("association service deep links support clipboard success, failure and fall
   }
 });
 
+test("organization directory keeps its entry and query through detail and system Back", async () => {
+  const { s, flow } = setup("association");
+  try {
+    const landing = location.href;
+    flow.refs.collectionProjectSearchScroll = { scrollTop: 0 };
+    flow.refs.associationRail = { scrollLeft: 146 };
+    s.enterProjectSearch();
+    await wait();
+    assert.match(render(Projects, s), /全部机构/);
+    s.keyword = "行业人才";
+    s.searchProjects();
+    await wait();
+    const directory = location.href;
+    s.scrollHost.scrollTop = 58;
+    s.openProject("association-talent");
+    history.back();
+    await wait();
+    assert.equal(location.href, directory);
+    assert.equal(s.searchTerm, "行业人才");
+    assert.equal(s.scrollHost.scrollTop, 58);
+    assert.equal(s.projectSearchReturnId, "association-talent");
+    s.back();
+    assert.equal(location.href, landing);
+    assert.equal(history.state.associationRailOffset, 146);
+  } finally { flow.stop(); }
+});
+
 test("returning from the second association card preserves both scroll axes and the focused project", async () => {
   const { s, flow } = setup("association");
   try {

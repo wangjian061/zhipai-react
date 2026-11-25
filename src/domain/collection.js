@@ -49,6 +49,7 @@ import {
 // Roster, OCR, submission and review are replaceable prototype adapters. No institution, CHSI or review API is connected.
 const CAPTURE_METHODS = Object.freeze(["front", "rear", "album"]);
 const CAPTURE_UNAVAILABLE = "当前项目暂无可用采集方式。";
+const ORGANIZATIONS_PER_PAGE = 10;
 const COLLECTION_BASE_PROJECTS = [
   {
     id: "enrollment",
@@ -473,6 +474,8 @@ registerController("collectionFlow", () => ({
   keyword: "",
   searchTerm: "",
   dedicatedSearch: false,
+  focusNewSearch: false,
+  organizationListLimits: {},
   projectSearchReturnId: "",
   projectCategoryReturnId: "",
   associationServiceId: "",
@@ -598,6 +601,22 @@ registerController("collectionFlow", () => ({
         (this.isProjectSearch || this.projectFilter !== "open" ||
           (p.status === "ongoing" && this.entryEnabled(p.type))),
     );
+  },
+  get organizationDirectory() {
+    const groups = new Map();
+    for (const project of this.projectsShown) {
+      const name = project.organization;
+      if (!groups.has(name)) groups.set(name, []);
+      groups.get(name).push(project);
+    }
+    const limit = this.organizationListLimits[this.scrollKey] ?? ORGANIZATIONS_PER_PAGE;
+    return { entries: Array.from(groups).slice(0, limit), total: groups.size };
+  },
+  loadMoreOrganizations(renderedCount, distanceToEnd = 0) {
+    if (distanceToEnd > 120 || !this.isProjectSearch || this.projectCategory !== "association") return;
+    const { entries, total } = this.organizationDirectory;
+    if (renderedCount !== entries.length || renderedCount >= total) return;
+    this.organizationListLimits[this.scrollKey] = Math.min(total, renderedCount + ORGANIZATIONS_PER_PAGE);
   },
   projectStatus(project) {
     return (
@@ -1550,7 +1569,8 @@ registerController("collectionFlow", () => ({
     if (this.busy || this.panel) return;
     const category = this.view === "projects" ? this.projectCategory : "all";
     this.projectSearchReturnId = "";
-    this.focusNewSearch = true;
+    this.focusNewSearch = category !== "association";
+    if (category === "association") this.organizationListLimits = {};
     this.sectionScroll[(category === "all" ? "projects:" : "search:") + category + ":" + term] = 0;
     this.route("projects", "", "", { category, q:term, search:"1", section:this.notificationFrom });
   },
@@ -1567,13 +1587,18 @@ registerController("collectionFlow", () => ({
     }
     this.rememberScroll();
     const category = this.projectCategory;
-    this.sectionScroll[(category === "all" ? "projects:" : "search:") + category + ":" + term] = 0;
+    const nextKey = (category === "all" ? "projects:" : "search:") + category + ":" + term;
+    // Clearing an organization query returns to the directory the user was browsing.
+    if (category !== "association" || term) {
+      this.sectionScroll[nextKey] = 0;
+      if (category === "association") delete this.organizationListLimits[nextKey];
+    }
     collectionNavigate("projects", "", "", true, {category, search:"1", q:term, section:this.notificationFrom});
   },
   clearSearch() {
     if (this.busy || this.panel) return;
     this.keyword = "";
-    if (this.isProjectSearch) this.searchProjects();
+    if (this.isProjectSearch && (this.projectCategory !== "association" || this.searchTerm)) this.searchProjects();
   },
   loginForRecords() {
     const view = ["services", "notifications"].includes(this.view)
@@ -1625,7 +1650,8 @@ registerController("collectionFlow", () => ({
   openProject(id) {
     this.releaseIdentity();
     if (!this.projects.some((p) => p.id === id)) return;
-    if (this.view === "projects" && !this.isProjectSearch) this.projectCategoryReturnId = id;
+    if (this.isProjectSearch) this.projectSearchReturnId = id;
+    else if (this.view === "projects") this.projectCategoryReturnId = id;
     this.route("project", id, "", {
       from: this.view,
       search: this.isProjectSearch ? "1" : "",

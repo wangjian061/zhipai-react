@@ -30,7 +30,9 @@
   background: var(--ui-input-fill);
 }
 
-.collection-project-search-form > svg {
+.collection-project-search-field { display: contents; }
+.collection-project-search-form > svg,
+.collection-project-search-field > svg {
   flex: none;
   width: 18px;
   height: 18px;
@@ -276,3 +278,235 @@
   font-size: 12px;
 }
 .collection-search-examples button:active span { background: var(--brand-tint); color: var(--brand-blue); }
+
+/* Association search opens as a browsable directory. Only the list scrolls. */
+.collection-project-search[data-directory] {
+  --directory-title-ink: #111c38;
+  --directory-meta-ink: #8a96a8;
+}
+.collection-project-search[data-directory] .collection-project-search-form {
+  padding: 0;
+  background: transparent;
+  outline: none;
+}
+.collection-project-search[data-directory] .collection-project-search-field {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-inline-start: 12px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--ui-canvas);
+}
+.collection-project-search[data-directory] .collection-project-search-field:focus-within {
+  background: var(--surface);
+  outline: 2px solid var(--ui-selection-border);
+}
+.collection-project-search[data-directory] .collection-project-search-field > svg {
+  width: 16px;
+  height: 16px;
+}
+.collection-project-search[data-directory] .collection-project-search-field input {
+  outline: none;
+  font-size: 14px;
+}
+.collection-project-search[data-directory] .collection-project-search-submit {
+  flex: none;
+}
+.collection-project-search[data-directory] .collection-project-search-content {
+  padding-top: 14px;
+}
+.collection-project-search[data-directory] .collection-project-search-heading {
+  margin-bottom: 10px;
+}
+.collection-project-search[data-directory] .collection-project-search-heading h2 {
+  color: var(--ui-body);
+  font-size: 13px;
+}
+.collection-project-search[data-directory] .collection-project-search-heading > span {
+  color: var(--directory-meta-ink);
+  font-variant-numeric: tabular-nums;
+}
+.collection-project-search[data-directory] .collection-project-search-results {
+  gap: 10px;
+}
+
+.collection-directory-group {
+  --directory-photo-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgb(17 28 56 / 4%);
+  border-radius: var(--ui-card-radius);
+  background: var(--surface);
+  box-shadow: 0 2px 10px rgb(17 28 56 / 3.5%);
+}
+.collection-directory-group button,
+.collection-directory-group-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.collection-directory-group button {
+  width: 100%;
+  text-align: start;
+}
+.collection-directory-group button:active {
+  background: #f5f7fc;
+  transform: none;
+}
+.collection-directory-group button:focus-visible {
+  outline-offset: -2px;
+}
+.collection-directory-single {
+  padding: 12px;
+  border-radius: inherit;
+}
+.collection-directory-group .collection-project-art {
+  display: block;
+  width: 88px;
+  height: 68px;
+  border: 1px solid rgb(17 28 56 / 5%);
+  border-radius: var(--directory-photo-radius);
+}
+.collection-directory-group .collection-project-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.collection-directory-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 3px;
+}
+.collection-directory-single .collection-directory-copy {
+  align-self: stretch;
+  justify-content: space-between;
+  height: 68px;
+}
+.collection-directory-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.collection-directory-name,
+.collection-directory-project-name,
+.collection-directory-date {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.collection-directory-name {
+  min-width: 0;
+  margin: 0;
+  color: var(--directory-title-ink);
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.collection-directory-project-name {
+  color: var(--ui-body);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+.collection-directory-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.collection-directory-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--directory-meta-ink);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+.collection-directory-status {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  color: var(--ui-body);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.collection-directory-status[data-tone="green"] { color: var(--ui-success-ink); }
+.collection-directory-status[data-tone="warm"] { color: var(--ui-warning-ink); }
+.collection-directory-status::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+.collection-directory-separator { opacity: .55; }
+.collection-directory-date,
+.collection-directory-count { font-variant-numeric: tabular-nums; }
+.collection-directory-enter {
+  display: grid;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e7eeff;
+  color: var(--brand-blue);
+}
+.collection-directory-enter svg { width: 12px; height: 12px; }
+
+.collection-directory-group-header {
+  --directory-photo-radius: 8px;
+  padding: 12px 12px 10px;
+}
+.collection-directory-group-header .collection-project-art {
+  width: 44px;
+  height: 34px;
+}
+.collection-directory-group-header .collection-directory-name { flex: 1; }
+.collection-directory-count {
+  flex: none;
+  color: var(--directory-meta-ink);
+  font-size: 12px;
+}
+.collection-directory-subproject {
+  position: relative;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: 0;
+}
+.collection-directory-subproject + .collection-directory-subproject::before {
+  position: absolute;
+  inset: 0 12px auto;
+  height: 1px;
+  background: var(--ui-divider);
+  content: "";
+}
+.collection-directory-subproject .collection-directory-project-name {
+  color: var(--directory-title-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.collection-directory-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow-anchor: none;
+  padding-top: 12px;
+  color: var(--ui-body);
+  font-size: 12px;
+}
+.collection-directory-footer[data-complete]::before,
+.collection-directory-footer[data-complete]::after {
+  width: 24px;
+  height: 1px;
+  background: var(--ui-border-subtle);
+  content: "";
+}
