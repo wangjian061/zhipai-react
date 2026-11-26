@@ -1,4 +1,5 @@
 import SharedSheet from "../components/SharedSheet.jsx";
+import { CodeGuide, SampleViewer } from "../components/ChsiCodeGuide.jsx";
 import ToolNavigation from "../components/ToolNavigation.jsx";
 import { collectionCodeHelp as guideContent } from "../domain/collection-code-help.js";
 import React from "react";
@@ -14,32 +15,27 @@ function Icon({ name, ...props }) {
   );
 }
 function Guide({ s }) {
-  const content = guideContent[s.guidePage];
-  return (
-    <SharedSheet opened target="#scan-modal-layer" id="scan-guide-title" className="scan-sheet scan-guide-sheet"
-      title={content?.title || "如何获取采集码"} closeLabel="关闭帮助" onClose={() => s.closeGuide()}
-      dialogRef={(node) => { s.$refs.scanGuide = node; }}
-      bodyRef={(node) => { s.$refs.scanGuideBody = node; }}
+  const sampleOpen = s.guidePage === "sample";
+  const chsi = s.guidePage === "chsi" || sampleOpen;
+  const content = guideContent[chsi ? "chsi" : s.guidePage];
+  return <>
+    <SharedSheet opened target="#scan-modal-layer" id="scan-guide-title" suspended={sampleOpen}
+      className={chsi ? "university-sheet university-guide-sheet" : "scan-sheet scan-guide-sheet"}
+      title={chsi ? "3 步获取图像采集码" : content?.title || "如何获取采集码"}
+      closeLabel="关闭帮助" onClose={() => s.closeGuide()}
+      dialogRef={node => { s.$refs.scanGuide = node; }}
+      bodyRef={node => { s.$refs.scanGuideBody = node; }}
       leading={content && <button type="button" className="scan-sheet-back"
         onClick={() => s.showDirectory()} aria-label="返回帮助目录"><Icon name="chevron-left" /></button>}
-      footer={
-        <>
-          {s.guidePage === "chsi" && (
-            <a className="scan-primary" href={guideContent.chsi.url} target="_blank" rel="noopener noreferrer">
-              查看获取教程 <Icon name="arrow" />
-            </a>
-          )}
-          <button type="button" className={s.guidePage === "chsi" ? "scan-secondary" : "scan-primary"}
-            onClick={() => s.guideBack()}>{content ? "返回帮助目录" : "返回扫码"}</button>
-        </>
-      }>
+      footer={<button type="button" className={chsi ? "primary-button" : "scan-primary"}
+        onClick={() => s.guideBack()}>{content ? "返回帮助目录" : "返回扫码"}</button>}>
         {!content ? (
           <>
             <p className="scan-help-intro">
               根据你需要识别的二维码，查看获取方式。
             </p>
             <div className="scan-guide-directory">
-              <button onClick={() => s.showGuide("institution")}>
+              <button type="button" data-guide="institution" onClick={() => s.showGuide("institution")}>
                 <Icon name="collection-school" />
                 <span>
                   <strong>机构／院校二维码</strong>
@@ -47,20 +43,19 @@ function Guide({ s }) {
                 </span>
                 <Icon name="chevron" />
               </button>
-              <a
-                href={guideContent.chsi.url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <button type="button" data-guide="chsi" onClick={() => s.showGuide("chsi")}>
                 <Icon name="collection-id" />
                 <span>
                   <strong>学信网图像采集码</strong>
-                  <small>查看采集码获取教程</small>
+                  <small>查看样图与三步获取方法</small>
                 </span>
                 <Icon name="chevron" />
-              </a>
+              </button>
             </div>
           </>
+        ) : chsi ? (
+          <CodeGuide onOpenSample={event => s.openGuideSample(event.currentTarget)}
+            albumHint="保存完整图片，返回扫码页后点「从相册识别」。" />
         ) : (
           <>
             <p className="scan-help-intro">{content.intro}</p>
@@ -76,7 +71,8 @@ function Guide({ s }) {
           </>
         )}
     </SharedSheet>
-  );
+    {sampleOpen && <SampleViewer target="#scan-modal-layer" onClose={() => s.closeGuideSample()} />}
+  </>;
 }
 function Failure({ s }) {
   return (
@@ -205,7 +201,7 @@ export default function ScanPage({ args = [] }) {
             </div>
             <button
               className="scan-help-link"
-              onClick={() => s.openGuide()}
+              onClick={event => s.openGuide(event.currentTarget)}
               disabled={s.reading}
               aria-haspopup="dialog"
             >

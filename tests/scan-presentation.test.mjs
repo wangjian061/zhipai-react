@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { parse } from "@babel/parser";
 import generateModule from "@babel/generator";
 import { transformWithOxc } from "vite";
-import { collectionCodeHelp } from "../src/domain/collection-code-help.js";
+import { collectionCodeHelp, universityChsiSteps } from "../src/domain/collection-code-help.js";
 const generate = generateModule.default || generateModule;
 async function compile(file, name, deps) {
   const ast = parse(fs.readFileSync(file, "utf8"), {
@@ -42,9 +42,14 @@ const ToolNavigation = await compile("src/components/ToolNavigation.jsx", "ToolN
 const SharedSheet = await compile("src/components/SharedSheet.jsx", "SharedSheet", {
   useEffect: React.useEffect, useRef: React.useRef, Portal: ({ children }) => children, FeedbackToast: () => null,
 });
+const { CodeGuide, SampleViewer } = await compile("src/components/ChsiCodeGuide.jsx", "({ CodeGuide, SampleViewer })", {
+  useId: React.useId, useCallback: React.useCallback, collectionCodeHelp, universityChsiSteps,
+  CollectionIcon: ({ name }) => React.createElement("svg", { "data-icon": name }),
+  Portal: ({ target, children }) => React.createElement("div", { "data-target": target }, children),
+});
 let currentState;
 const ScanPage = await compile("src/pages/ScanPage.jsx", "ScanPage", {
-  guideContent: collectionCodeHelp,
+  guideContent: collectionCodeHelp, CodeGuide, SampleViewer,
   ToolNavigation,
   SharedSheet,
   View,
@@ -81,7 +86,7 @@ test("main scan markup keeps camera, album and help in approved order without an
   assert.ok(html.includes("image/jpeg,image/png,image/webp"));
   assert.ok(render({ ready: true, torchSupported: true }).includes("手电筒"));
 });
-test("help retains institution copy and opens the shared CHSI tutorial instead of duplicate steps", () => {
+test("the help directory opens the inline CHSI guide, its separate tutorial and the fullscreen sample", () => {
   for (const guidePage of ["", "institution", "chsi"]) {
     const html = render({ guideOpen: true, guidePage });
     assert.equal((html.match(/role="dialog"/g) || []).length, 1);
@@ -90,14 +95,24 @@ test("help retains institution copy and opens the shared CHSI tutorial instead o
     assert.ok(html.includes("ui-sheet-body"));
     assert.ok(html.includes('<footer class="ui-sheet-footer'));
     assert.ok(!html.includes("iframe"));
+    if (!guidePage) {
+      assert.match(html, /<button[^>]*data-guide="chsi"/);
+      assert.doesNotMatch(html, /href="https:/);
+    }
     if (guidePage === "institution")
       assert.ok(html.includes("联系知拍客服协助核实"));
     if (guidePage === "chsi") {
       assert.ok(html.includes("https://www.zhipai.com.cn/h5/bystxcj.html"));
       assert.ok(html.includes("noopener noreferrer"));
-      assert.ok(!html.includes("登录本人学信网账号"));
+      for (const step of universityChsiSteps) assert.ok(html.includes(step.title));
+      assert.match(html, /3 步获取图像采集码/);
+      assert.match(html, /collection-chsi-code-sample.webp/);
+      assert.match(html, /放大看样图/);
     }
   }
+  const viewer = render({ guideOpen: true, guidePage: "sample" });
+  assert.match(viewer, /class="shared-sheet-overlay" inert=""/);
+  assert.match(viewer, /data-target="#scan-modal-layer".*collection-example-viewer.*关闭大图/s);
 });
 test("failure sheet presents specific reason and source-appropriate recovery without claiming verification passed", () => {
   for (const source of ["camera", "album"]) {

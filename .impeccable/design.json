@@ -594,7 +594,7 @@
               "navigation": { "variant": "compact header", "backTouchPx": 44, "title": "毕业生图像采集", "titleAlignment": "center", "trailingArt": false },
               "heroModes": {
                 "configField": "graduateHeroMode", "default": "flow", "values": ["flow", "schools"],
-                "prototypeControl": { "labels": ["采集流程", "合作院校"], "visualHeightPx": 30, "touchMinPx": 44 },
+                "prototypeControl": { "previewLabel": "原型切换", "previewLabelSizePx": 10.5, "previewLabelInk": "--collection-meta-ink", "labels": ["采集流程", "合作院校"], "visualHeightPx": 30, "touchMinPx": 44 },
                 "flow": { "steps": ["获取图像采集码", "扫码绑定采集资格", "拍摄照片注意姿势", "提交等待审核", "上网完成"], "imagesPx": [810, 756], "imageHeightPx": 252, "artDirection": "documentary-style campus photos; scan and album diptych; over-the-shoulder camera view; one magnified anonymized completed record covering the original row", "centerCard": "informational article" },
                 "switchToIndex": 0, "restoreSchoolOnReturn": true
               },
@@ -648,7 +648,7 @@
                 "highlight": "only while the corresponding sheet is open"
               },
               "codeGuide": {
-                "entry": "bottom navigation",
+                "entry": ["graduate bottom navigation", "scan help directory"],
                 "surface": "SharedSheet",
                 "title": "3 步获取图像采集码",
                 "sample": "112px sample beside its checklist and an independent zoom button; both open the full-screen viewer",
@@ -685,13 +685,15 @@
               "sharedUI": ["ToolNavigation", "SharedSheet", "FixedPhotoCrop", "ShippingAddressFields", "PaymentHandoff"],
               "photoRatios": ["3:2", "2:3"],
               "minimumQuantity": 10,
+              "pendingCropGuidance": "show remaining count, locate the first pending photo and keep the count visible during consecutive crops",
+              "guestConflict": "offer existing order or current photos, keep the old order accessible even after switching drafts",
               "priceCents": { "base": 6000, "additional": 600, "shipping": 1000 }
             }
           },
           "enrollmentLanding": {
             "route": "/?page=collection&view=projects&category=enrollment",
             "title": "新生入学采集",
-            "hero": { "config": "enrollmentHeroMode", "default": "flow", "options": ["flow", "schools"], "history": "enrollmentHero", "rail": "GraduateHeroRail", "steps": 6, "assetPixels": [810, 756], "dwellMs": 3200, "slideMs": 650 },
+            "hero": { "config": "enrollmentHeroMode", "previewLabel": "原型切换", "default": "flow", "options": ["flow", "schools"], "history": "enrollmentHero", "rail": "GraduateHeroRail", "steps": 6, "assetPixels": [810, 756], "dwellMs": 3200, "slideMs": 650 },
             "wall": { "rowSeconds": [32, 46, 38], "directions": ["left", "right", "left"], "edgeFadePercent": 12, "reduceMotion": "static rows with manual horizontal scrolling", "data": "labeled demo; only configured enrollment schools open details" },
             "search": "查找录取院校",
             "dock": ["采集记录", "冲印照片"],
@@ -715,22 +717,25 @@
             },
             "servicePage": {
               "route": "/?page=collection&view=association-service&category=association&service=employeeBadge",
-              "layout": ["ToolNavigation", "product photo and highlights", "2×2 specifications", "four-step timeline", "business contact", "fixed two-action footer"],
+              "layout": ["ToolNavigation", "product photo and highlights", "2×2 specifications", "four-step timeline", "business contact", "fixed full-width consultation action"],
               "heroAssets": ["association-detail-badge.webp", "association-detail-certificate.webp", "association-detail-membership.webp"],
               "heroImagePx": [1080, 720],
-              "contact": "shared support email, clipboard feedback, product-specific mail draft",
+              "contact": "inline copy and feedback; shared confirmation sheet with email, business subject, exit notice, copy and open-email actions",
               "return": "restore poster, organization rail offset and focus on the opening poster"
             },
             "list": { "title": "正在采集", "status": "ongoing", "cardViewportWidthPercent": 62, "widthRangePx": [216, 260], "minHeightRangePx": [190, 200], "projectName": { "reservedLines": 2, "overflow": "ellipsis" }, "statusPlacement": "left aligned on its own row below the project name and above the date panel", "photoHeightRangePx": [76, 84], "dateRows": ["开始时间", "结束时间"], "dateFormat": "YYYY.MM.DD", "restoreHorizontalOffset": true },
             "mainActions": { "placement": "below the organization rail, with remaining space above the dock", "prompt": "查找所属机构，开启照片采集", "heightPx": 48, "widthRangePx": [240, 272], "search": "搜索查找机构" },
             "directory": {
               "title": "全部机构",
+              "entryLabels": ["搜索查找机构", "全部机构"],
+              "returnFocus": "the initiating landing control",
               "initialKeyboard": "closed",
               "pageSize": 10,
               "scope": "all public association projects grouped by organization, including upcoming and ended",
               "search": "submitted organization or project name across the entire directory",
               "headingCount": "共 N 家机构",
               "photoRadiusToken": "--directory-photo-radius",
+              "metaInkToken": "--collection-meta-ink",
               "singleProject": { "photoPx": [88, 68], "photoRadiusPx": 10, "cardRadiusPx": 16, "paddingPx": 12, "gapBetweenCardsPx": 10, "rows": ["organization", "project", "status dot and date with trailing chevron"] },
               "multipleProjects": { "header": "one photo, organization and matching project count", "photoPx": [44, 34], "photoRadiusPx": 8, "projectRowMinHeightPx": 48, "dividerInsetPx": 12, "returnTarget": "data-project-id" },
               "dates": { "sameYear": "YYYY.MM.DD - MM.DD", "crossYear": "YYYY.MM.DD - YYYY.MM.DD", "numerals": "tabular" },
@@ -748,8 +753,8 @@
             "graduate-only CHSI scanner shortcut with 44px touch target",
             "all/open project filter, project artwork and credential hint"
           ],
-          "projectSearch": "association opens its directory, other scopes open with example queries; detail returns to the originating row",
-          "projectDetail": "availability notice, existing records when present, four examples with dark immersive viewer",
+          "projectSearch": "one pill-shaped input and external submit action shared with help search; association starts with its directory, school and project searches start with top-aligned local examples; detail returns to the originating row",
+          "projectDetail": "availability notice, existing records use the category record card including its 72×96px portrait, four examples with dark immersive viewer",
           "identity": "clickable code upload, configured alternate methods and inline field errors",
           "captureSheets": "SharedSheet title 16px/600 and 44px close; camera choices retain source focus",
           "taskDetail": "22px/700 status title, blue portrait reference, rejection summary and scoped institutional submission",
@@ -766,6 +771,7 @@
             "category-specific single-select progress: 全部, 进行中, 已完成; all categories use 44px text tabs with a 20 by 2px blue underline",
             "category record cards are shadowless with 72 by 96px top-centered cover portraits; organization and a single batch/date line align at the top, the 6px status dot and optional correction pill align at the bottom",
             "category records show 去修改 for failures only; upload failure still routes to the existing support guidance in task detail",
+            "empty filtered tab offers 查看全部 on the same page; an empty category returns to its landing",
             "independently scrolling personal category records"
           ],
           "searchTrailingLabelMinWidthPx": 212,

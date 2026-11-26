@@ -20,7 +20,9 @@
 
 历史还原基线 **11.24-1** 基于 11.20-1（`4c2321a`），准确提交由 `prototype/2026/11.24-1` 解析。从首页分别进入毕业生五步流程与合作院校、新生六步流程与院校搜索、其它采集与机构服务。对照本人记录核对身份、拍摄准备及详情返回；从毕业照冲印展厅验证多张选图、逐张裁剪、计价和返回保留构图。三端真机采集、审核消息送达、背景检测及正式学籍系统接入需在各端另行联调验收。[分类采集](docs/product/pages/collection.projects.md) · [拍摄准备及任务详情](docs/product/pages/collection.detail.md) · [毕业照片冲印](docs/product/pages/print.graduate.md) · [原型交付台账](docs/releases/prototype-deliveries.md)
 
-当前三端还原基线 **11.25-1** 基于 11.24-1（`7db0f45`），准确提交由 `prototype/2026/11.25-1` 解析。从「其它采集 → 搜索查找机构」核对单项目名片、多项目分组、分页和详情返回。当前预览有 3 家单项目机构，多项目与超过 10 家的情况由测试数据覆盖。三端重点验收初始键盘状态、触屏上拉和返回后的焦点。[机构目录](docs/product/pages/collection.search.md#机构目录) · [原型交付台账](docs/releases/prototype-deliveries.md)
+历史还原基线 **11.25-1** 基于 11.24-1（`7db0f45`），准确提交由 `prototype/2026/11.25-1` 解析。从「其它采集 → 搜索查找机构」核对单项目名片、多项目分组、分页和详情返回。当前预览有 3 家单项目机构，多项目与超过 10 家的情况由测试数据覆盖。三端重点验收初始键盘状态、触屏上拉和返回后的焦点。[机构目录](docs/product/pages/collection.search.md#机构目录) · [原型交付台账](docs/releases/prototype-deliveries.md)
+
+当前三端还原基线 **11.26-1** 基于 11.25-1（`7ccd33a`），以 `prototype/2026/11.26-1` 定位。按 V1.4.6 核对独立搜索的输入与返回、扫码帮助的大图与目录逐层返回、任务抽屉和两类记录空态，以及三项定制的邮箱外跳确认。毕业照冲印需分别验证连续裁剪、查看账号旧单和保留本次照片三条操作。真机重点核对软键盘、相机权限恢复及邮件客户端外跳。[分类采集](docs/product/pages/collection.projects.md) · [扫码指引](docs/product/pages/scan.md) · [毕业照片冲印](docs/product/pages/print.graduate.md) · [原型交付台账](docs/releases/prototype-deliveries.md)
 
 新版 [DESIGN.md](DESIGN.md) 对齐（本地）：订单详情与「解锁照片」的顶部和滚动已通过前一轮试点验收。常规白底二级页及订单隔离样例的返回按钮默认只显示20px深蓝箭头，保留44px触区，按压显示浅灰圆底。带头图、专项任务、分享、全屏相机和深色查看层保留原圆底控件。清除首页旧 Toast，专项采集状态色和相机画布改用公共令牌。
 

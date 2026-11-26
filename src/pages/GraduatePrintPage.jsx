@@ -87,6 +87,7 @@ function CropSheet({ s, close }) {
       <button className="primary-button" type="button" disabled={s.busy || !url}
         onClick={() => s.saveCrop(!!other)}>{other ? `确认并裁下一张（还剩 ${other} 张）` : "确认完成 6 寸裁剪"}</button>
     </div>}>
+    {s.cropNotice && <p className="graduate-crop-notice" role="status">{s.cropNotice}</p>}
     <SegmentedControl label="裁剪方向" options={orientations} value={s.crop.orientation} disabled={s.busy}
       onChange={(orientation) => s.changeCrop({ orientation, scale: 1, offsetX: 0, offsetY: 0 })} />
     {url && <FixedPhotoCrop key={s.cropId} photo={source} src={url} value={s.crop}
@@ -112,8 +113,14 @@ function OrderSummary({ s }) {
   </section>;
 }
 function GraduatePrintScreen({ s }) {
-  const close = () => { if (!s.busy) { s.error = ""; s.panel = ""; } };
-  const stage = s.order?.paidAt && s.view !== "work" ? "complete" : s.view;
+  function close() {
+    if (s.busy) return;
+    s.error = "";
+    s.cropNotice = "";
+    s.highlight = "";
+    s.panel = "";
+  }
+  const stage = s.transferringGuest ? "guest" : s.order?.paidAt && s.view !== "work" ? "complete" : s.view;
   const locked = !!s.order || s.busy;
   const missing = s.error.startsWith("还差 ");
   const minimumRemaining = graduatePrintPrices.minimum - s.photos.length;
@@ -123,6 +130,10 @@ function GraduatePrintScreen({ s }) {
         onBack={() => s.back()} disabled={s.busy} />
       <div className="graduate-scroll">
         {!s.store.ready && (s.store.error ? <p role="alert">{s.store.error} <button type="button" onClick={() => s.store.load()}>重新读取</button></p> : <p role="status">正在读取冲印草稿…</p>)}
+        {stage === "guest" && <section className="tool-settings graduate-card">
+          <h2>{s.guestOrder ? "选择本次冲印任务" : "转入本次照片"}</h2>
+          <p>{s.guestOrder ? "账号中的已有订单和本次新选照片都已保留。" : "正在读取登录前的选图与裁剪进度。"}</p>
+        </section>}
         {stage === "work" && <>
           <section className="tool-settings graduate-card">
             <img className="graduate-print-art" src={asset} width="1200" height="800" alt="六寸毕业合影与校园照实物样品" />
@@ -152,8 +163,11 @@ function GraduatePrintScreen({ s }) {
           {s.quote ? <strong className="ui-price">{price(s.quote.print)}</strong> :
             <span role={missing ? "alert" : undefined}>还差 {minimumRemaining} 张起印</span>}
         </div>}
+        {!s.panel && s.highlight && s.cropNotice && <p role="status" className="graduate-crop-notice">{s.cropNotice}</p>}
         {!s.panel && s.error && !missing && <p role="alert" className="ui-field-error">{s.error}</p>}
         <div className="graduate-action-pair">
+          {stage === "guest" && <button type="button" className="primary-button" disabled={s.busy}
+            onClick={() => s.adoptGuest()}>{s.guestOrder ? "选择冲印任务" : "继续转入照片"}</button>}
           {stage === "work" && <>
             <button className="ui-button-secondary" type="button" disabled={!s.editable}
               onClick={() => { s.panel = "pick"; s.selection = []; s.error = ""; }}>添加照片</button>
@@ -171,6 +185,17 @@ function GraduatePrintScreen({ s }) {
         </div>
       </footer>
     </section>
+    {s.panel === "guestChoice" && <SharedSheet opened id="graduate-guest-choice-title" title="选择本次冲印任务"
+      busy={s.busy} onClose={close}
+      footer={<div className="graduate-guest-actions">
+        <button className="primary-button" type="button" disabled={s.busy} onClick={() => s.adoptGuest(true)}>
+          使用本次新选的 {s.guestDraft?.photos.length} 张照片继续
+        </button>
+        <button className="ui-button-secondary" type="button" disabled={s.busy} onClick={() => s.viewGuestOrder()}>查看已有订单</button>
+      </div>}>
+      <p>当前账号有一笔未完成的冲印订单。使用本次照片会替换工作草稿，已裁好的照片可以直接继续，已有订单仍可在订单列表查看。</p>
+      {s.error && <p role="alert" className="ui-field-error">{s.error}</p>}
+    </SharedSheet>}
     {s.panel === "pick" && <SelectionSheet s={s} close={close} />}
     {s.panel === "crop" && s.selectedPhoto && <CropSheet s={s} close={close} />}
     {s.panel === "payment" && <SharedSheet opened id="graduate-payment-title" title="选择支付方式" busy={s.busy} onClose={close}

@@ -101,7 +101,7 @@ export function CollectionOrganizationGroup({ scope, projects, onOpen }) {
 
 export function CollectionProjectRow({ scope: s, project: p, onOpen }) {
   const state = s.projectStatus(p);
-  const schoolSearch = s.projectCategory === "enrollment" && s.isProjectSearch;
+  const schoolSearch = s.isProjectSearch && ["enrollment", "graduate"].includes(s.projectCategory);
   const status = (
     <span className={"collection-project-state " + state.tone}>
       {p.demoSchedule ? "演示 · " : ""}{state.label}

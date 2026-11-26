@@ -14,8 +14,7 @@ import CollectionTaskDetail, {
   CollectionTaskFooter,
   CollectionTaskHeader,
 } from "../components/CollectionTaskDetail.jsx";
-import CollectionTaskDrawer from "../components/CollectionTaskDrawer.jsx";
-import CollectionRecordCard from "../components/CollectionRecordCard.jsx";
+import CollectionTaskDrawer, { ProjectRecordsDrawer } from "../components/CollectionTaskDrawer.jsx";
 import CollectionPaymentDrawer from "../components/CollectionPaymentDrawer.jsx";
 import CollectionProjects from "../components/CollectionProjects.jsx";
 import CollectionRecords from "../components/CollectionRecords.jsx";
@@ -282,8 +281,9 @@ export default function CollectionPage({ scope, args = [] }) {
               <CollectionPaymentDrawer scope={s} />
               <CollectionIdentityDrawer scope={s} />
               <CollectionTaskDrawer scope={s} />
+              {s.panel === "projectRecords" && <ProjectRecordsDrawer scope={s} />}
               <CollectionSupportDrawer scope={s} />
-              {!s.isAuthPanel && !s.isTaskPanel && !["payment","captureMethod","shootingGuide","projectExamples"].includes(s.panel) && (
+              {!s.isAuthPanel && !s.isTaskPanel && !["payment","captureMethod","shootingGuide","projectExamples","projectRecords"].includes(s.panel) && (
                 <SharedSheet embedded opened id="collection-drawer-title" className="collection-drawer"
                   title={s.panelTitle} busy={s.busy} onClose={() => s.closePanel()}
                   dialogRef={(node) => { s.$refs.collectionDialog = node; }}
@@ -342,29 +342,6 @@ export default function CollectionPage({ scope, args = [] }) {
                         ]}
                       >
                         {"继续采集"}
-                      </View>
-                    </View>
-                    <View
-                      as="div"
-                      scope={s}
-                      show={s.panel === "projectRecords"}
-                    >
-                      <div className="collection-project-records-list">
-                        {s.projectRecords.map((record) => (
-                          <CollectionRecordCard
-                            key={record.id}
-                            scope={s}
-                            record={record}
-                          />
-                        ))}
-                      </div>
-                      <View
-                        as="p"
-                        scope={s}
-                        className="collection-empty"
-                        show={!s.projectRecords.length}
-                      >
-                        {s.project.type === "enrollment" ? "该院校还没有采集记录" : "此项目还没有采集记录"}
                       </View>
                     </View>
                     <View

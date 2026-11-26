@@ -1306,7 +1306,8 @@ registerController("collectionFlow", () => ({
     this.recordId = q.get("record") || "";
     this.messageId = q.get("message") || "";
     this.error = "";
-    this.panel = this.categoryContactPanel;
+    this.panel = this.associationService && history.state?.associationContactFor === this.associationService.id
+      ? "businessContact" : this.categoryContactPanel;
     this.contactNotice = "";
     const layer = history.state?.collectionCaptureLayer;
     if (layer?.record === this.recordId && this.canChooseCapture) {
@@ -1336,7 +1337,11 @@ registerController("collectionFlow", () => ({
       }
       if (previousPanel === "projectExamples" && this.view === "project")
         this.previousFocus?.focus?.({ preventScroll: true });
-      if (leftSearch && !this.isProjectSearch && ["projects","home"].includes(this.view)) this.$refs.projectSearchEntry?.focus?.({preventScroll:true});
+      if (leftSearch && !this.isProjectSearch && ["projects","home"].includes(this.view)) {
+        const directoryTrigger = this.isAssociationLanding && history.state?.associationSearchEntry === "directory"
+          ? this.scrollHost?.querySelector?.("[data-directory-entry]") : null;
+        (directoryTrigger || this.$refs.projectSearchEntry)?.focus?.({ preventScroll: true });
+      }
       if (
         this.view === "notifications" &&
         this.lastMessageId &&
@@ -1565,12 +1570,15 @@ registerController("collectionFlow", () => ({
     if (this.view === "services" && returnCollectionHistory("services")) return;
     this.go("home");
   },
-  enterProjectSearch(term = "") {
+  enterProjectSearch(term = "", source = "primary") {
     if (this.busy || this.panel) return;
     const category = this.view === "projects" ? this.projectCategory : "all";
     this.projectSearchReturnId = "";
     this.focusNewSearch = category !== "association";
-    if (category === "association") this.organizationListLimits = {};
+    if (category === "association") {
+      this.organizationListLimits = {};
+      history.replaceState({ ...history.state, associationSearchEntry: source }, "", location.href);
+    }
     this.sectionScroll[(category === "all" ? "projects:" : "search:") + category + ":" + term] = 0;
     this.route("projects", "", "", { category, q:term, search:"1", section:this.notificationFrom });
   },
@@ -1686,6 +1694,17 @@ registerController("collectionFlow", () => ({
     if (project) collectionNavigate("project", project.id, "", true, {from:"projects", category:project.type});
     else collectionNavigate("home", "", "", true, {category:q.get("category")});
   },
+  returnFromRecords(emptyCategory = false) {
+    this.rememberScroll();
+    if (returnCollectionHistory("records")) return;
+    const source = new URLSearchParams(location.search).get("from");
+    if (this.recordCategory === "graduate" && (source === "university" || emptyCategory)) {
+      history.replaceState({}, "", universityPath);
+      window.dispatchEvent(new Event("zhipai-route"));
+    } else {
+      collectionNavigate("projects", "", "", true, { category: this.recordCategory, section: this.notificationFrom });
+    }
+  },
   back() {
     if (!this.busy && !this.modal && !this.panel && returnToOrderCenter())
       return;
@@ -1731,18 +1750,7 @@ registerController("collectionFlow", () => ({
         });
       return;
     }
-    if (this.scopedRecords) {
-      this.rememberScroll();
-      if (new URLSearchParams(location.search).get("from") === "university") {
-        if (returnCollectionHistory("records")) return;
-        history.replaceState({}, "", universityPath);
-        window.dispatchEvent(new Event("zhipai-route"));
-        return;
-      }
-      if (!returnCollectionHistory("records"))
-        collectionNavigate("projects", "", "", true, {category:this.recordCategory, section:this.notificationFrom});
-      return;
-    }
+    if (this.scopedRecords) return this.returnFromRecords();
     if (this.view === "projects") {
       if (this.projectCategory !== "all") {
         this.rememberScroll();
@@ -1820,10 +1828,13 @@ registerController("collectionFlow", () => ({
           encodeURIComponent("专项采集咨询")
       : undefined;
   },
+  get associationServiceEmailSubject() {
+    return this.associationService ? "知拍定制咨询｜" + this.associationService.title : "";
+  },
   get associationServiceEmailLink() {
     const service = this.associationService, email = this.supportEmail;
     if (!service || !email) return undefined;
-    const subject = encodeURIComponent(`知拍定制咨询｜${service.title}`);
+    const subject = encodeURIComponent(this.associationServiceEmailSubject);
     const body = encodeURIComponent([
       "你好，我想咨询" + service.title + "。",
       "团队或机构名称：",
@@ -1832,6 +1843,13 @@ registerController("collectionFlow", () => ({
       "材质、版式与打样需求：",
     ].join("\r\n"));
     return `mailto:${email}?subject=${subject}&body=${body}`;
+  },
+  openBusinessContact() {
+    if (!this.associationService || !this.supportEmail || this.busy || this.panel) return;
+    this.previousFocus = document.activeElement;
+    this.contactNotice = "";
+    history.pushState({ ...history.state, associationContactFor: this.associationService.id }, "", location.href);
+    this.panel = "businessContact";
   },
   get canContactSupport() {
     return this.isCategoryLanding || this.view === "services" || (this.isRecordView && this.current);
@@ -1918,7 +1936,9 @@ registerController("collectionFlow", () => ({
   },
   closePanel() {
     if (this.busy) return;
-    if (this.panel === "email" && this.categoryContactPanel && typeof history.back === "function") {
+    if (((this.panel === "email" && this.categoryContactPanel) ||
+        (this.panel === "businessContact" && history.state?.associationContactFor === this.associationService?.id))
+        && typeof history.back === "function") {
       history.back();
       return;
     }

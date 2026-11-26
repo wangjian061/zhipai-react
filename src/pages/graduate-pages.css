@@ -41,7 +41,16 @@
   padding-block:12px;
 }
 .university-stage > * { flex:none; }
-.university-hero-modes { align-self:center; }
+.university-hero-modes { position:relative; align-self:center; }
+.university-hero-mode-note {
+  position:absolute;
+  inset-inline-start:calc(100% + 6px);
+  top:50%;
+  transform:translateY(-50%);
+  white-space:nowrap;
+  font-size:10.5px;
+  color:var(--collection-meta-ink);
+}
 .university-hero-modes .ui-segmented-control { border-radius:var(--university-pill-radius); }
 .university-hero-modes .ui-segmented-control::before {
   inset:7px 0;
@@ -710,6 +719,17 @@
 .graduate-action-pair { width:100%; display:grid; grid-template-columns:auto minmax(0, 1fr); gap:8px; }
 .graduate-action-pair > button { width:100%; min-width:0; margin:0; padding-inline:12px; }
 .graduate-action-pair > button:only-child { grid-column:1/-1; }
+.graduate-guest-actions { display: grid; gap: 8px; width: 100%; }
+.graduate-guest-actions > button { width: 100%; margin: 0; }
+.graduate-print-page .graduate-crop-notice,
+.graduate-sheet .graduate-crop-notice {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: var(--ui-input-radius);
+  background: var(--ui-warning-fill);
+  color: var(--ui-warning-ink);
+  font-size: 13px;
+}
 .graduate-crop-sheet .ui-segmented-control { margin-bottom:12px; }
 .graduate-fees { margin:10px 0 0; }
 .graduate-fees > div { min-height:34px; align-items:center; }

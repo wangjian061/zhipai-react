@@ -268,7 +268,7 @@
   padding-top:8px;
 }
 
-.collection-project-records-list{display:flex;flex-direction:column;gap:12px;padding:4px}
+.collection-project-records-list{display:flex;flex-direction:column;gap:10px;padding:4px}
 .collection-drawer[data-panel="projectRecords"] .collection-drawer-body{background:var(--ui-canvas);padding:16px 16px var(--device-nav-bottom,29px)}
 
 /* Shared by the records page and the current-project task drawer. */
@@ -384,7 +384,7 @@
 .collection-record-action svg { width:12px; height:12px; }
 .collection-record-action.is-recovery { color:var(--ui-danger-ink); font-weight:600; }
 
-.collection-page[data-view="records"][data-record-category] {
+.collection-page[data-view="records"][data-record-category], .collection-project-records-list {
   --collection-record-ink:#111c38;
   --collection-record-muted:#64748b;
 }
@@ -431,19 +431,19 @@
 .collection-page[data-view="records"][data-record-category] .collection-record-list {
   gap:10px;
 }
-.collection-page[data-view="records"][data-record-category] .is-record-list-item {
+:is(.collection-page[data-view="records"][data-record-category], .collection-project-records-list) .is-record-list-item {
   gap:12px;
   padding:12px;
   background:var(--surface);
   box-shadow:none;
 }
-.collection-page[data-view="records"][data-record-category] .collection-record-portrait {
+:is(.collection-page[data-view="records"][data-record-category], .collection-project-records-list) .collection-record-portrait {
   width:72px;
   height:96px;
   border-color:color-mix(in srgb, var(--collection-record-ink) 6%, transparent);
   background:#f1f4fa;
 }
-.collection-page[data-record-category] .is-record-list-item .collection-record-portrait > img {
+:is(.collection-page[data-record-category], .collection-project-records-list) .is-record-list-item .collection-record-portrait > img {
   object-fit:cover;
   object-position:center top;
 }
@@ -668,7 +668,7 @@
 }
 .collection-project-content > .feedback-module strong { font-weight: 500; }
 .screen:has(.collection-example-viewer) { --native-chrome-ink: #fff; }
-#collection-modal-layer:has(.collection-example-viewer) { z-index: var(--ui-layer-viewer); }
+:is(#collection-modal-layer, #scan-modal-layer):has(.collection-example-viewer) { z-index: var(--ui-layer-viewer); }
 .collection-example-viewer .album-photo-viewer-toolbar {
   align-items: center;
   justify-content: space-between;

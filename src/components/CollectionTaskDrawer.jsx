@@ -1,5 +1,19 @@
 import React, { useCallback, useLayoutEffect, useRef } from "react";
+import CollectionRecordCard from "./CollectionRecordCard.jsx";
 import SharedSheet from "./SharedSheet.jsx";
+
+export function ProjectRecordsDrawer({ scope: s }) {
+  return <SharedSheet opened embedded id="project-records-title" className="collection-drawer"
+    title={s.panelTitle} busy={s.busy} onClose={() => s.closePanel()}
+    dialogRef={node => { s.$refs.collectionDialog = node; }}>
+    <div className="collection-project-records-list">
+      {s.projectRecords.map(record => <CollectionRecordCard key={record.id} scope={s} record={record} />)}
+      {!s.projectRecords.length && <p className="collection-empty">
+        {s.project.type === "association" ? "该机构还没有采集记录" : "该院校还没有采集记录"}
+      </p>}
+    </div>
+  </SharedSheet>;
+}
 
 function InformationRows({ rows }) {
   return (

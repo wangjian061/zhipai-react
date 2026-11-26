@@ -82,7 +82,8 @@ test("empty all-project search renders its own search surface without pre-search
         html.includes('enterkeyhint="search"'),
     );
     assert.ok(html.includes("搜索项目名称或机构"));
-    assert.ok(html.includes("查找采集项目"));
+    assert.match(html, /常见示例<\/h2><span>本地示例.*快捷试搜/);
+    assert.doesNotMatch(html, /collection-project-search-empty/);
     assert.ok(!html.includes('class="collection-project-row"'));
     assert.ok(!html.includes("collection-home-hero"));
     assert.ok(!html.includes("collection-floating-nav"));
@@ -447,7 +448,8 @@ test("clearing keeps the previous search position under its old key and restores
     assert.equal(s.scrollHost.scrollTop, 0);
     assert.equal(s.projectSearchReturnId, "");
     const html = render(s);
-    assert.ok(html.includes("查找采集项目"));
+    assert.match(html, /常见示例<\/h2><span>本地示例.*快捷试搜/);
+    assert.doesNotMatch(html, /collection-project-search-empty/);
     assert.ok(!html.includes('class="collection-project-row"'));
   } finally {
     flow.stop();
@@ -536,6 +538,7 @@ test("the enrollment landing defaults to six display-only steps with independent
     assert.equal(enrollmentHeroMode({ enrollmentHeroMode: "unknown" }), "flow");
     const html = render(s);
     assert.match(html, /role="radiogroup" aria-label="原型配置切换 · 正式版由后台配置"/);
+    assert.match(html, /class="university-hero-mode-note" aria-hidden="true">原型切换</);
     assert.match(html, /type="radio"[^>]*checked=""[^>]*value="flow"/);
     assert.doesNotMatch(html, /enrollment-wall|学信网/);
     const rail = html.match(/<section class="university-rail"[^>]*>(.*?)<\/section>/s)[1];
@@ -636,4 +639,43 @@ test("school rows honor touch holds, alternating tempos and a single manually sc
   assert.match(css, /translate3d\(-50%, 0, 0\)/);
   assert.match(css, /data-held.*?animation-play-state: paused/s);
   assert.match(css, /prefers-reduced-motion: reduce.*?overflow-x: auto.*?animation: none.*?aria-hidden="true".*?display: none/s);
+});
+
+test("independent searches share the single-focus capsule and an external submit; the directory opens for browsing", async () => {
+  const { default: GraduatePage } = await server.ssrLoadModule("/src/pages/UniversityCollectionPage.jsx");
+  const { default: SupportSearch } = await server.ssrLoadModule("/src/components/SupportSearch.jsx");
+  for (const category of ["all", "enrollment", "association", "graduate", "support"]) {
+    const route = category === "graduate" ? "/?page=collection&view=university&category=graduate&mode=search"
+      : "/?page=collection&view=projects&category=" + category + "&search=1";
+    const { s, flow } = setup(category === "support" ? "/?page=support" : route);
+    try {
+      const html = category === "graduate" ? renderToStaticMarkup(React.createElement(GraduatePage, { route }))
+        : category === "support" ? renderToStaticMarkup(React.createElement(SupportSearch, { s: { query: "", filtered: [{ question: "采集码在哪里获取？" }] } }))
+        : render(s);
+      const [form] = DomUtils.getElementsByTagName("form", parseDocument(html).children);
+      const [field, submit] = DomUtils.getChildren(form).filter(node => node.type === "tag");
+      assert.equal(field.attribs.class, "collection-project-search-field");
+      assert.equal(DomUtils.getElementsByTagName("input", field.children)[0].attribs.type, "search");
+      assert.equal(submit.attribs.type, "submit");
+      assert.equal(DomUtils.textContent(submit), "搜索");
+      if (category === "association") {
+        assert.doesNotMatch(html, /快捷试搜|autoFocus/i);
+        assert.match(html, /全部机构/);
+      } else {
+        assert.match(html, /本地示例.*快捷试搜/s);
+        assert.doesNotMatch(html, /collection-project-search-empty/);
+        if (category === "enrollment") {
+          assert.match(html, /常见示例院校.*示例学院/s);
+          const chips = DomUtils.findOne(node => node.attribs["aria-label"] === "快捷试搜", parseDocument(html).children);
+          s.keyword = DomUtils.textContent(DomUtils.getElementsByTagName("button", chips.children)[0]);
+          s.searchProjects();
+          assert.equal(s.searchTerm, s.keyword);
+          assert.match(render(s), /搜索结果.*data-project-id="enrollment"/);
+        }
+      }
+    } finally { flow.stop(); }
+  }
+  const css = readFileSync(new URL("../src/styles/collection-project-search.css", import.meta.url), "utf8");
+  assert.match(css, /^\.collection-project-search-field:focus-within\s*\{[^}]*border-color:[^}]*box-shadow:/m);
+  assert.match(css, /^\.collection-project-search-field input\[type="search"\]:focus-visible,[^{]*\{\s*outline: none;/m);
 });

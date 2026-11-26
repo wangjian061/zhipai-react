@@ -48,12 +48,16 @@ export default function AssociationCollectionPage({ scope: s }) {
 
   return (
     <section className="university-page university-page--landing collection-category-canvas association-landing"
-      aria-label="其它采集">
+      aria-label="其它采集" inert={!!s.panel}>
       <CollectionHeader title="其它采集" compact onBack={() => s.back()} support={s} />
       <div className="association-list" ref={list}>
         <AssociationOfferCarousel scope={s} />
         <section className="association-organizations" aria-labelledby="association-orgs-title">
-          <h2 id="association-orgs-title">正在采集</h2>
+          <div className="association-orgs-heading">
+            <h2 id="association-orgs-title">正在采集</h2>
+            <button type="button" className="ui-button-text" data-directory-entry
+              onClick={() => s.enterProjectSearch("", "directory")}>全部机构 <CollectionIcon name="chevron" /></button>
+          </div>
           {organizations.length ? (
             <div className="association-orgs" ref={rail}>
               {organizations.map(project => <OrganizationCard key={project.id} project={project}

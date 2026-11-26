@@ -19,7 +19,7 @@ export const collectionCodeHelp = {
   },
 };
 
-// The university page includes a local quick guide alongside the shared tutorial.
+// The scanner and graduate landing render the same three steps and tutorial link.
 export const universityChsiSteps = [
   { title: "打开学信网", path: "微信搜「学信网」小程序或打开学信网 App" },
   { title: "找到图像采集码", path: "学信档案 → 高等教育信息 → 图像采集码" },

@@ -24,17 +24,21 @@ export default function CollectionRecords({ scope: s }) {
       list.current.scrollTop = s.sectionScroll[s.scrollKey] || 0;
   }, [s, s.view, s.scrollKey, s.account.session?.phone]);
   if (s.view !== "records") return null;
+  const currentCategory = s.recordCategory || s.category;
+  const filteredEmpty = s.recordFilter !== "all" && s.recordsInCategory(currentCategory).length > 0;
+  const categoryActions = { graduate: "前往毕业生采集", enrollment: "前往新生采集", association: "查看合作机构" };
+  function selectFilter(id) {
+    if (!s.selectRecordFilter(id)) return;
+    if (list.current) list.current.scrollTop = 0;
+    s.sectionScroll[s.scrollKey] = 0;
+  }
   const progressFilters = (
     <div className={"collection-record-filters" + (s.scopedRecords ? " collection-record-filters--tabs" : "")}
       role="group" aria-label="采集进度">
       {filters.map(({ id, name }) => (
         <button key={id} type="button" className={s.recordFilter === id ? "is-selected" : ""}
           aria-pressed={s.recordFilter === id}
-          onClick={() => {
-            if (!s.selectRecordFilter(id)) return;
-            if (list.current) list.current.scrollTop = 0;
-            s.sectionScroll[s.scrollKey] = 0;
-          }}>
+          onClick={() => selectFilter(id)}>
           {name}
         </button>
       ))}
@@ -137,7 +141,6 @@ export default function CollectionRecords({ scope: s }) {
                   key={record.id}
                   scope={s}
                   record={record}
-                  recordsList
                 />
               ))}
               {s.recordsStore.ready &&
@@ -145,14 +148,16 @@ export default function CollectionRecords({ scope: s }) {
                 !s.filteredRecords.length && (
                   <div className="collection-empty">
                     <CollectionIcon name="document" />
-                    <p>还没有这类采集记录</p>
-                    <button
-                      className="account-text"
-                      onClick={() =>
-                        s.scopedRecords ? s.back() : s.route("home")
-                      }
-                    >
-                      {s.recordCategory === "association" ? "查看采集项目" : "返回采集首页"}
+                    <p>{filteredEmpty ? "当前筛选下暂无记录" : "还没有这类采集记录"}</p>
+                    <button type="button" className="account-text"
+                      onClick={() => {
+                        if (filteredEmpty) {
+                          selectFilter("all");
+                          s.$nextTick(() => list.current?.closest(".collection-page")?.querySelector('.collection-record-filters button[aria-pressed="true"]')?.focus({ preventScroll: true }));
+                        } else if (s.scopedRecords) s.returnFromRecords(true);
+                        else s.route("home");
+                      }}>
+                      {filteredEmpty ? "查看全部" : categoryActions[currentCategory] || "返回采集首页"}
                     </button>
                   </div>
                 )}

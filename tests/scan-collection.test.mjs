@@ -443,7 +443,7 @@ test("help uses one shared CHSI tutorial URL while retaining institution help an
   const page = fs.readFileSync("src/pages/ScanPage.jsx", "utf8"),
     css = fs.readFileSync("src/styles/scan.css", "utf8");
   assert.match(page, /机构／院校二维码/);
-  assert.match(page, /guideContent\.chsi\.url/);
+  assert.match(page, /<CodeGuide onOpenSample=/);
   assert.equal(
     collectionCodeHelp.chsi.url,
     "https://www.zhipai.com.cn/h5/bystxcj.html",
@@ -630,4 +630,73 @@ test("the institution scanner returns to the association landing after employee 
     ctx.s.back();
     assert.equal(current.pathname + current.search, path);
   } finally { ctx.close(); }
+});
+
+test("sample, guide, directory and scanner restore the triggering focus without requesting camera access on album return", async () => {
+  const ctx = setup();
+  try {
+    openScan(ctx);
+    await settle();
+    ctx.s.source = "album";
+    const before = permissionCalls;
+    let focused;
+    const control = name => ({ focus() { focused = name; } });
+    ctx.s.$refs.scanGuide = { querySelector: selector => control(selector) };
+    ctx.s.openGuide(control("scan-help"));
+    ctx.s.showGuide("chsi");
+    await settle();
+    ctx.s.openGuideSample(control("sample-button"));
+    assert.equal(ctx.s.guidePage, "sample");
+    ctx.s.back();
+    await settle();
+    assert.equal(ctx.s.guidePage, "chsi");
+    assert.equal(focused, "sample-button");
+    ctx.s.guideBack();
+    await settle();
+    assert.equal(focused, '[data-guide="chsi"]');
+    assert.equal(ctx.s.guideOpen, true);
+    ctx.s.guideBack();
+    await settle();
+    assert.equal(focused, "scan-help");
+    assert.equal(ctx.s.guideOpen, false);
+    assert.equal(ctx.s.source, "album");
+    assert.equal(permissionCalls, before);
+  } finally { ctx.close(); }
+});
+
+test("system back closes the scanner help one level and restores its serializable source entry", async () => {
+  const original = history;
+  const marker = { collectionSource: { category: "graduate" } };
+  globalThis.history = { ...original, state: marker,
+    pushState(state, title, path) {
+      this.state = structuredClone(state);
+      original.pushState(state, title, path);
+    },
+  };
+  const ctx = setup();
+  let notified = 0;
+  const notify = () => { notified++; };
+  try {
+    openScan(ctx);
+    await settle();
+    ctx.s.source = "album";
+    ctx.s.openGuide();
+    ctx.s.showGuide("chsi");
+    ctx.s.openGuideSample({ focus() {} });
+    window.addEventListener("zhipai-route", notify);
+    for (const remaining of ["chsi", "", null]) {
+      current = new URL("/?page=home", current);
+      history.state = {};
+      window.dispatchEvent(new Event("popstate"));
+      assert.equal(current.search, "?page=scan");
+      assert.deepEqual(history.state, marker);
+      assert.equal(ctx.s.guideOpen ? ctx.s.guidePage : null, remaining);
+    }
+    assert.equal(notified, 3);
+    assert.equal(ctx.s.source, "album");
+  } finally {
+    window.removeEventListener("zhipai-route", notify);
+    ctx.close();
+    globalThis.history = original;
+  }
 });

@@ -1,5 +1,5 @@
 import { collectionHistoryState, returnCollectionHistory } from "./collection-history.js";
-import { registerController, getStore } from "../runtime/state.js";
+import { registerController, getStore, raw } from "../runtime/state.js";
 import { decodePhotoBlob } from "./album.js";
 import {
   collectionScanService,
@@ -66,6 +66,7 @@ registerController("collectionScanner", () => ({
   openHandler: null,
   visibilityHandler: null,
   scanRoute: "/?page=scan",
+  scanHistoryState: null,
   get active() {
     return new URLSearchParams(location.search).get("page") === "scan";
   },
@@ -83,8 +84,9 @@ registerController("collectionScanner", () => ({
         !this.active &&
         (this.guideOpen || this.failure)
       ) {
-        history.pushState({}, "", this.scanRoute);
+        history.pushState(raw(this.scanHistoryState), "", this.scanRoute);
         this.guideOpen ? this.guideBack() : this.dismissFailure();
+        window.dispatchEvent(new Event("zhipai-route"));
         return;
       }
       this.sync();
@@ -148,6 +150,7 @@ registerController("collectionScanner", () => ({
       return;
     }
     this.scanRoute = location.pathname + location.search;
+    this.scanHistoryState = history.state || {};
     if (!this.autoStarted) {
       this.autoStarted = true;
       this.$nextTick(() => {
@@ -412,9 +415,9 @@ registerController("collectionScanner", () => ({
     this.failure = null;
     this.pickPhoto();
   },
-  openGuide() {
+  openGuide(trigger = document.activeElement) {
     if (this.reading) return;
-    this.previousFocus = document.activeElement;
+    this.previousFocus = trigger;
     this.guideOpen = true;
     this.guidePage = "";
     this.stop();
@@ -428,12 +431,30 @@ registerController("collectionScanner", () => ({
     });
     this.focusSheet("scanGuide");
   },
+  openGuideSample(trigger) {
+    if (!this.guideOpen || this.guidePage !== "chsi") return;
+    this.$refs.sampleTrigger = trigger;
+    this.guidePage = "sample";
+  },
+  closeGuideSample() {
+    if (this.guidePage !== "sample") return;
+    this.guidePage = "chsi";
+    const trigger = this.$refs.sampleTrigger;
+    delete this.$refs.sampleTrigger;
+    this.$nextTick(() => trigger?.focus({ preventScroll: true }));
+  },
   guideBack() {
-    this.guidePage ? this.showDirectory() : this.closeGuide();
+    if (this.guidePage === "sample") this.closeGuideSample();
+    else if (this.guidePage) this.showDirectory();
+    else this.closeGuide();
   },
   showDirectory() {
+    const previous = this.guidePage;
     this.guidePage = "";
-    this.focusSheet("scanGuide");
+    this.$nextTick(() => {
+      if (this.$refs.scanGuideBody) this.$refs.scanGuideBody.scrollTop = 0;
+      this.$refs.scanGuide?.querySelector(`[data-guide="${previous}"]`)?.focus({ preventScroll: true });
+    });
   },
   closeGuide() {
     this.guideOpen = false;

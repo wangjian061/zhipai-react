@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Portal } from "../runtime/components.jsx";
+import React, { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { CodeGuide, SampleViewer } from "../components/ChsiCodeGuide.jsx";
 import { getControllerScopes, getSnapshot, subscribe } from "../runtime/state.js";
 import CollectionHeader from "../components/CollectionHeader.jsx";
 import SegmentedControl from "../components/SegmentedControl.jsx";
@@ -10,15 +10,12 @@ import { CollectionIcon } from "../components/CollectionHome.jsx";
 import CollectionSchoolDock from "../components/CollectionSchoolDock.jsx";
 import { PrintShowroom, clearPrintReturn } from "../components/CollectionPrintShowroom.jsx";
 import SharedSheet from "../components/SharedSheet.jsx";
-import { TaskBackButton } from "../components/ToolNavigation.jsx";
-import { collectionCodeHelp, universityChsiSteps } from "../domain/collection-code-help.js";
+import { SearchHeader, SearchExamples, SearchEmpty } from "../components/IndependentSearch.jsx";
 import { goGraduate } from "../domain/graduate-print.js";
 import { collectionHistoryState, rememberGraduateHero, returnCollectionHistory, universityPath, universityProjectPath } from "../domain/collection-history.js";
-import "../styles/album-photo-viewer.css";
 import "./graduate-pages.css";
 
 const cap = "/assets/collection-icon-graduate.webp";
-const sample = "/assets/collection-chsi-code-sample.webp";
 const scanLabel = "扫码 / 上传采集码";
 const statusLabels = { ongoing: "进行中", not_started: "未开始", ended: "已结束" };
 const scrollPositions = new Map();
@@ -26,65 +23,11 @@ const heroModes = [{ value: "flow", label: "采集流程" }, { value: "schools",
 export function CollectionHeroModes({ value, onChange }) {
   return <div className="university-hero-modes">
     <SegmentedControl label="原型配置切换 · 正式版由后台配置" options={heroModes} value={value} onChange={onChange} />
+    <span className="university-hero-mode-note" aria-hidden="true">原型切换</span>
   </div>;
 }
 function universityLink(mode, params = {}) {
   return universityPath + (mode ? "&" + new URLSearchParams({ mode, ...params }) : "");
-}
-function CodeGuide({ onOpenSample }) {
-  return <>
-    <section className="university-code-example" aria-labelledby="university-code-example-title">
-      <button type="button" className="university-sample" aria-label="放大学信网图像采集码示例"
-        aria-haspopup="dialog" onClick={onOpenSample}>
-        <img src={sample} width="373" height="536" alt="" />
-      </button>
-      <div className="university-code-example-copy">
-        <span className="university-code-source">学信网官方凭证</span>
-        <h3 id="university-code-example-title">图像采集码长这样</h3>
-        <ul className="university-code-checklist" role="list">
-          <li><CollectionIcon name="check" />含姓名与院校学籍</li>
-          <li><CollectionIcon name="check" />二维码完整无遮挡</li>
-        </ul>
-        <button type="button" className="university-sample-zoom" aria-haspopup="dialog" onClick={onOpenSample}>
-          <CollectionIcon name="search" />放大看样图
-        </button>
-      </div>
-    </section>
-    <ol className="university-code-steps" role="list">
-      {universityChsiSteps.map(({ title, path }, index) => (
-        <li key={title}>
-          <span className="university-code-step-number" aria-hidden="true">{index + 1}</span>
-          <div><strong>{title}</strong><p>{path}</p></div>
-        </li>
-      ))}
-    </ol>
-    <div className="university-tutorial">
-      <span>找不到入口？</span>
-      <a className="ui-button-text" href={collectionCodeHelp.chsi.url} target="_blank" rel="noopener noreferrer">
-        查看图文教程 <CollectionIcon name="chevron" />
-      </a>
-    </div>
-  </>;
-}
-function SampleViewer({ onClose }) {
-  const focusClose = useCallback((button) => { button?.focus({ preventScroll: true }); }, []);
-  return <Portal target="#collection-modal-layer">
-    <section className="album-photo-viewer collection-example-viewer" role="dialog"
-      aria-modal="true" aria-label="学信网图像采集码示例"
-      onKeyDown={(event) => {
-        if (event.key === "Escape") { event.preventDefault(); onClose(); }
-        if (event.key === "Tab") event.preventDefault();
-      }}>
-      <header className="album-photo-viewer-toolbar">
-        <button ref={focusClose} type="button" className="album-photo-viewer-close" aria-label="关闭大图" onClick={onClose}>
-          <CollectionIcon name="close" />
-        </button>
-      </header>
-      <div className="album-photo-viewer-stage">
-        <img src={sample} alt="学信网图像采集码示例" />
-      </div>
-    </section>
-  </Portal>;
 }
 function SchoolCard({ school, onSelect, rail = false, duplicate = false }) {
   const status = <span className="university-status" data-status={school.status}>
@@ -109,7 +52,7 @@ function SchoolCard({ school, onSelect, rail = false, duplicate = false }) {
     </button>;
   }
   const year = school.name.match(/20\d{2}届/)?.[0];
-  return <button type="button" className="university-school-card university-school-row" onClick={onSelect}>
+  return <button type="button" className="university-school-card university-school-row" data-project-id={school.id} onClick={onSelect}>
     <img src={school.image} alt="" loading="lazy" />
     <span className="university-school-text">
       <strong>{[school.organization, year].filter(Boolean).join(" · ")}</strong>
@@ -195,12 +138,17 @@ export default function UniversityCollectionPage({ route }) {
     const node = scroll.current;
     node.scrollTop = scrollPositions.get(route) || 0;
     setTerm(query);
+    const sourceId = history.state?.universitySearchFocus;
+    if (sourceId && (mode === "search" || mode === "all")) {
+      const source = [...node.querySelectorAll("[data-project-id]")].find(row => row.dataset.projectId === sourceId);
+      source?.focus({ preventScroll: true });
+    }
     const returningToPrint = !mode && history.state?.universityPrintPanel;
     setLayer(returningToPrint ? "print" : null);
     return () => { scrollPositions.set(route, node.scrollTop); };
-  }, [route, query]);
+  }, [route, query, mode]);
   useEffect(() => {
-    if (mode === "search" && !query) search.current?.focus();
+    if (mode === "search" && !query && !history.state?.universitySearchFocus) search.current?.focus();
   }, [mode, query]);
   function overlay(next, event) {
     focus.current = event.currentTarget;
@@ -232,6 +180,9 @@ export default function UniversityCollectionPage({ route }) {
   }
   function openSchool(id) {
     if (!mode) rememberHero(activeSchools.findIndex(school => school.id === id));
+    if (mode === "search" || mode === "all") {
+      history.replaceState({ ...history.state, universitySearchFocus: id }, "", location.href);
+    }
     const path = universityProjectPath(id, route);
     goGraduate(path, false, collectionHistoryState(path));
   }
@@ -256,33 +207,25 @@ export default function UniversityCollectionPage({ route }) {
   const records = flow?.categoryRecordSummary;
   const searchMode = mode === "search" || mode === "all";
   function submitSearch(value) {
-    goGraduate(universityLink(mode, { q: value.trim() }), true);
+    const keyword = value.trim();
+    setTerm(keyword);
+    const path = universityLink(mode, keyword ? { q: keyword } : {});
+    if (keyword === query) scroll.current.scrollTop = 0;
+    else {
+      scrollPositions.delete(path);
+      goGraduate(path, true);
+    }
     search.current?.blur();
   }
   return <>
     <section className={`page collection-page university-page${mode ? "" : " university-page--landing collection-category-canvas"}`}
       aria-label={title} inert={modalOpen}>
       {searchMode ? (
-        <header className="collection-project-search-header ui-task-masthead">
-          <h1 className="collection-search-sr-only">{title}</h1>
-          <TaskBackButton onClick={back} />
-          <form role="search" className="collection-project-search-form" onSubmit={(event) => {
-            event.preventDefault();
-            submitSearch(term);
-          }}>
-            <CollectionIcon name="search" />
-            <input ref={search} type="search" aria-label="输入院校名称" placeholder="输入院校名称"
-              maxLength={60} autoComplete="off" enterKeyHint="search"
-              value={term} onChange={(event) => {
-                const value = event.target.value;
-                setTerm(value);
-                if (!value && query && !event.nativeEvent.isComposing) goGraduate(universityLink(mode), true);
-              }} />
-            <button className="collection-project-search-submit" type="submit">搜索</button>
-          </form>
-        </header>
+        <SearchHeader title={title} backLabel="返回毕业生采集" inputRef={search} onBack={back}
+          placeholder="输入院校名称" value={term} onChange={setTerm}
+          onClear={() => { setTerm(""); if (query) goGraduate(universityLink(mode), true); }} onSearch={submitSearch} />
       ) : <CollectionHeader title={title} onBack={back} compact image={mode ? cap : undefined} support={!mode && flow} />}
-      <div ref={scroll} className={mode ? "university-scroll" : "university-stage"}>
+      <div ref={scroll} className={searchMode ? "university-scroll collection-project-search-content" : mode ? "university-scroll" : "university-stage"}>
         {!mode && <>
           <CollectionHeroModes value={heroMode} onChange={changeHeroMode} />
           {heroItems.length ? <GraduateHeroRail key={heroMode} mode={heroMode} items={heroItems} controls={railControls}
@@ -297,19 +240,16 @@ export default function UniversityCollectionPage({ route }) {
           </section>
         </>}
         {searchMode && (mode === "search" && !query ? (
-          <div className="collection-project-search-empty">
-            <CollectionIcon name="search" />
-            <h2>查找合作院校</h2>
-            <p>输入院校名称</p>
-            <div className="collection-search-examples" role="group" aria-label="快捷试搜">
-              {[...new Set(schools.map((item) => item.organization))].slice(0, 3).map((name) =>
-                <button type="button" key={name} onClick={() => submitSearch(name)}><span>{name}</span></button>)}
-            </div>
-          </div>
+          <SearchExamples title="常见示例院校"
+            examples={[...new Set(schools.map(item => item.organization))].slice(0, 3)}
+            hint="点击示例可直接搜索，也可输入院校名称。" onSelect={submitSearch} />
         ) : <>
-          <h2>{query ? "搜索结果" : "院校列表"}</h2>
+          {matches.length > 0 && <div className="collection-project-search-heading">
+            <h2>{query ? "搜索结果" : "院校列表"}</h2><span>{matches.length} 所院校</span>
+          </div>}
           {matches.length ? matches.map((item) => <SchoolCard key={item.id} school={item} onSelect={() => openSchool(item.id)} />) :
-            <p role="status">未找到相关院校，请更换院校名称后重试。</p>}
+            <SearchEmpty title="未找到相关院校" hint="请检查名称，或换个关键词试试"
+              onEdit={() => { search.current?.focus(); search.current?.select(); }} />}
         </>)}
       </div>
       {!mode && <CollectionSchoolDock records={records} printEntry={printEntry}

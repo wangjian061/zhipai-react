@@ -47,6 +47,16 @@ await import("../src/domain/index.js");
 const server = await createServer({
   server: { middlewareMode: true, hmr: false },
   appType: "custom",
+  plugins: [{
+    name: "render-sheet-without-browser",
+    enforce: "pre",
+    resolveId(id, importer) {
+      if (id === "../runtime/components.jsx" && importer?.endsWith("/SharedSheet.jsx")) return "\0static-sheet-portal";
+    },
+    load(id) {
+      if (id === "\0static-sheet-portal") return "export function Portal({children}) {return children}";
+    },
+  }],
 });
 after(() => server.close());
 const { default: Records } = await server.ssrLoadModule(
@@ -55,6 +65,7 @@ const { default: Records } = await server.ssrLoadModule(
 const { default: Projects } = await server.ssrLoadModule(
   "/src/components/CollectionProjects.jsx",
 );
+const { ProjectRecordsDrawer } = await server.ssrLoadModule("/src/components/CollectionTaskDrawer.jsx");
 const { default: AssociationServicePage } = await server.ssrLoadModule("/src/pages/AssociationServicePage.jsx");
 const { default: CollectionHeader } = await server.ssrLoadModule("/src/components/CollectionHeader.jsx");
 const { default: CollectionSupportDrawer } = await server.ssrLoadModule("/src/components/CollectionSupportDrawer.jsx");
@@ -293,7 +304,10 @@ test("graduate dock records retain the selected tab and scroll after viewing an 
     records.items.find(record => record.id === "graduate").status = "upload_failed";
     assert.equal(s.selectRecordFilter("ongoing"), true);
     assert.equal(s.filteredRecords.length, 0);
-    assert.match(render(Records, s), /还没有这类采集记录/);
+    assert.match(render(Records, s), /当前筛选下暂无记录.*查看全部/s);
+    s.selectRecordFilter("all");
+    assert.match(render(Records, s), /data-record-id="graduate"/);
+    assert.equal(location.searchParams.get("view"), "records");
     assert.equal(s.selectRecordFilter("complete"), true);
     const html = render(Records, s);
     assert.match(html, /aria-pressed="true">已完成/);
@@ -419,7 +433,7 @@ test("each public association service loads full content and returns to the open
       assert.equal(render(Projects, s), "");
       const html = render(AssociationServicePage, s);
       assert.match(html, /tool-navigation.*aria-label="返回其它采集"/s);
-      assert.match(html, /可以定制设计。<\/p>.*规格与工艺.*定制合作流程.*沟通需求.*线上采集.*样张核对.*批量交付.*商务定制咨询.*复制联系邮箱.*联系商务咨询/s);
+      assert.match(html, /支持按需定制版面设计.*规格与工艺.*定制合作流程.*沟通需求.*线上采集.*样张核对.*批量交付.*商务定制咨询.*复制商务邮箱.*联系商务咨询/s);
       for (const value of [title, specification, highlight, "zpai_service@163.com"])
         assert.ok(html.includes(value), value);
       assert.doesNotMatch(html, /role="dialog"|立即下单|线上支付|企业微信|href="tel:/);
@@ -434,6 +448,23 @@ test("each public association service loads full content and returns to the open
       assert.equal(draft.searchParams.get("subject"), "知拍定制咨询｜" + title);
       assert.match(draft.searchParams.get("body"), /预估数量.*期望交付时间.*打样需求/s);
 
+      assert.doesNotMatch(html, /复制联系邮箱|href="mailto:|。可以定制设计/);
+      for (const close of [() => s.closePanel(), () => history.back()]) {
+        s.openBusinessContact();
+        assert.equal(s.panel, "businessContact");
+        assert.equal(history.state.associationContactFor, id);
+        s.sync();
+        assert.equal(s.panel, "businessContact");
+        const modal = render(AssociationServicePage, s);
+        assert.match(modal, /association-service-page"[^>]+inert=""/);
+        assert.equal((modal.match(/role="dialog"/g) || []).length, 1);
+        assert.match(modal, /role="dialog".*商务邮箱.*zpai_service@163.com.*邮件主题.*点击打开邮箱将离开知拍.*复制邮箱.*href="mailto:.*打开邮箱/s);
+        assert.ok(modal.includes("知拍定制咨询｜" + title));
+        assert.equal(s.associationServiceEmailSubject, "知拍定制咨询｜" + title);
+        close();
+        assert.equal(s.panel, null);
+        assert.equal(location.searchParams.get("service"), id);
+      }
       s.openAssociationPrint();
       assert.equal(s.view, "association-service");
       if (index === 0) s.back();
@@ -547,5 +578,72 @@ test("the die-cut offer enters layout production directly and its Back action re
     assert.equal(history.state.associationRailOffset, 172);
     assert.equal(s.scrollHost.scrollTop, 57);
     assert.equal(s.panel, null);
+  } finally { flow.stop(); }
+});
+
+test("a genuinely empty category leads back to its own landing; a filter empty stays in records", () => {
+  const actions = { graduate: "前往毕业生采集", enrollment: "前往新生采集", association: "查看合作机构" };
+  for (const [category, action] of Object.entries(actions)) {
+    const { s, flow, records } = setup(category, "/?page=collection&view=records&category=" + category);
+    try {
+      s.selectRecordFilter("complete");
+      assert.match(render(Records, s), /当前筛选下暂无记录.*查看全部/s);
+      const here = location.href;
+      s.selectRecordFilter("all");
+      assert.equal(location.href, here);
+      assert.ok(s.filteredRecords.some(record => record.id === category));
+      records.items = records.items.filter(record => record.projectId !== category);
+      for (const filter of ["all", "ongoing", "complete"]) {
+        s.selectRecordFilter(filter);
+        const html = render(Records, s);
+        assert.ok(html.includes("还没有这类采集记录") && html.includes(action));
+        assert.doesNotMatch(html, /当前筛选下暂无记录|查看全部/);
+      }
+      s.returnFromRecords(true);
+      assert.equal(location.searchParams.get("category"), category);
+      assert.equal(location.searchParams.get("view"), category === "graduate" ? "university" : "projects");
+    } finally { flow.stop(); }
+  }
+});
+
+test("current project tasks share the record list card and open the matching task", () => {
+  for (const category of ["graduate", "enrollment", "association"]) {
+    const { s, flow } = setup(category);
+    try {
+      s.openProject(category);
+      s.openPanel("projectRecords");
+      const html = render(ProjectRecordsDrawer, s);
+      assert.match(html, /当前采集任务.*collection-project-records-list.*is-record-list-item.*collection-record-portrait.*collection-record-outcome/s);
+      assert.ok(html.includes(s.project.organization) && html.includes(s.project.name));
+      assert.doesNotMatch(html, /采集机构|查看详情/);
+      s.openRecord(s.projectRecords[0]);
+      assert.equal(s.current.id, category);
+      s.back();
+      assert.equal(s.projectId, category);
+    } finally { flow.stop(); }
+  }
+});
+
+test("both organization directory entries return to the triggering control and previous rail position", async () => {
+  const { s, flow } = setup("association");
+  try {
+    let focused;
+    const trigger = name => ({ focus() { focused = name; } });
+    s.scrollHost.querySelector = selector => selector === "[data-directory-entry]" ? trigger("directory") : null;
+    s.$refs.projectSearchEntry = trigger("primary");
+    s.$refs.associationRail = { scrollLeft: 160 };
+    for (const source of ["directory", "primary"]) {
+      assert.match(render(Projects, s), /正在采集<\/h2><button[^>]+data-directory-entry[^>]*>全部机构/);
+      s.enterProjectSearch("", source);
+      assert.equal(s.isProjectSearch, true);
+      assert.equal(s.focusNewSearch, false);
+      assert.match(render(Projects, s), /class="collection-directory-group"/);
+      s.back();
+      await wait();
+      assert.equal(focused, source);
+      assert.equal(history.state.associationRailOffset, 160);
+    }
+    s.openEmailContact();
+    assert.match(render(Projects, s), /aria-label="其它采集" inert=""/);
   } finally { flow.stop(); }
 });

@@ -86,6 +86,9 @@
   outline: 2px solid var(--brand-blue);
 }
 
+.association-orgs-heading { display: flex; align-items: center; justify-content: space-between; }
+.association-orgs-heading button { display: inline-flex; align-items: center; gap: 2px; min-height: var(--ui-touch-min); font-size: 13px; }
+.association-orgs-heading button svg { width: 12px; height: 12px; }
 .association-organizations h2 {
   margin: 0;
   color: var(--ui-heading);
@@ -335,6 +338,14 @@
   background: var(--surface);
   border-top: 1px solid var(--ui-divider);
 }
+.association-service-footer > button {
+  width:100%;
+  min-height:var(--ui-touch-min);
+  border-radius:999px;
+}
+.association-contact-sheet dd { user-select: text; overflow-wrap: anywhere; }
+.association-contact-sheet .ui-sheet-body > p { margin-top:12px; color:var(--ui-body); font-size:13px; }
+.association-contact-sheet .shared-sheet-actions > div { width:100%; }
 .association-service-footer > p {
   margin: 0 0 5px;
   color: var(--ui-body);

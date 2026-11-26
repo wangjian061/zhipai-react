@@ -24,6 +24,7 @@ const server = await createServer({ server: { middlewareMode: true, hmr: false }
 after(() => server.close());
 const { PrintShowroom, showroomSwipeProduct, openPrintProduct, clearPrintReturn } = await server.ssrLoadModule("/src/components/CollectionPrintShowroom.jsx");
 
+const { CodeGuide } = await server.ssrLoadModule("/src/components/ChsiCodeGuide.jsx");
 const { default: SchoolDock } = await server.ssrLoadModule("/src/components/CollectionSchoolDock.jsx");
 const { default: UniversityLanding, GraduateHeroRail } = await server.ssrLoadModule("/src/pages/UniversityCollectionPage.jsx");
 const bytes = new Blob(["photo"], { type: "image/jpeg" });
@@ -131,6 +132,7 @@ test("graduate hero config defaults to the five illustrated instructions, with a
   assert.match(GRADUATE_FLOW_STEPS[4].description, /已成功上传至学信网/);
   const html = renderToStaticMarkup(React.createElement(UniversityLanding, { route: universityPath }));
   assert.match(html, /role="radiogroup" aria-label="原型配置切换 · 正式版由后台配置"/);
+  assert.match(html, /class="university-hero-mode-note" aria-hidden="true">原型切换/);
   assert.match(html, /type="radio"[^>]*checked=""[^>]*value="flow"/);
   const rail = html.match(/<section class="university-rail"[^>]*>(.*?)<\/section>/s)[1];
   assert.equal((rail.match(/<article /g) || []).length, 15);
@@ -157,9 +159,10 @@ test("the dock opens the code guide with access to the sample and scanner", () =
   assert.match(source, /<CollectionSchoolDock[\s\S]*onGuide=\{event => overlay\("help", event\)\}/);
   assert.doesNotMatch(source, /查看学信采集码示例/);
   assert.match(source, /title="3 步获取图像采集码"[\s\S]*已有采集码，去扫码 \/ 上传[\s\S]*<CodeGuide onOpenSample=\{openSample\}/);
-  assert.match(source, /学信网官方凭证[\s\S]*图像采集码长这样[\s\S]*放大看样图/);
-  assert.equal(source.match(/aria-haspopup="dialog" onClick=\{onOpenSample\}/g)?.length, 2);
-  assert.match(source, /找不到入口？[\s\S]*查看图文教程/);
+  const guide = renderToStaticMarkup(React.createElement(CodeGuide));
+  assert.match(guide, /学信网官方凭证[\s\S]*图像采集码长这样[\s\S]*放大看样图/);
+  assert.equal(guide.match(/aria-haspopup="dialog"/g)?.length, 2);
+  assert.match(guide, /找不到入口？[\s\S]*查看图文教程/);
   assert.match(source, /focusDialogOnOpen=\{guideFromPointer.current\}/);
   assert.match(source, /layer === "sample" && <SampleViewer onClose=\{closeSample\}/);
   assert.ok(readFileSync(new URL("../public/assets/collection-chsi-code-sample.webp", import.meta.url)).length > 0);
@@ -203,9 +206,10 @@ test("the full-screen code sample covers the guide and restores its original tri
   const source = readFileSync(new URL("../src/pages/UniversityCollectionPage.jsx", import.meta.url), "utf8");
   const collectionStyles = readFileSync(new URL("../src/styles/collection.css", import.meta.url), "utf8");
   const graduateStyles = readFileSync(new URL("../src/pages/graduate-pages.css", import.meta.url), "utf8");
-  assert.match(source, /function SampleViewer\([\s\S]*?target="#collection-modal-layer"[\s\S]*?className="album-photo-viewer collection-example-viewer"/);
-  assert.match(source, /ref=\{focusClose\}[^>]*aria-label="关闭大图"/);
-  assert.match(collectionStyles, /#collection-modal-layer:has\(\.collection-example-viewer\)\s*\{\s*z-index:\s*var\(--ui-layer-viewer\)/);
+  const viewer = readFileSync(new URL("../src/components/ChsiCodeGuide.jsx", import.meta.url), "utf8");
+  assert.match(viewer, /function SampleViewer\([\s\S]*?target = "#collection-modal-layer"[\s\S]*?<Portal target=\{target\}[\s\S]*?className="album-photo-viewer collection-example-viewer"/);
+  assert.match(viewer, /ref=\{focusClose\}[^>]*aria-label="关闭大图"/);
+  assert.match(collectionStyles, /:is\(#collection-modal-layer, #scan-modal-layer\):has\(\.collection-example-viewer\)\s*\{\s*z-index:\s*var\(--ui-layer-viewer\)/);
   assert.match(source, /suspended=\{layer === "sample"\}/);
   assert.match(graduateStyles, /\.shared-sheet-overlay\[inert\]:has\(> \.university-guide-sheet\)\s*\{\s*visibility:hidden/);
   assert.match(source, /sampleTrigger\.current = event\.currentTarget;[\s\S]*?function closeSample\(\)\s*\{[\s\S]*?trigger\.focus\(/);
