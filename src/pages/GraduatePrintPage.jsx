@@ -1,18 +1,20 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Controller, View } from "../runtime/components.jsx";
+import { Controller, Portal, View } from "../runtime/components.jsx";
 import ToolNavigation from "../components/ToolNavigation.jsx";
 import SharedSheet, { SheetFrame } from "../components/SharedSheet.jsx";
 import ToolPhotoSelection from "../components/ToolPhotoSelection.jsx";
 import FixedPhotoCrop from "../components/FixedPhotoCrop.jsx";
 import SegmentedControl from "../components/SegmentedControl.jsx";
-import ShippingAddressFields from "../components/ShippingAddressFields.jsx";
+import { PrintAddressEntry } from "../components/PrintAddressBook.jsx";
+import { PrintProductGallery, PrintProductSpecs } from "../components/PrintWorkspace.jsx";
+import { PrintGalleryViewer } from "../components/PrintLayoutViewer.jsx";
+import PhotoSelectionActions from "../components/PhotoSelectionActions.jsx";
 import { PaymentChoices, PaymentRecovery } from "../components/PaymentHandoff.jsx";
 import { checkoutLabel } from "../domain/payment-handoff.js";
 import { openOrderCenter } from "../domain/order-routing.js";
-import { goGraduate, graduateCropReady, graduatePrintPath, graduatePrintTitle, graduateRatio, graduateSourceAllowed, graduatePrintPrices, graduateQuote } from "../domain/graduate-print.js";
+import { graduateCropReady, graduatePrintPath, graduatePrintTitle, graduateProductImages, graduateRatio, graduateSourceAllowed, graduatePrintPrices, graduateQuote } from "../domain/graduate-print.js";
 import "./graduate-pages.css";
 
-const asset = "/assets/print-graduate-6inch-sample.webp";
 const price = (cents) => `¥${(cents / 100).toFixed(2)}`;
 const orientations = [
   { value: "landscape", label: "横版 3∶2" },
@@ -33,7 +35,7 @@ function LocalImage({ photo, alt, ...props }) {
   return url ? <img src={url} alt={alt} {...props} /> : <span className="graduate-image-loading" role="status">正在读取照片…</span>;
 }
 function PhotoGrid({ s }) {
-  return <div className="graduate-print-grid" aria-label="已选照片">
+  return <div className="graduate-print-grid">
     {s.photos.map((item, index) => {
       const ready = graduateCropReady(item);
       return <View as="article" scope={s} refName={`photo-${item.id}`} key={item.id}
@@ -49,6 +51,25 @@ function PhotoGrid({ s }) {
       </View>;
     })}
   </div>;
+}
+
+function GraduateProduct({ s }) {
+  const { minimum, base, additional, shipping } = graduatePrintPrices;
+  return <>
+    <PrintProductGallery items={graduateProductImages} current={s.galleryItem} disabled={!s.store.ready || s.busy}
+      triggerRef={node => { s.$refs.productImage = node; }}
+      onSelect={id => s.selectProductImage(id)} onOpen={() => s.openProductImage()} />
+    <PrintProductSpecs title="六寸光面照片冲印">
+      <div><dt>相纸规格</dt><dd>六寸光面</dd></div>
+      <div><dt>起印价格</dt><dd><span className="ui-price">{price(base)}</span> / {minimum} 张</dd></div>
+      <div><dt>加印</dt><dd>{price(additional)}/张，张数不限</dd></div>
+      <div><dt>运费</dt><dd>{price(shipping)}</dd></div>
+    </PrintProductSpecs>
+    {s.photos.length > 0 && <section className="tool-settings graduate-photos" aria-labelledby="graduate-photos-title">
+      <h2 id="graduate-photos-title">已选照片</h2>
+      <PhotoGrid s={s} />
+    </section>}
+  </>;
 }
 function SelectionSheet({ s, close }) {
   const input = useRef(null);
@@ -112,7 +133,7 @@ function OrderSummary({ s }) {
     </dl>
   </section>;
 }
-function GraduatePrintScreen({ s }) {
+export function GraduatePrintScreen({ s }) {
   function close() {
     if (s.busy) return;
     s.error = "";
@@ -121,34 +142,23 @@ function GraduatePrintScreen({ s }) {
     s.panel = "";
   }
   const stage = s.transferringGuest ? "guest" : s.order?.paidAt && s.view !== "work" ? "complete" : s.view;
-  const locked = !!s.order || s.busy;
   const missing = s.error.startsWith("还差 ");
   const minimumRemaining = graduatePrintPrices.minimum - s.photos.length;
   return <>
     <section className="page print-page ui-task-page graduate-print-page" aria-label={graduatePrintTitle} inert={!!s.panel}>
       <ToolNavigation title={stage === "confirm" ? "确认订单" : stage === "complete" ? "订单已确认" : graduatePrintTitle}
         onBack={() => s.back()} disabled={s.busy} />
-      <div className="graduate-scroll">
+      <div className={stage === "work" ? "print-body keepsake-scroll" : "graduate-scroll"}>
         {!s.store.ready && (s.store.error ? <p role="alert">{s.store.error} <button type="button" onClick={() => s.store.load()}>重新读取</button></p> : <p role="status">正在读取冲印草稿…</p>)}
         {stage === "guest" && <section className="tool-settings graduate-card">
           <h2>{s.guestOrder ? "选择本次冲印任务" : "转入本次照片"}</h2>
           <p>{s.guestOrder ? "账号中的已有订单和本次新选照片都已保留。" : "正在读取登录前的选图与裁剪进度。"}</p>
         </section>}
-        {stage === "work" && <>
-          <section className="tool-settings graduate-card">
-            <img className="graduate-print-art" src={asset} width="1200" height="800" alt="六寸毕业合影与校园照实物样品" />
-            <div className="graduate-card-heading"><h2>六寸光面照片冲印</h2><strong className="ui-price">¥60.00 起 / 10 张</strong></div>
-            <p>满 10 张起印，张数不限。每多 1 张 ¥6.00，运费 ¥10.00 另算。</p>
-            <p>每张请手动裁剪为六寸，可选横版 3∶2 或竖版 2∶3。</p>
-          </section>
-          {s.photos.length > 0 && <PhotoGrid s={s} />}
-        </>}
+        {stage === "work" && <GraduateProduct s={s} />}
         {stage === "confirm" && <>
-          <View as="section" scope={s} refName="graduateAddress" className="tool-settings graduate-card">
-            <h2>收货地址</h2>
-            <ShippingAddressFields fields={s.fields} disabled={locked} error={s.addressError}
-              onChange={(key, value) => { s.fields = { ...s.fields, [key]: value }; if (s.addressError) s.addressError = ""; }} />
-          </View>
+          <PrintAddressEntry address={s.checkoutAddress} disabled={!s.editable} readOnly={!!s.order}
+            buttonRef={node => { s.$refs.graduateAddress = node; }} error={s.addressError}
+            onOpen={() => s.openAddresses()} />
           {(s.quote || s.order) && <OrderSummary s={s} />}
           <PaymentRecovery order={s.order} busy={s.busy} resolution={s.resolution} setResolution={(value) => { s.resolution = value; }} />
         </>}
@@ -157,22 +167,21 @@ function GraduatePrintScreen({ s }) {
           <OrderSummary s={s} />
         </>}
       </div>
-      <footer className="print-footer graduate-print-footer">
-        {stage === "work" && <div className="graduate-counts" data-missing={missing}>
+      <footer className={stage === "work" ? "print-footer photo-selection-footer print-preview-footer" : "print-footer graduate-print-footer"}>
+        {stage === "work" && (s.photos.length > 0 || missing) && <div className="graduate-counts" data-missing={missing}>
           <strong>已选 {s.photos.length} 张 · 待裁 {s.waiting.length} 张</strong>
           {s.quote ? <strong className="ui-price">{price(s.quote.print)}</strong> :
             <span role={missing ? "alert" : undefined}>还差 {minimumRemaining} 张起印</span>}
         </div>}
         {!s.panel && s.highlight && s.cropNotice && <p role="status" className="graduate-crop-notice">{s.cropNotice}</p>}
         {!s.panel && s.error && !missing && <p role="alert" className="ui-field-error">{s.error}</p>}
-        <div className="graduate-action-pair">
+        {stage === "work" ? <PhotoSelectionActions hasPhoto={s.photos.length > 0 || !!s.order}
+          disabled={!s.store.ready || s.busy} selectDisabled={!s.editable}
+          selectLabel="上传照片" replaceLabel="添加照片" nextLabel="去确认订单"
+          onSelect={() => { s.panel = "pick"; s.selection = []; s.error = ""; }}
+          onNext={() => s.confirm()} /> : <div className="graduate-action-pair">
           {stage === "guest" && <button type="button" className="primary-button" disabled={s.busy}
             onClick={() => s.adoptGuest()}>{s.guestOrder ? "选择冲印任务" : "继续转入照片"}</button>}
-          {stage === "work" && <>
-            <button className="ui-button-secondary" type="button" disabled={!s.editable}
-              onClick={() => { s.panel = "pick"; s.selection = []; s.error = ""; }}>添加照片</button>
-            <button className="primary-button" type="button" disabled={!s.store.ready || s.busy} onClick={() => s.confirm()}>去确认订单</button>
-          </>}
           {stage === "confirm" && <>
             <button className="ui-button-secondary" type="button" disabled={s.busy} onClick={() => s.back()}>上一步</button>
             <button className="primary-button" type="button" disabled={s.busy || !s.store.ready}
@@ -182,9 +191,14 @@ function GraduatePrintScreen({ s }) {
             <button className="ui-button-secondary" type="button" onClick={() => s.restart()}>再冲印一组</button>
             <button className="primary-button" type="button" onClick={() => openOrderCenter("print", graduatePrintPath)}>查看订单</button>
           </>}
-        </div>
+        </div>}
       </footer>
     </section>
+    {s.panel === "gallery" && <Portal target="#print-modal-layer">
+      <PrintGalleryViewer items={graduateProductImages} item={s.galleryItem} closing={s.galleryClosing}
+        dialogRef={node => { s.$refs.productViewer = node; }}
+        onSelect={id => s.selectProductImage(id)} onClose={() => s.closeProductImage()} />
+    </Portal>}
     {s.panel === "guestChoice" && <SharedSheet opened id="graduate-guest-choice-title" title="选择本次冲印任务"
       busy={s.busy} onClose={close}
       footer={<div className="graduate-guest-actions">

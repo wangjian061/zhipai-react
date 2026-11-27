@@ -8,12 +8,11 @@
 .university-scroll > *,
 .graduate-scroll > * { flex:none; }
 .university-scroll h2,
-.graduate-print-page h2,
+.graduate-card h2,
 .graduate-card p,
 .university-sheet p,
 .graduate-sheet p { margin:6px 0 0; color:var(--ui-body); font-size:13px; line-height:1.55; }
 .graduate-card { margin:0; border-radius:var(--ui-card-radius); background:var(--surface,#fff); }
-.graduate-card-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 
 .university-page--landing,
 .university-guide-sheet {
@@ -698,8 +697,8 @@
 .shared-sheet-overlay[inert]:has(> .university-guide-sheet) { visibility:hidden; }
 
 .graduate-print-page .graduate-card { padding:16px; }
-.graduate-print-art { display:block; width:100%; height:auto; border-radius:12px; margin-bottom:12px; background:var(--ui-input-fill); }
-.graduate-card-heading strong { font-size:15px; white-space:nowrap; }
+.graduate-scroll > .print-address-entry { margin-bottom:0; }
+.graduate-photos { margin:16px 0 0; }
 .graduate-print-grid { display:grid; grid-template-columns:repeat(2,minmax(0, 1fr)); gap:10px; }
 .graduate-print-photo { position:relative; border:1px solid var(--ui-divider); border-radius:var(--ui-card-radius); background:var(--surface,#fff); overflow:hidden; }
 .graduate-print-photo[data-highlight="true"] { outline:2px solid var(--ui-danger-ink); outline-offset:-2px; }
@@ -714,6 +713,7 @@
 .graduate-print-page .graduate-print-footer { flex:none; flex-direction:column; align-items:stretch; gap:8px; padding-top:10px; background:var(--surface,#fff); }
 .graduate-counts,
 .graduate-fees > div { display:flex; justify-content:space-between; align-items:baseline; gap:8px; color:var(--ui-body); font-size:13px; font-variant-numeric:tabular-nums; }
+.graduate-counts { margin-bottom:8px; }
 .graduate-counts strong:first-child { color:var(--ui-heading); }
 .graduate-counts[data-missing="true"] > span { color:var(--ui-danger-ink); }
 .graduate-action-pair { width:100%; display:grid; grid-template-columns:auto minmax(0, 1fr); gap:8px; }

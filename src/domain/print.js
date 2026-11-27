@@ -1,5 +1,6 @@
 import {
   cleanShippingAddress,
+  draftShippingAddress,
   shippingAddressError,
 } from "./shipping-address.js";
 import { returnToUniversityPrint, universityPrintHistory } from "./collection-history.js";
@@ -33,6 +34,26 @@ import {
   transactionState,
 } from "./order-status.js";
 const receiptUpdates = new Set();
+
+export function handlePrintDialogKey(event, dialog, close) {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    close();
+    return;
+  }
+  if (event.key !== "Tab" || !dialog) return;
+  const controls = [...dialog.querySelectorAll("button:not(:disabled),input:not(:disabled),select:not(:disabled)")]
+    .filter(node => node.getClientRects().length);
+  const first = controls[0], last = controls.at(-1);
+  if (first && event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (last && !event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
 export async function confirmPrintReceipt(id, owner) {
   if (!owner || getStore("account")?.session?.phone !== owner)
     throw Error("请重新登录后查看订单。");
@@ -636,6 +657,7 @@ registerController("printStudio", () => ({
   addressFields: {},
   addressError: "",
   addressReturn: "confirm",
+  addressOwner: "",
   online: navigator.onLine,
   previousFocus: null,
   onRoute: null,
@@ -686,6 +708,9 @@ registerController("printStudio", () => ({
     window.addEventListener("offline", this.onNetwork);
     this.$watch("$store.printLibrary.ready", (ready) => {
       if (ready && this.page === "print") this.syncLocation();
+    });
+    this.$watch("$store.account.session.phone", () => {
+      if (this.graduateAddressBook) this.syncLocation();
     });
     this.syncLocation();
   },
@@ -787,6 +812,8 @@ registerController("printStudio", () => ({
     ].indexOf(this.order?.status);
   },
   get disabled() {
+    if (this.view === "addresses" || this.view === "address")
+      return !this.store.ready || this.store.busy;
     return (
       !this.store.ready ||
       this.store.busy ||
@@ -840,6 +867,19 @@ registerController("printStudio", () => ({
   },
   get checkoutAddress() {
     return this.checkoutOrder?.address || this.address;
+  },
+  get graduateAddressBook() {
+    return this.addressReturn === "graduate" && ["addresses", "address"].includes(this.view);
+  },
+  get bookSelection() {
+    if (!this.graduateAddressBook) return this.address;
+    const draft = this.store.graduateDrafts?.[this.addressOwner];
+    return draftShippingAddress(draft?.address, this.store.addresses);
+  },
+  get bookAddresses() {
+    const selected = this.bookSelection;
+    return this.graduateAddressBook && selected && !selected.id
+      ? [{ ...selected, default: false }, ...this.store.addresses] : this.store.addresses;
   },
   get checkoutLayout() {
     const order = this.checkoutOrder;
@@ -1366,9 +1406,6 @@ registerController("printStudio", () => ({
       this.error = "版式选择未保存，请重试。";
     }
   },
-  addressText(address) {
-    return address ? address.region + " " + address.street : "";
-  },
   openOrderList() {
     if (!this.processing) openOrderCenter("print");
   },
@@ -1395,6 +1432,7 @@ registerController("printStudio", () => ({
     if (q.get("page") === "print" && q.get("view") === "graduate") {
       this.view = "graduate";
       this.modal = null;
+      this.$store.printUi.preview = !!history.state?.graduateProductImage;
       this.$store.printUi.opened = false;
       return;
     }
@@ -1495,10 +1533,22 @@ registerController("printStudio", () => ({
       ].includes(q.get("back"))
         ? q.get("back")
         : null;
-    if (this.view === "address") this.readAddressFields(q.get("address"));
-    if (this.view === "addresses" || this.view === "address")
-      this.addressReturn = q.get("back") === "preview" ? "preview" : "confirm";
-    if (this.store.ready && !this.flowCompleted && !originalCheckout) {
+    const addressScreen = this.view === "addresses" || this.view === "address";
+    if (addressScreen) {
+      const back = q.get("back");
+      this.addressReturn = ["preview", "graduate"].includes(back) ? back : "confirm";
+      if (this.graduateAddressBook) {
+        const owner = this.$store.account.session?.phone || "guest";
+        this.addressOwner = history.state?.graduateAddressOwner || owner;
+        const draft = this.store.graduateDrafts?.[this.addressOwner];
+        if (this.store.ready && (owner !== this.addressOwner || !draft || draft.orderId)) {
+          this.route("confirm", { view: "graduate" }, true);
+          return;
+        }
+      }
+      if (this.view === "address") this.readAddressFields(q.get("address"));
+    }
+    if (this.store.ready && !addressScreen && !this.flowCompleted && !originalCheckout) {
       const activePreview = this.view === "layouts" && history.state?.printPreview;
       if (activePreview && this.cropSource) {
         this.previewHistoryId = activePreview;
@@ -1539,6 +1589,10 @@ registerController("printStudio", () => ({
     });
     const state = replace && view === "confirm" && extras.from === "preview"
       ? { printReturnToPreview: true } : {};
+    if (extras.back === "graduate") {
+      state.graduateAddressOwner = this.addressOwner;
+      if (view === "address" && history.state?.graduateAddressDepth === 1) state.graduateAddressDepth = 2;
+    }
     history[replace ? "replaceState" : "pushState"]({
       ...universityPrintHistory(replace),
       ...state,
@@ -1599,13 +1653,11 @@ registerController("printStudio", () => ({
       return;
     }
     if (this.view === "address") {
-      this.route("addresses", {
-        back: this.addressReturn,
-      });
+      this.leaveAddressBook(true);
       return;
     }
     if (this.view === "addresses") {
-      this.route(this.addressReturn);
+      this.leaveAddressBook();
       return;
     }
     if (this.view === "orders") {
@@ -1745,16 +1797,18 @@ registerController("printStudio", () => ({
     }
   },
   openAddresses() {
-    if (!this.disabled)
+    if (!this.disabled && !this.checkoutOrder)
       this.route("addresses", {
         back: "confirm",
       });
   },
   readAddressFields(id) {
-    const address = this.store.addresses.find((a) => a.id === id);
+    const key = this.graduateAddressBook && id === "draft" ? null : id;
+    const address = id && this.bookAddresses.find(a => a.id === key);
     this.addressFields = address
       ? {
           ...address,
+          default: address.id ? !!address.default : this.store.addresses.length === 0,
         }
       : {
           id: null,
@@ -1767,11 +1821,37 @@ registerController("printStudio", () => ({
         };
     this.addressError = "";
   },
-  editAddress(id = null) {
+  editAddress(id) {
     this.route("address", {
-      address: id,
+      address: this.graduateAddressBook && id === null ? "draft" : id,
       back: this.addressReturn,
     });
+  },
+  leaveAddressBook(cancelEdit = false) {
+    if (this.graduateAddressBook) {
+      const depth = history.state?.graduateAddressDepth;
+      if ((depth === 1 || depth === 2) && depth < history.length) {
+        history.go(cancelEdit ? -1 : -depth);
+      } else if (cancelEdit) {
+        this.route("addresses", { back: "graduate" }, true);
+      } else {
+        this.route("confirm", { view: "graduate" }, true);
+      }
+    } else if (cancelEdit) {
+      this.route("addresses", { back: this.addressReturn });
+    } else {
+      this.route(this.addressReturn);
+    }
+  },
+  setDeliveryAddress(state, address) {
+    if (this.graduateAddressBook) {
+      const draft = state.graduateDrafts?.[this.addressOwner];
+      if (!draft || draft.orderId || this.addressOwner !== (this.$store.account.session?.phone || "guest"))
+        throw Error("冲印草稿已切换");
+      draft.address = printAddressCopy(address);
+    } else {
+      state.draft.addressId = address.id;
+    }
   },
   async saveAddress() {
     if (this.disabled) return;
@@ -1779,6 +1859,7 @@ registerController("printStudio", () => ({
     const clean = cleanShippingAddress(f, f.id || printId());
     this.addressError = shippingAddressError(clean);
     if (this.addressError) return;
+    const path = location.href;
     try {
       await this.store.commit((state) => {
         if (clean.default)
@@ -1788,16 +1869,31 @@ registerController("printStudio", () => ({
         const index = state.addresses.findIndex((a) => a.id === clean.id);
         if (index < 0) state.addresses.push(clean);
         else state.addresses[index] = clean;
-        state.draft.addressId = clean.id;
+        this.setDeliveryAddress(state, clean);
       });
-      this.route(this.addressReturn);
+      if (location.href === path) this.leaveAddressBook();
     } catch (_) {
       this.addressError = "地址保存失败，填写内容已保留，请重试。";
     }
   },
   async selectAddress(id) {
-    await this.changeDraft("addressId", id);
-    if (this.draft.addressId === id) this.route(this.addressReturn);
+    if (this.disabled) return;
+    const path = location.href;
+    if (this.graduateAddressBook && id === null) {
+      if (shippingAddressError(cleanShippingAddress(this.bookSelection))) this.editAddress(null);
+      else this.leaveAddressBook();
+      return;
+    }
+    try {
+      await this.store.commit(state => {
+        const address = state.addresses.find(item => item.id === id);
+        if (!address) throw Error("地址不存在");
+        this.setDeliveryAddress(state, address);
+      });
+      if (location.href === path) this.leaveAddressBook();
+    } catch {
+      this.error = "地址选择未保存，请重试。";
+    }
   },
   showModal(name) {
     if (!this.modal) this.previousFocus = document.activeElement;
@@ -1838,27 +1934,7 @@ registerController("printStudio", () => ({
     if (leavingCropPreview && !this.previewReady && this.cropSource?.blob) this.preparePrintPreview();
   },
   trap(event) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      this.closeModal();
-      return;
-    }
-    if (event.key !== "Tab") return;
-    const nodes = [
-      ...this.$refs.printDialog.querySelectorAll(
-        "button:not(:disabled),input:not(:disabled),select",
-      ),
-    ].filter((n) => n.getClientRects().length);
-    if (!nodes.length) return;
-    const first = nodes[0],
-      last = nodes.at(-1);
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
+    handlePrintDialogKey(event, this.$refs.printDialog, () => this.closeModal());
   },
   async submitOrder({ handoff = false } = {}) {
     if (this.disabled || this.flowCompleted) return;

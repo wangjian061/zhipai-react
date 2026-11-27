@@ -1,5 +1,6 @@
 import { SheetFrame, SheetHeader } from "../components/SharedSheet.jsx";
 import PrintLayoutViewer from "../components/PrintLayoutViewer.jsx";
+import PrintAddressBook, { PrintAddressEntry } from "../components/PrintAddressBook.jsx";
 import ShippingAddressFields from "../components/ShippingAddressFields.jsx";
 import React from "react";
 import ToolNavigation from "../components/ToolNavigation.jsx";
@@ -10,7 +11,7 @@ import FixedPhotoCrop from "../components/FixedPhotoCrop.jsx";
 import PriceText from "../components/PriceText.jsx";
 import { PaymentChoices, PaymentRecovery } from "../components/PaymentHandoff.jsx";
 import { checkoutLabel } from "../domain/payment-handoff.js";
-import { View, Repeat, Portal } from "../runtime/components.jsx";
+import { View, Portal } from "../runtime/components.jsx";
 export default function PrintPage({ scope: s }) {
   return (
     <View
@@ -123,65 +124,8 @@ export default function PrintPage({ scope: s }) {
         show={s.view === "confirm"}
       >
         <View as="div" scope={s} className="print-body" show={!s.flowCompleted}>
-          <View
-            as="button"
-            scope={s}
-            className="print-address-entry"
-            disabled={s.disabled || !!s.checkoutOrder}
-            events={[
-              {
-                type: "click",
-                prevent: false,
-                stop: false,
-                self: false,
-                passive: false,
-                run: function (scope, $event, $el) {
-                  scope.openAddresses();
-                },
-              },
-            ]}
-          >
-            <View as="span" scope={s} className="print-address-symbol">
-              <View as="svg" scope={s} aria-hidden="true">
-                <View as="use" scope={s} href="#i-nav-user"></View>
-              </View>
-            </View>
-            <View as="div" scope={s}>
-              {s.checkoutAddress ? (
-                <>
-                  <>
-                    <View as="div" scope={s}>
-                      <View as="strong" scope={s}>
-                        <View as="span" scope={s} text={s.checkoutAddress.name}></View>
-                        <View as="span" scope={s} text={s.checkoutAddress.phone}></View>
-                      </View>
-                      <View
-                        as="p"
-                        scope={s}
-                        text={s.addressText(s.checkoutAddress)}
-                      ></View>
-                    </View>
-                  </>
-                </>
-              ) : null}
-              <View as="div" scope={s} show={!s.checkoutAddress}>
-                <View as="strong" scope={s}>
-                  {"添加收货地址"}
-                </View>
-                <View as="p" scope={s}>
-                  {"照片将寄送到这个地址"}
-                </View>
-              </View>
-            </View>
-            <View
-              as="svg"
-              scope={s}
-              className="print-row-chevron"
-              aria-hidden="true"
-            >
-              <View as="use" scope={s} href="#i-chevron"></View>
-            </View>
-          </View>
+          <PrintAddressEntry address={s.checkoutAddress} disabled={s.disabled} readOnly={!!s.checkoutOrder}
+            onOpen={() => s.openAddresses()} />
           <View as="section" scope={s} className="print-card">
             <View as="div" scope={s} className="print-section-heading">
               <View as="h2" scope={s}>
@@ -412,135 +356,9 @@ export default function PrintPage({ scope: s }) {
           </View>
         </View>
       </View>
-      <View
-        as="div"
-        scope={s}
-        className="print-screen"
-        show={s.view === "addresses"}
-      >
-        <View as="div" scope={s} className="print-body">
-          <View
-            as="div"
-            scope={s}
-            className="print-empty"
-            show={s.store.ready && !s.store.addresses.length}
-          >
-            <View as="svg" scope={s} aria-hidden="true">
-              <View as="use" scope={s} href="#i-nav-user"></View>
-            </View>
-            <View as="h2" scope={s}>
-              {"添加一个收货地址"}
-            </View>
-            <View as="p" scope={s}>
-              {"收件人、联系电话和详细地址都需要填写。"}
-            </View>
-          </View>
-          <Repeat
-            scope={s}
-            items={s.store.addresses}
-            names={["item"]}
-            keyFor={function (scope, $event, $el) {
-              return scope.item.id;
-            }}
-          >
-            {(s) => (
-              <>
-                <>
-                  <View
-                    as="section"
-                    scope={s}
-                    className="print-card print-address-card"
-                  >
-                    <View
-                      as="button"
-                      scope={s}
-                      className="print-address-select"
-                      disabled={s.disabled}
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.selectAddress(scope.item.id);
-                          },
-                        },
-                      ]}
-                    >
-                      <View
-                        as="span"
-                        scope={s}
-                        className="print-radio"
-                        dynamicClass={{
-                          checked: s.draft.addressId === s.item.id,
-                        }}
-                      ></View>
-                      <View as="div" scope={s}>
-                        <View as="strong" scope={s}>
-                          <View as="span" scope={s} text={s.item.name}></View>
-                          <View as="span" scope={s} text={s.item.phone}></View>
-                          <View as="small" scope={s} show={s.item.default}>
-                            {"默认"}
-                          </View>
-                        </View>
-                        <View
-                          as="p"
-                          scope={s}
-                          text={s.addressText(s.item)}
-                        ></View>
-                      </View>
-                    </View>
-                    <View
-                      as="button"
-                      scope={s}
-                      className="print-address-edit"
-                      disabled={s.disabled}
-                      events={[
-                        {
-                          type: "click",
-                          prevent: false,
-                          stop: false,
-                          self: false,
-                          passive: false,
-                          run: function (scope, $event, $el) {
-                            scope.editAddress(scope.item.id);
-                          },
-                        },
-                      ]}
-                    >
-                      {"编辑"}
-                    </View>
-                  </View>
-                </>
-              </>
-            )}
-          </Repeat>
-        </View>
-        <View as="footer" scope={s} className="print-footer">
-          <View
-            as="button"
-            scope={s}
-            className="print-primary"
-            disabled={s.disabled}
-            events={[
-              {
-                type: "click",
-                prevent: false,
-                stop: false,
-                self: false,
-                passive: false,
-                run: function (scope, $event, $el) {
-                  scope.editAddress();
-                },
-              },
-            ]}
-          >
-            {"添加新地址"}
-          </View>
-        </View>
-      </View>
+      {s.view === "addresses" && <PrintAddressBook addresses={s.bookAddresses}
+        selectedId={s.bookSelection?.id} ready={s.store.ready} disabled={s.disabled}
+        onSelect={id => s.selectAddress(id)} onEdit={id => s.editAddress(id)} />}
       <View
         as="div"
         scope={s}

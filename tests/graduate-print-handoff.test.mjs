@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createController, getStore, registerStore, storageValue } from "../src/runtime/state.js";
 import { graduatePrintPath, graduateCropReady, goGraduate } from "../src/domain/graduate-print.js";
+import { printDraftSeed } from "../src/domain/print.js";
 import { normalizeOrders } from "../src/domain/orders.js";
 
 const owner = "existing-owner";
@@ -25,18 +26,24 @@ function setup(status, count = 12) {
     get length() { return entries.length; },
     pushState(state, _, path) { entries.splice(++cursor, Infinity, { path, state }); },
     replaceState(state, _, path) { entries[cursor] = { path, state }; },
-    back() { if (cursor > 0) { cursor--; window.dispatchEvent(new Event("popstate")); } },
+    go(delta) {
+      const next = cursor + delta;
+      if (next >= 0 && next < entries.length) { cursor = next; window.dispatchEvent(new Event("popstate")); }
+    },
+    back() { this.go(-1); },
   };
   const old = photos("original-", 10);
   registerStore("account", { session: null });
   registerStore("printLibrary", {
-    ready: true, orders: status ? [{ owner, id: "old", kind: "graduate", status, address: { ...address, name: "原单收件人" },
+    ready: true, draft: printDraftSeed(), addresses: [],
+    orders: status ? [{ owner, id: "old", kind: "graduate", status, address: { ...address, name: "原单收件人" },
       quantity: 10, total: 7000, base: 600, shipping: 1000, photo: old[0].output, graduatePhotos: old.map(p => p.output) }] : [],
     graduateDrafts: { [owner]: { orderId: status ? "old" : null, photos: old, address: {} },
       guest: { orderId: null, photos: photos("guest-", count), address: {} } },
     fail: false,
     async commit(update) {
-      const next = storageValue({ graduateDrafts: this.graduateDrafts, orders: this.orders });
+      const next = storageValue({ graduateDrafts: this.graduateDrafts, orders: this.orders,
+        addresses: this.addresses, draft: this.draft });
       update(next);
       if (this.fail) throw Error("storage unavailable");
       Object.assign(this, next);
@@ -46,11 +53,179 @@ function setup(status, count = 12) {
   instance.start();
   return { s: instance.scope, store: getStore("printLibrary"), instance };
 }
+
+function mountPrintStudio(t) {
+  registerStore("photoLibrary", { ready: true, busy: false, finished: [] });
+  const controller = createController("printStudio", [], { page: "print" });
+  controller.setElement({ querySelectorAll: () => [] });
+  controller.start();
+  t.after(() => controller.stop());
+  return controller.scope;
+}
+
+test("six-inch gallery returns to the selected product image without changing photos or crops", async t => {
+  const { s, instance } = setup(null, 12);
+  t.after(() => instance.stop());
+  mountPrintStudio(t);
+  let focus = "";
+  instance.refs.productImage = { focus() { focus = "product"; } };
+  instance.refs.productViewer = { querySelector() { return { focus() { focus = "viewer"; } }; } };
+  const before = storageValue(s.photos);
+  s.openProductImage();
+  await wait();
+  assert.equal(focus, "viewer");
+  assert.equal(s.panel, "gallery");
+  assert.equal(getStore("printUi").preview, true);
+  s.selectProductImage("group");
+  assert.equal(s.galleryItem.label, "毕业合影");
+  s.closeProductImage();
+  await wait();
+  assert.equal(s.panel, "");
+  assert.equal(focus, "product");
+  assert.equal(getStore("printUi").preview, false);
+  assert.equal(s.galleryItem.label, "毕业合影");
+  s.openProductImage();
+  history.back();
+  assert.equal(s.panel, "");
+  assert.deepEqual(storageValue(s.photos), before);
+  s.confirm();
+  assert.equal(s.quote.total, 8200);
+});
+
+test("graduate checkout selects from the standard book and returns to the same cropped draft", async t => {
+  const { s, store, instance } = setup(null);
+  t.after(() => instance.stop());
+  const studio = mountPrintStudio(t);
+  const other = { ...address, id: "other", name: "第二位收件人", default: false };
+  store.addresses = [other, { ...address, id: "default", default: true }];
+  store.draft.addressId = "default";
+  const before = storageValue(s.photos);
+  s.confirm();
+  assert.equal(s.checkoutAddress.id, "default");
+  s.openAddresses();
+  assert.equal(studio.view, "addresses");
+  assert.equal(studio.title, "收货地址");
+  assert.equal(studio.bookSelection.id, "default");
+  assert.equal(studio.bookAddresses.length, 2);
+  store.fail = true;
+  await studio.selectAddress("other");
+  assert.equal(studio.view, "addresses");
+  assert.match(studio.error, /重试/);
+  assert.equal(studio.bookSelection.id, "default");
+  store.fail = false;
+  await studio.selectAddress("other");
+  assert.equal(location.pathname + location.search, graduatePrintPath + "&print=confirm");
+  assert.equal(s.checkoutAddress.id, "other");
+  assert.equal(store.draft.addressId, "default");
+  assert.deepEqual(storageValue(s.photos), before);
+  assert.equal(s.quote.total, 8200);
+  s.openAddresses();
+  studio.editAddress("default");
+  studio.addressFields.street = "不会保存的地址";
+  studio.back();
+  assert.equal(studio.view, "addresses");
+  history.back();
+  assert.equal(s.checkoutAddress.id, "other");
+  assert.equal(store.addresses.find(item => item.default).street, address.street);
+  history.back();
+  assert.equal(s.view, "work");
+});
+
+test("empty shared book validates, adds and edits addresses without creating extra checkout history", async t => {
+  const { s, store, instance } = setup(null, 10);
+  t.after(() => instance.stop());
+  const studio = mountPrintStudio(t);
+  s.confirm();
+  s.requestPayment();
+  assert.equal(s.addressError, "请先选择收货地址");
+  s.openAddresses();
+  assert.equal(studio.bookAddresses.length, 0);
+  studio.editAddress();
+  assert.equal(studio.addressFields.default, true);
+  Object.assign(studio.addressFields, address, { phone: "123" });
+  await studio.saveAddress();
+  assert.match(studio.addressError, /手机号码/);
+  assert.equal(studio.view, "address");
+  studio.addressFields.phone = address.phone;
+  store.fail = true;
+  await studio.saveAddress();
+  assert.match(studio.addressError, /重试/);
+  assert.equal(studio.addressFields.name, address.name);
+  assert.equal(store.addresses.length, 0);
+  store.fail = false;
+  await studio.saveAddress();
+  const selectedId = s.checkoutAddress.id;
+  assert.ok(selectedId);
+  assert.equal(s.addressError, "");
+  assert.equal(store.addresses[0].id, selectedId);
+  assert.equal(location.searchParams.get("view"), "graduate");
+  s.openAddresses();
+  studio.editAddress(selectedId);
+  studio.addressFields.street = "测试大道二十号";
+  await studio.saveAddress();
+  assert.equal(s.checkoutAddress.street, "测试大道二十号");
+  assert.equal(s.checkoutAddress.id, selectedId);
+  assert.equal(store.addresses.length, 1);
+  assert.equal(store.draft.addressId, null);
+  assert.equal(s.quote.total, 7000);
+  history.back();
+  assert.equal(s.view, "work");
+  s.confirm();
+  assert.equal(s.checkoutAddress.id, selectedId);
+});
+
+test("legacy typed address can be completed in the book and original orders keep their own snapshot", async t => {
+  const { s, store, instance } = setup("pending", 10);
+  t.after(() => instance.stop());
+  const studio = mountPrintStudio(t);
+  store.graduateDrafts.guest.address = { name: "旧草稿收件人" };
+  const original = storageValue(store.orders[0].address);
+  s.confirm();
+  s.openAddresses();
+  assert.equal(studio.bookAddresses[0].name, "旧草稿收件人");
+  assert.equal(store.addresses.length, 0);
+  await studio.selectAddress(null);
+  assert.equal(studio.view, "address");
+  assert.equal(studio.addressFields.name, "旧草稿收件人");
+  Object.assign(studio.addressFields, address);
+  await studio.saveAddress();
+  assert.ok(s.checkoutAddress.id);
+  getStore("account").session = { phone: owner };
+  goGraduate(graduatePrintPath + "&print=confirm&order=old");
+  s.openAddresses();
+  assert.equal(location.searchParams.get("order"), "old");
+  assert.deepEqual(storageValue(s.checkoutAddress), original);
+  assert.deepEqual(storageValue(store.orders[0].address), original);
+});
+
+test("graduate payment freezes the chosen book address for original-order recovery", async t => {
+  const { s, store, instance } = setup(null);
+  t.after(() => instance.stop());
+  const studio = mountPrintStudio(t);
+  getStore("account").session = { phone: owner };
+  store.addresses = [{ ...address, id: "home", default: true }, { ...address, id: "campus", street: "测试校区八号楼" }];
+  s.confirm();
+  s.openAddresses();
+  await studio.selectAddress("campus");
+  s.outcome = "unavailable";
+  s.requestPayment();
+  assert.equal(s.panel, "payment");
+  await s.pay();
+  assert.equal(s.order.status, "pending");
+  assert.equal(s.order.total, 7000);
+  assert.equal(s.order.graduatePhotos.length, 10);
+  assert.equal(s.order.address.id, "campus");
+  store.addresses[1].street = "测试校区九号楼";
+  s.sync();
+  assert.equal(s.checkoutAddress.street, "测试校区八号楼");
+  s.openAddresses();
+  assert.equal(location.searchParams.get("print"), "confirm");
+});
 for (const status of ["pending", "verifying"]) test("guest login preserves both selections with a " + status + " order", async () => {
   const { s, store, instance } = setup(status);
   try {
     s.confirm();
-    s.fields = { ...address };
+    store.graduateDrafts.guest.address = { ...address };
     s.requestPayment();
     await wait();
     assert.equal(location.searchParams.get("page"), "account");
@@ -69,7 +244,7 @@ for (const status of ["pending", "verifying"]) test("guest login preserves both 
     s.viewGuestOrder();
     assert.equal(location.searchParams.get("order"), "old");
     assert.equal(s.order.total, 7000);
-    assert.equal(s.fields.name, originalOrder.address.name);
+    assert.equal(s.checkoutAddress.name, originalOrder.address.name);
     assert.equal(s.guestDraft.photos.length, 12);
     await s.back();
     assert.equal(s.panel, "guestChoice");
@@ -84,7 +259,7 @@ for (const status of ["pending", "verifying"]) test("guest login preserves both 
     assert.equal(location.searchParams.get("guest"), null);
     assert.equal(s.draft.orderId, null);
     assert.equal(s.guestDraft, undefined);
-    assert.equal(s.fields.name, address.name);
+    assert.equal(s.checkoutAddress.name, address.name);
     assert.equal(s.quote.total, 8200);
     assert.equal(s.waiting.length, 0);
     assert.deepEqual(s.photos.map(p => p.id), photos("guest-", 12).map(p => p.id));

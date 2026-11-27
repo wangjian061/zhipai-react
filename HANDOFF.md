@@ -22,7 +22,7 @@
 
 历史还原基线 **11.25-1** 基于 11.24-1（`7db0f45`），准确提交由 `prototype/2026/11.25-1` 解析。从「其它采集 → 搜索查找机构」核对单项目名片、多项目分组、分页和详情返回。当前预览有 3 家单项目机构，多项目与超过 10 家的情况由测试数据覆盖。三端重点验收初始键盘状态、触屏上拉和返回后的焦点。[机构目录](docs/product/pages/collection.search.md#机构目录) · [原型交付台账](docs/releases/prototype-deliveries.md)
 
-当前三端还原基线 **11.26-1** 基于 11.25-1（`7ccd33a`），以 `prototype/2026/11.26-1` 定位。按 V1.4.6 核对独立搜索的输入与返回、扫码帮助的大图与目录逐层返回、任务抽屉和两类记录空态，以及三项定制的邮箱外跳确认。毕业照冲印需分别验证连续裁剪、查看账号旧单和保留本次照片三条操作。真机重点核对软键盘、相机权限恢复及邮件客户端外跳。[分类采集](docs/product/pages/collection.projects.md) · [扫码指引](docs/product/pages/scan.md) · [毕业照片冲印](docs/product/pages/print.graduate.md) · [原型交付台账](docs/releases/prototype-deliveries.md)
+当前三端还原基线 **11.27-1** 基于 11.26-1（`e8073ac`），以 `prototype/2026/11.27-1` 定位。按 V1.4.6 核对毕业照片 6 寸冲印的成品画廊与选图底栏。选满 10 张并逐张裁好后，在确认订单页点收货地址，验证选择已有地址、新增并使用、取消返回三个操作。回到本单后检查照片、裁剪与金额。另从订单列表打开既有订单，核对下单时的地址。[毕业照片冲印](docs/product/pages/print.graduate.md) · [收货地址](docs/product/pages/print.addresses.md) · [原型交付台账](docs/releases/prototype-deliveries.md)
 
 新版 [DESIGN.md](DESIGN.md) 对齐（本地）：订单详情与「解锁照片」的顶部和滚动已通过前一轮试点验收。常规白底二级页及订单隔离样例的返回按钮默认只显示20px深蓝箭头，保留44px触区，按压显示浅灰圆底。带头图、专项任务、分享、全屏相机和深色查看层保留原圆底控件。清除首页旧 Toast，专项采集状态色和相机画布改用公共令牌。
 

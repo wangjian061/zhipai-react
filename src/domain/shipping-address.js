@@ -47,6 +47,19 @@ export function cleanShippingAddress(fields, id) {
     clean[key] = String(fields[key] || "").trim();
   return clean;
 }
+
+export function draftShippingAddress(saved, addresses = []) {
+  const selected = saved?.id && addresses.find(address => address.id === saved.id);
+  if (selected) return selected;
+  const typed = cleanShippingAddress(saved || {}, null);
+  if (SHIPPING_ADDRESS_FIELDS.some(({ key }) => typed[key])) {
+    // Older graduate drafts contain typed fields without an address-book ID.
+    const match = addresses.find(address => SHIPPING_ADDRESS_FIELDS.every(({ key }) =>
+      String(address[key] || "").trim() === typed[key]));
+    return match || typed;
+  }
+  return addresses.find(address => address.default) || addresses[0] || null;
+}
 export function shippingAddressIssue(clean) {
   if (!clean.name || clean.name.length > 30)
     return { fields: ["name"], message: "请填写收件人姓名，最多30字。" };

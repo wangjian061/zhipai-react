@@ -27,12 +27,50 @@ const { PrintShowroom, showroomSwipeProduct, openPrintProduct, clearPrintReturn 
 const { CodeGuide } = await server.ssrLoadModule("/src/components/ChsiCodeGuide.jsx");
 const { default: SchoolDock } = await server.ssrLoadModule("/src/components/CollectionSchoolDock.jsx");
 const { default: UniversityLanding, GraduateHeroRail } = await server.ssrLoadModule("/src/pages/UniversityCollectionPage.jsx");
+const { GraduatePrintScreen } = await server.ssrLoadModule("/src/pages/GraduatePrintPage.jsx");
+const { default: PrintAddressBook } = await server.ssrLoadModule("/src/components/PrintAddressBook.jsx");
 const bytes = new Blob(["photo"], { type: "image/jpeg" });
 function photo(id, orientation = "landscape") {
   const [width, height] = graduateRatio(orientation);
   return { id, crop: { orientation, scale: 1.2, offsetX: 7, offsetY: 0 },
     output: { width: width * 600, height: height * 600, blob: bytes } };
 }
+
+test("six-inch product uses the layout print gallery, specification card and selection footer", () => {
+  registerStore("account", { session: null });
+  registerStore("printLibrary", { ready: true, addresses: [], orders: [], graduateDrafts: {
+    guest: { photos: [], address: {}, orderId: null },
+  } });
+  const { scope } = createController("graduatePrint");
+  const render = () => renderToStaticMarkup(React.createElement(GraduatePrintScreen, { s: scope }));
+  const empty = render();
+  assert.match(empty, /print-gallery-stage.*print-gallery-rail.*keepsake-product-spec/s);
+  assert.match(empty, /成品实拍.*毕业合影.*六寸光面照片冲印.*起印价格.*¥60\.00.*加印.*¥6\.00.*运费.*¥10\.00/s);
+  assert.doesNotMatch(empty, /每张请手动裁剪|横版 3∶2|已选照片|去确认订单/);
+  assert.match(empty, /data-selected="false".*上传照片/s);
+  scope.store.graduateDrafts.guest.photos = Array.from({ length: 12 }, (_, n) => photo(String(n)));
+  scope.store.graduateDrafts.guest.photos[1].output = null;
+  scope.store.graduateDrafts.guest.photos[1].source = { name: "示例照片", blob: bytes };
+  const selected = render();
+  assert.match(selected, /已选照片.*待裁剪 6 寸/s);
+  assert.match(selected, /已选 12 张 · 待裁 1 张.*¥72\.00.*添加照片.*去确认订单/s);
+  scope.view = "confirm";
+  const confirm = render();
+  assert.match(confirm, /print-address-entry.*添加收货地址/s);
+  assert.match(confirm, /运费.*¥10\.00.*合计.*¥82\.00/s);
+  assert.doesNotMatch(confirm, /print-address-form|print-fields|<textarea/);
+});
+
+test("the shared address book distinguishes the current recipient and the default address", () => {
+  const addresses = [
+    { id: "a", name: "甲", phone: "13800000000", region: "示例市东区", street: "示例路甲号", default: true },
+    { id: "b", name: "乙", phone: "13900000000", region: "示例市西区", street: "示例路乙号", default: false },
+  ];
+  const html = renderToStaticMarkup(React.createElement(PrintAddressBook, { addresses, selectedId: "b", ready: true }));
+  assert.match(html, /aria-pressed="false".*甲.*默认.*aria-pressed="true".*乙/s);
+  assert.equal((html.match(/class="print-address-edit"/g) || []).length, 2);
+  assert.match(html, /<footer.*添加新地址/s);
+});
 
 test("graduation prints begin at 10 photos and charge shipping separately", () => {
   assert.equal(graduateQuote(9), null);
@@ -69,7 +107,8 @@ test("confirmation and return reuse the account draft and preserve the checkout 
     replaceState(_state, _title, next) { url = new URL(next, url); },
   };
   const selected = Array.from({ length: 12 }, (_, n) => photo(String(n)));
-  const data = { orders: [], addresses: [], graduateDrafts: { [owner]: { photos: selected, address: {}, orderId: null } } };
+  const data = { orders: [], addresses: [], graduateDrafts: { [owner]: {
+    photos: selected, address: { name: "测试收件人" }, orderId: null } } };
   registerStore("account", { session: { phone: owner } });
   registerStore("printLibrary", { ...data, ready: true, async commit(update) { update(data); } });
   const instance = createController("graduatePrint");
@@ -78,14 +117,13 @@ test("confirmation and return reuse the account draft and preserve the checkout 
     const s = instance.scope;
     s.confirm();
     assert.equal(s.view, "confirm");
-    s.fields = { name: "测试收件人" };
     await s.back();
     assert.equal(s.view, "work");
     assert.equal(s.photos.length, 12);
     assert.equal(s.waiting.length, 0);
     s.confirm();
     assert.equal(s.view, "confirm");
-    assert.equal(s.fields.name, "测试收件人");
+    assert.equal(s.checkoutAddress.name, "测试收件人");
   } finally { instance.stop(); }
 });
 

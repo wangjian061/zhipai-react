@@ -5,11 +5,15 @@ import { renderPhotoBlob, uploadedPhoto } from "./album.js";
 import { paymentResult } from "./order-status.js";
 import { checkoutMethod, createHandoff, finishHandoff, handoffStatus, lockPayment, presentHandoff } from "./payment-handoff.js";
 import { cleanCrop, printAddressCopy, printId, printPhotoCopy, updatePrintTransaction } from "./print.js";
-import { cleanShippingAddress, shippingAddressError } from "./shipping-address.js";
+import { cleanShippingAddress, draftShippingAddress, shippingAddressError } from "./shipping-address.js";
 
 export const graduatePrintPath = "/?page=print&view=graduate";
 export const graduatePrintTitle = "毕业照片 6 寸冲印";
 export const graduatePrintPrices = { minimum: 10, base: 6000, additional: 600, shipping: 1000 };
+export const graduateProductImages = [
+  { id: "product", label: "成品实拍", image: "/assets/print-graduate-6inch-sample.webp" },
+  { id: "group", label: "毕业合影", image: "/assets/print-hero-graduate-6inch.webp" },
+];
 const emptyDraft = { photos: [], address: {}, orderId: null };
 const supportedTypes = ["image/jpeg", "image/png", "image/webp"];
 const maxPhotoBytes = 30 * 1048576;
@@ -67,6 +71,8 @@ registerController("graduatePrint", () => ({
   orderId: "",
   busy: false,
   panel: "",
+  productImage: graduateProductImages[0].id,
+  galleryClosing: false,
   selection: [],
   cropId: "",
   cropNotice: "",
@@ -75,7 +81,6 @@ registerController("graduatePrint", () => ({
   error: "",
   addressError: "",
   highlight: "",
-  fields: {},
   method: "wechat",
   outcome: "success",
   resolution: "unknown",
@@ -83,6 +88,10 @@ registerController("graduatePrint", () => ({
   get owner() { return this.$store.account.session?.phone || ""; },
   get key() { return this.owner || "guest"; },
   get draft() { return this.store.graduateDrafts?.[this.key] || emptyDraft; },
+  get galleryItem() { return graduateProductImages.find(item => item.id === this.productImage); },
+  get checkoutAddress() {
+    return this.order ? this.order.address : draftShippingAddress(this.draft.address, this.store.addresses);
+  },
   get order() { return this.owner ? this.store.orders.find((order) =>
     order.kind === "graduate" && order.id === (this.orderId || this.draft.orderId) && order.owner === this.owner) : null; },
   get photos() { return this.draft.photos; },
@@ -108,6 +117,7 @@ registerController("graduatePrint", () => ({
   destroy() {
     window.removeEventListener("zhipai-route", this.onRoute);
     window.removeEventListener("popstate", this.onRoute);
+    if (this.panel === "gallery") this.$store.printUi.preview = false;
   },
   sync() {
     this.transferringGuest = false;
@@ -129,7 +139,9 @@ registerController("graduatePrint", () => ({
     const next = params.get("print");
     this.orderId = params.get("order") || "";
     this.view = next === "confirm" || next === "complete" ? next : "work";
+    const wasGallery = this.panel === "gallery";
     this.panel = "";
+    this.galleryClosing = false;
     this.error = "";
     this.highlight = "";
     this.addressError = "";
@@ -142,11 +154,41 @@ registerController("graduatePrint", () => ({
       goGraduate(this.order ? checkoutPath("confirm", this.order.id) : graduatePrintPath, true);
       return;
     }
-    this.fields = { ...(this.order?.address || this.draft.address) };
     if (this.order?.method) this.method = this.order.method;
     if (this.store.ready && !this.order && this.view !== "work" && graduateCheckoutIssue(this.photos)) {
       goGraduate(graduatePrintPath, true);
+      return;
     }
+    const imageId = history.state?.graduateProductImage;
+    if (this.view === "work" && graduateProductImages.some(item => item.id === imageId)) {
+      this.productImage = imageId;
+      this.panel = "gallery";
+      this.$store.printUi.preview = true;
+      if (!wasGallery) this.$nextTick(() => this.$refs.productViewer?.querySelector("button")?.focus());
+    } else if (wasGallery) {
+      this.$store.printUi.preview = false;
+      this.$nextTick(() => this.$refs.productImage?.focus({ preventScroll: true }));
+    } else if (this.view === "confirm" && history.state?.focusGraduateAddress) {
+      const state = { ...history.state };
+      delete state.focusGraduateAddress;
+      history.replaceState(state, "", location.href);
+      this.$nextTick(() => this.$refs.graduateAddress?.focus());
+    }
+  },
+  selectProductImage(id) {
+    if (this.galleryClosing || !graduateProductImages.some(item => item.id === id)) return;
+    this.productImage = id;
+    if (this.panel === "gallery")
+      history.replaceState({ ...history.state, graduateProductImage: id }, "", location.href);
+  },
+  openProductImage() {
+    if (this.view !== "work" || this.panel || !this.store.ready || this.busy) return;
+    goGraduate(currentPath(), false, { graduateProductImage: this.productImage });
+  },
+  closeProductImage() {
+    if (this.panel !== "gallery" || this.galleryClosing) return;
+    this.galleryClosing = true;
+    history.back();
   },
   updateDraft(key, update) {
     if (key !== this.key) throw Error("账号已切换");
@@ -175,9 +217,13 @@ registerController("graduatePrint", () => ({
     } catch { this.error = "照片暂未保存，请重试。"; }
     finally { this.busy = false; }
   },
-  append(key, sources, origin) {
+  async append(key, sources, origin) {
     const entries = sources.map((source) => ({ id: printId(), source: printPhotoCopy(source), origin, crop: null, output: null }));
-    return this.updateDraft(key, (previous) => ({ photos: [...previous.photos, ...entries] }));
+    await this.updateDraft(key, (previous) => ({ photos: [...previous.photos, ...entries] }));
+    this.$nextTick(() => {
+      if (this.active && this.key === key && this.view === "work" && !this.panel && entries.length)
+        this.$refs[`photo-${entries[0].id}`]?.scrollIntoView({ block: "nearest" });
+    });
   },
   async addAlbum() {
     if (!this.editable || !this.selection.length || !this.owner) return;
@@ -248,8 +294,16 @@ registerController("graduatePrint", () => ({
     }
     goGraduate(checkoutPath("confirm"));
   },
-  async back() {
+  openAddresses() {
+    if (!this.editable || this.view !== "confirm") return;
+    history.replaceState({ ...history.state, focusGraduateAddress: true }, "", location.href);
+    goGraduate("/?page=print&print=addresses&back=graduate", false, {
+      ...universityPrintHistory(false), graduateAddressDepth: 1, graduateAddressOwner: this.key,
+    });
+  },
+  back() {
     if (this.busy) return;
+    if (this.panel === "gallery") { this.closeProductImage(); return; }
     if (this.order && history.state?.graduateGuestChoice === this.order.id) {
       history.back();
       return;
@@ -258,10 +312,6 @@ registerController("graduatePrint", () => ({
       if (!returnToUniversityPrint()) goGraduate(universityPath);
       return;
     }
-    if (!this.order) {
-      try { await this.updateDraft(this.key, () => ({ address: { ...this.fields } })); }
-      catch { this.error = "收货地址暂未保存，请重试。"; return; }
-    }
     goGraduate(graduatePrintPath);
   },
   requestPayment() {
@@ -269,14 +319,15 @@ registerController("graduatePrint", () => ({
     if (this.order?.status === "verifying") { void this.resolvePayment(); return; }
     if (this.order?.status === "pending") { this.panel = "payment"; return; }
     if (graduateCheckoutIssue(this.photos)) { goGraduate(graduatePrintPath); return; }
-    this.addressError = shippingAddressError(cleanShippingAddress(this.fields)) || "";
-    if (this.addressError) {
-      this.$nextTick(() => this.$refs.graduateAddress?.querySelector('[aria-invalid="true"]')?.focus());
+    const address = this.checkoutAddress;
+    if (!address || shippingAddressError(cleanShippingAddress(address))) {
+      this.addressError = address ? "请补全收货地址" : "请先选择收货地址";
+      this.$nextTick(() => this.$refs.graduateAddress?.focus());
       return;
     }
     if (!this.owner) {
       const url = checkoutPath("confirm") + "&guest=1";
-      void this.updateDraft(this.key, () => ({ address: { ...this.fields } })).then(() => accountRoute("welcome", url))
+      void this.updateDraft(this.key, () => ({ address: printAddressCopy(address) })).then(() => accountRoute("welcome", url))
         .catch(() => { this.error = "草稿暂未保存，请重试。"; });
       return;
     }
@@ -338,7 +389,8 @@ registerController("graduatePrint", () => ({
     let release;
     try {
       release = lockPayment("print:" + id);
-      const address = cleanShippingAddress(this.fields, printId());
+      const selected = this.checkoutAddress;
+      const address = cleanShippingAddress(selected || {}, selected?.id || printId());
       if (!existing && (graduateCheckoutIssue(this.photos) || shippingAddressError(address))) throw Error();
       const now = new Date().toISOString();
       let amount = existing?.total;
@@ -394,7 +446,7 @@ registerController("graduatePrint", () => ({
   async restart() {
     if (this.busy || !this.order?.paidAt) return;
     try {
-      const address = this.fields.default ? { ...this.fields } : {};
+      const address = this.checkoutAddress?.default ? printAddressCopy(this.checkoutAddress) : {};
       if (this.draft.orderId === this.order.id)
         await this.updateDraft(this.key, () => ({ photos: [], address, orderId: null }));
       goGraduate(graduatePrintPath, true);

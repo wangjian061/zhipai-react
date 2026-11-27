@@ -682,7 +682,9 @@
             },
             "graduatePrint": {
               "route": "/?page=print&view=graduate",
-              "sharedUI": ["ToolNavigation", "SharedSheet", "FixedPhotoCrop", "ShippingAddressFields", "PaymentHandoff"],
+              "sharedUI": ["ToolNavigation", "PrintProductGallery", "PrintGalleryViewer", "PrintProductSpecs", "PhotoSelectionActions", "SharedSheet", "FixedPhotoCrop", "PrintAddressEntry", "PrintAddressBook", "ShippingAddressFields", "PaymentHandoff"],
+              "productViews": ["成品实拍", "毕业合影"],
+              "shippingAddress": "Show the delivery summary at checkout. Reuse the layout print address book and editor, return to the originating draft after selection or save, and keep the address on submitted orders frozen.",
               "photoRatios": ["3:2", "2:3"],
               "minimumQuantity": 10,
               "pendingCropGuidance": "show remaining count, locate the first pending photo and keep the count visible during consecutive crops",
